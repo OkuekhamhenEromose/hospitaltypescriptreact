@@ -1,0 +1,522 @@
+BEFORE CACHING AND OPTIMIZATION
+
+Authcontext.tsx
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import type { User, LoginData, RegisterData, AuthResponse, DashboardResponse } from '../services/auth';
+import { apiService } from '../services/api';
+
+interface AuthContextType {
+  user: User | null;
+  login: (data: LoginData) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => void;
+  loading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      loadUser();
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadUser = async () => {
+    try {
+      const response = await apiService.getDashboard();
+      console.log('Dashboard response:', response);
+      
+      // Type assertion to handle the response structure
+      const dashboardResponse = response as DashboardResponse;
+      
+      // The response is { user: { ... } } so extract the user object
+      if (dashboardResponse.user) {
+        setUser(dashboardResponse.user);
+      } else {
+        console.error('Unexpected response structure:', response);
+        throw new Error('Invalid response structure from server');
+      }
+    } catch (error) {
+      console.error('Failed to load user:', error);
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (data: LoginData) => {
+    const response: AuthResponse = await apiService.login(data);
+    localStorage.setItem('access_token', response.access);
+    localStorage.setItem('refresh_token', response.refresh);
+    
+    // Login response has user at root, but we need to load full profile
+    await loadUser();
+  };
+
+  const register = async (data: RegisterData) => {
+    try {
+      await apiService.register(data);
+      await login({ username: data.username, password: data.password1 });
+    } catch (error: any) {
+      console.error('Registration failed:', error);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await apiService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+
+API.TS
+
+  import type { LoginData, RegisterData, AuthResponse, DashboardResponse } from './auth';
+
+const API_BASE_URL = 'http://localhost:8000/api';
+
+class ApiService {
+  private async request(endpoint: string, options: RequestInit = {}) {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const token = localStorage.getItem('access_token');
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    } as HeadersInit;
+
+    if (token) {
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
+
+    const config = {
+      ...options,
+      headers,
+    };
+
+    const response = await fetch(url, config);
+    if (!response.ok) {
+      let errorMessage = `API error: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.detail || errorData.error || JSON.stringify(errorData);
+      } catch {
+        errorMessage = response.statusText || `API error: ${response.status}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  async login(loginData: LoginData): Promise<AuthResponse> {
+    return this.request('/users/login/', {
+      method: 'POST',
+      body: JSON.stringify(loginData),
+    });
+  }
+
+  async register(registerData: RegisterData): Promise<any> {
+    return this.request('/users/register/', {
+      method: 'POST',
+      body: JSON.stringify(registerData),
+    });
+  }
+
+  async logout(): Promise<void> {
+    const refreshToken = localStorage.getItem('refresh_token');
+    
+    if (!refreshToken) {
+      console.log('No refresh token found, clearing local storage');
+      this.clearLocalStorage();
+      return;
+    }
+
+    try {
+      await this.request('/users/logout/', {
+        method: 'POST',
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
+    } catch (error) {
+      console.log('Logout API call failed, clearing local storage anyway:', error);
+    } finally {
+      this.clearLocalStorage();
+    }
+  }
+
+  private clearLocalStorage(): void {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+  }
+
+  async getDashboard(): Promise<DashboardResponse> {
+    return this.request('/users/dashboard/');
+  }
+
+  // Hospital endpoints
+  async getAppointments() {
+    return this.request('/hospital/appointments/');
+  }
+
+  async createAppointment(data: any) {
+    return this.request('/hospital/appointments/create/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getTestRequests() {
+    return this.request('/hospital/test-requests/');
+  }
+
+  async createTestRequest(data: any) {
+    return this.request('/hospital/test-requests/create/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getVitalRequests() {
+    return this.request('/hospital/vital-requests/');
+  }
+
+  async createVitalRequest(data: any) {
+    return this.request('/hospital/vital-requests/create/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createVitals(data: any) {
+    return this.request('/hospital/vitals/create/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createLabResult(data: any) {
+    return this.request('/hospital/lab-results/create/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createMedicalReport(data: any) {
+    return this.request('/hospital/medical-reports/create/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+  
+}
+
+export const apiService = new ApiService();
+
+export default ApiService;
+
+
+DASHBOARDROUTER.tsx
+
+import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import PatientDashboard from './role_based_dashboards/PatientDashboard';
+import DoctorDashboard from './role_based_dashboards/DoctorDashboard';
+import NurseDashboard from './role_based_dashboards/NurseDashboard';
+import LabScientistDashboard from './role_based_dashboards/LabscientistDashboard';
+import AdminDashboard from './role_based_dashboards/AdminDashboard';
+import LoadingSpinner from '../components/LoadSpinner';
+
+const DashboardRouter: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!user) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Please log in to access the dashboard</h2>
+          <p className="text-gray-600">You need to be authenticated to view this page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Debug: Log the full user object to see the structure
+  console.log('Full user object:', user);
+  
+  // Extract role from the nested structure
+  // The structure is: user.profile.role
+  const userRole = user.profile?.role;
+
+  console.log('User role:', userRole);
+
+  switch (userRole) {
+    case 'PATIENT':
+      return <PatientDashboard />;
+    case 'DOCTOR':
+      return <DoctorDashboard />;
+    case 'NURSE':
+      return <NurseDashboard />;
+    case 'LAB':
+      return <LabScientistDashboard />;
+    case 'ADMIN':
+      return <AdminDashboard />;
+    default:
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Unknown User Role</h2>
+            <p className="text-gray-600">Role: {userRole || 'Not specified'}</p>
+            <p className="text-sm text-gray-500 mt-2">
+              User data: {JSON.stringify(user, null, 2)}
+            </p>
+            <p className="text-sm text-gray-500 mt-2">Please contact support for assistance.</p>
+          </div>
+        </div>
+      );
+  }
+};
+
+export default DashboardRouter;
+
+LOADSPINNER.TSX 
+
+import React from 'react';
+
+const LoadingSpinner: React.FC = () => {
+  return (
+    <div className="flex justify-center items-center h-64">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+  );
+};
+
+export default LoadingSpinner;
+
+APP.TSX
+
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Layout from './components/Layout';
+import Home from './pages/home/Home';
+import AboutUs from './pages/About';
+import AuthModal from './pages/authform/AuthModal';
+import DashboardRouter from './pages/DashboardRouter';
+
+const AppContent: React.FC = () => {
+  const { user } = useAuth();
+  const [currentPage, setCurrentPage] = useState('home');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  const renderPage = () => {
+    // If user is logged in, show their dashboard using DashboardRouter
+    if (user) {
+      return <DashboardRouter />;
+    }
+
+    // If user is not logged in, show public pages
+    switch (currentPage) {
+      case 'about':
+        return <AboutUs />;
+      case 'home':
+      default:
+        return <Home />;
+    }
+  };
+
+  return (
+    <>
+      <Layout 
+        currentPage={currentPage} 
+        onNavigate={setCurrentPage}
+        onLoginClick={() => setShowAuthModal(true)}
+      >
+        {renderPage()}
+      </Layout>
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
+    </>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+};
+
+export default App;
+
+
+
+
+
+zip cash
+
+import {
+  Box,
+  Container,
+  Flex,
+  Heading,
+  Image,
+  Text,
+} from "@chakra-ui/react";
+import { Link } from "react-router-dom";
+import CardImage from "../assets/img/zipcashcard.jpg";
+import Premium from "../assets/img/PremiumTrustBank.png";
+
+const ZipCashSection = () => {
+  return (
+    <Box
+      bg="white"
+      position="relative"
+      overflow="hidden"
+      fontFamily='"Poppins", "Inter", sans-serif'
+      color="black"
+      py={8}
+      mb={8}
+    >
+      <Container maxW="7xl" px={{ base: 4, md: 8 }}>
+        <Flex
+          direction={{ base: "column", lg: "row" }}
+          align="center"
+          justify="space-between"
+          gap={{ base: 8, lg: 12 }}
+          minH={{ base: "auto", lg: "80vh" }}
+        >
+          {/* Left Content */}
+          <Box
+            flex="1"
+            maxW={{ base: "100%", lg: "50%" }}
+            textAlign={{ base: "center", lg: "left" }}
+            zIndex={2}
+          >
+            <Heading
+              as="h1"
+              color="#2b2e32"
+              fontWeight="600"
+              lineHeight="1.2"
+              mb={4}
+              fontSize={{ base: "1.5rem", md: "1.75rem", lg: "2rem" }}
+            >
+              Apply for Your ZipCash Debit Card Today
+            </Heading>
+
+            <Text
+              fontSize={{ base: "md", md: "lg", lg: "xl" }}
+              color="#2b2e32"
+              lineHeight="1.4"
+              maxW={{ base: "100%", lg: "90%" }}
+            >
+              Experience the security and convenience of having a debit card
+              made for Nigerians.
+            </Text>
+
+            {/* Powered by section */}
+            <Box
+              display="flex"
+              alignItems="center"
+              gap={12}
+              justifyContent={{ base: "center", lg: "flex-start" }}
+            >
+              <Heading
+                as="h1"
+                color="#2b2e32"
+                fontWeight="500"
+                lineHeight="1.2"
+                fontSize={{ base: "1.5rem", md: "1.75rem", lg: "2rem" }}
+              >
+                Powered by
+              </Heading>
+              <Image
+                src={Premium}
+                alt="Premium Trust Bank"
+                boxSize={{ base: "120px", md: "150px", lg: "170px" }}
+                objectFit="contain"
+              />
+            </Box>
+
+            <Link
+              to={"/login"}
+              className="btn btn-success rounded-pill py-2 px-4 ms-lg-4"
+            >
+              Apply Now
+            </Link>
+          </Box>
+
+          {/* Right Content - Card Image */}
+          <Box
+            flex="1"
+            position="relative"
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            minH={{ base: "300px", md: "400px", lg: "500px" }}
+          >
+            <Box
+              position="relative"
+              transform={{ base: "rotate(3deg)", lg: "rotate(6deg)" }}
+              transition="transform 0.3s ease"
+              _hover={{
+                transform: {
+                  base: "rotate(1deg) scale(1.02)",
+                  lg: "rotate(4deg) scale(1.02)",
+                },
+              }}
+            >
+              <Image
+                mt={8}
+                bg="white"
+                src={CardImage}
+                alt="ZipCash Debit Card"
+                maxH={{ base: "240px", md: "340px", lg: "460px" }}
+                w="auto"
+                borderRadius="20px"
+              />
+            </Box>
+          </Box>
+        </Flex>
+      </Container>
+    </Box>
+  );
+};
+
+export default ZipCashSection;

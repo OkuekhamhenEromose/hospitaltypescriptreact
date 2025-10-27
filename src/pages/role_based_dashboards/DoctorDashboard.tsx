@@ -67,6 +67,7 @@ const DoctorDashboard: React.FC = () => {
   const loadAppointments = async () => {
     try {
       const data = await apiService.getAppointments();
+      console.log('Loaded appointments for doctor:', data); // Debug log
       setAppointments(data);
     } catch (error) {
       console.error('Failed to load appointments:', error);
