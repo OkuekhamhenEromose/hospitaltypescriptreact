@@ -1,8 +1,8 @@
 // components/dashboards/LabScientistDashboard.tsx
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { apiService } from '../../services/api';
-import { Beaker, Clipboard, Users } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import { apiService } from "../../services/api";
+import { Beaker, Clipboard, Users } from "lucide-react";
 
 interface TestRequest {
   id: number;
@@ -21,14 +21,16 @@ interface TestRequest {
 const LabScientistDashboard: React.FC = () => {
   const { user } = useAuth();
   const [testRequests, setTestRequests] = useState<TestRequest[]>([]);
-  const [selectedRequest, setSelectedRequest] = useState<TestRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<TestRequest | null>(
+    null
+  );
   const [showLabResultForm, setShowLabResultForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [labResultData, setLabResultData] = useState({
-    test_name: '',
-    result: '',
-    units: '',
-    reference_range: ''
+    test_name: "",
+    result: "",
+    units: "",
+    reference_range: "",
   });
 
   useEffect(() => {
@@ -38,14 +40,16 @@ const LabScientistDashboard: React.FC = () => {
   const loadTestRequests = async () => {
     try {
       const data = await apiService.getTestRequests();
+      console.log("Loaded test requests for lab scientist:", data);
       setTestRequests(data);
     } catch (error) {
-      console.error('Failed to load test requests:', error);
+      console.error("Failed to load test requests:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  // components/dashboards/LabScientistDashboard.tsx - Update handleSubmitLabResult
   const handleSubmitLabResult = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRequest) return;
@@ -53,32 +57,45 @@ const LabScientistDashboard: React.FC = () => {
     try {
       await apiService.createLabResult({
         test_request: selectedRequest.id,
-        ...labResultData
+        ...labResultData,
       });
+
       setShowLabResultForm(false);
       setLabResultData({
-        test_name: '',
-        result: '',
-        units: '',
-        reference_range: ''
+        test_name: "",
+        result: "",
+        units: "",
+        reference_range: "",
       });
-      loadTestRequests();
+
+      // Refresh the list
+      await loadTestRequests();
+
+      // Show success message
+      alert("Lab result submitted successfully!");
     } catch (error) {
-      console.error('Failed to submit lab result:', error);
+      console.error("Failed to submit lab result:", error);
+      alert("Failed to submit lab result. Please try again.");
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DONE': return 'bg-green-100 text-green-800';
-      case 'IN_PROGRESS': return 'bg-yellow-100 text-yellow-800';
-      case 'PENDING': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "DONE":
+        return "bg-green-100 text-green-800";
+      case "IN_PROGRESS":
+        return "bg-yellow-100 text-yellow-800";
+      case "PENDING":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-64">Loading...</div>
+    );
   }
 
   return (
@@ -109,7 +126,7 @@ const LabScientistDashboard: React.FC = () => {
             <div className="ml-4">
               <h3 className="text-lg font-semibold">Pending</h3>
               <p className="text-2xl font-bold">
-                {testRequests.filter(r => r.status === 'PENDING').length}
+                {testRequests.filter((r) => r.status === "PENDING").length}
               </p>
             </div>
           </div>
@@ -121,7 +138,7 @@ const LabScientistDashboard: React.FC = () => {
             <div className="ml-4">
               <h3 className="text-lg font-semibold">Completed</h3>
               <p className="text-2xl font-bold">
-                {testRequests.filter(r => r.status === 'DONE').length}
+                {testRequests.filter((r) => r.status === "DONE").length}
               </p>
             </div>
           </div>
@@ -143,26 +160,36 @@ const LabScientistDashboard: React.FC = () => {
               <div key={request.id} className="px-6 py-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h3 className="text-lg font-medium">{request.appointment.name}</h3>
+                    <h3 className="text-lg font-medium">
+                      {request.appointment.name}
+                    </h3>
                     <p className="text-gray-600">
-                      Age: {request.appointment.age} | Gender: {request.appointment.sex === 'M' ? 'Male' : 'Female'}
+                      Age: {request.appointment.age} | Gender:{" "}
+                      {request.appointment.sex === "M" ? "Male" : "Female"}
                     </p>
                     <p className="text-gray-600 mt-1">
                       <strong>Tests Required:</strong> {request.tests}
                     </p>
                     {request.note && (
-                      <p className="text-gray-600 mt-1">Doctor's Note: {request.note}</p>
+                      <p className="text-gray-600 mt-1">
+                        Doctor's Note: {request.note}
+                      </p>
                     )}
                     <p className="text-sm text-gray-500 mt-2">
-                      Requested: {new Date(request.created_at).toLocaleDateString()}
+                      Requested:{" "}
+                      {new Date(request.created_at).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex flex-col items-end space-y-2">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(request.status)}`}>
-                      {request.status.replace('_', ' ')}
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                        request.status
+                      )}`}
+                    >
+                      {request.status.replace("_", " ")}
                     </span>
-                    
-                    {request.status === 'PENDING' && (
+
+                    {request.status === "PENDING" && (
                       <button
                         onClick={() => {
                           setSelectedRequest(request);
@@ -190,15 +217,22 @@ const LabScientistDashboard: React.FC = () => {
             </h3>
             <form onSubmit={handleSubmitLabResult} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Test Name</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Test Name
+                </label>
                 <select
                   value={labResultData.test_name}
-                  onChange={(e) => setLabResultData({ ...labResultData, test_name: e.target.value })}
+                  onChange={(e) =>
+                    setLabResultData({
+                      ...labResultData,
+                      test_name: e.target.value,
+                    })
+                  }
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                   required
                 >
                   <option value="">Select Test</option>
-                  {selectedRequest.tests.split(',').map((test, index) => (
+                  {selectedRequest.tests.split(",").map((test, index) => (
                     <option key={index} value={test.trim()}>
                       {test.trim()}
                     </option>
@@ -206,31 +240,52 @@ const LabScientistDashboard: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Result</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Result
+                </label>
                 <input
                   type="text"
                   value={labResultData.result}
-                  onChange={(e) => setLabResultData({ ...labResultData, result: e.target.value })}
+                  onChange={(e) =>
+                    setLabResultData({
+                      ...labResultData,
+                      result: e.target.value,
+                    })
+                  }
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Units</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Units
+                </label>
                 <input
                   type="text"
                   value={labResultData.units}
-                  onChange={(e) => setLabResultData({ ...labResultData, units: e.target.value })}
+                  onChange={(e) =>
+                    setLabResultData({
+                      ...labResultData,
+                      units: e.target.value,
+                    })
+                  }
                   placeholder="e.g., mg/dL, mmol/L"
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Reference Range</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Reference Range
+                </label>
                 <input
                   type="text"
                   value={labResultData.reference_range}
-                  onChange={(e) => setLabResultData({ ...labResultData, reference_range: e.target.value })}
+                  onChange={(e) =>
+                    setLabResultData({
+                      ...labResultData,
+                      reference_range: e.target.value,
+                    })
+                  }
                   placeholder="e.g., 70-100 mg/dL"
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                 />
