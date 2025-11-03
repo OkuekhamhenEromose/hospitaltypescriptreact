@@ -67,7 +67,7 @@ const Header: React.FC<HeaderProps> = ({
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
             <ul className="flex space-x-8 py-4">
-              {['home', 'about', 'services', 'packages', 'blog', 'contact'].map((page) => (
+              {['home', 'about us', 'services', 'packages', 'blog', 'contact'].map((page) => (
                 <li key={page}>
                   <button
                     onClick={() => onNavigate && onNavigate(page)}

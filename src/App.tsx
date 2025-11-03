@@ -1,12 +1,12 @@
-// App.tsx
 import React, { lazy, Suspense, useState, useCallback } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import LoadingSpinner from './components/LoadSpinner';
 
-// Lazy load heavy components
 const Home = lazy(() => import('./pages/home/Home'));
 const AboutUs = lazy(() => import('./pages/About'));
+const Services = lazy(() => import('./pages/Services'));
+
 const AuthModal = lazy(() => import('./pages/authform/AuthModal'));
 const DashboardRouter = lazy(() => import('./pages/DashboardRouter'));
 
@@ -21,8 +21,10 @@ const AppContent: React.FC = () => {
     }
 
     switch (currentPage) {
-      case 'about':
+      case 'about us':
         return <AboutUs />;
+      case 'services':
+        return <Services />;
       case 'home':
       default:
         return <Home />;
@@ -31,8 +33,8 @@ const AppContent: React.FC = () => {
 
   return (
     <>
-      <Layout 
-        currentPage={currentPage} 
+      <Layout
+        currentPage={currentPage}
         onNavigate={setCurrentPage}
         onLoginClick={() => setShowAuthModal(true)}
       >
