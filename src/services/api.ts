@@ -227,7 +227,44 @@ async refreshVitalRequests(): Promise<any> {
   this.invalidateCache('/hospital/vital-requests/');
   return this.getVitalRequests();
 }
-
+async getBlogPosts(): Promise<any[]> {
+    return this.cachedRequest("/hospital/blog/");
+}
+async getBlogPost(slug: string): Promise<any> {
+    return this.cachedRequest(`/hospital/blog/${slug}/`);
+}
+async createBlogPost(data: FormData): Promise<any> {
+    this.invalidateCache("/hospital/blog/");
+    return this.request("/hospital/blog/", {
+      method: "POST",
+      body: data,
+    });
+  }
+async updateBlogPost(slug: string, data: FormData): Promise<any> {
+    this.invalidateCache("/hospital/blog/");
+    return this.request(`/hospital/blog/${slug}/`, {  
+      method: "PUT",
+      body: data,
+    });
+  }
+async deleteBlogPost(slug: string): Promise<void> {
+    this.invalidateCache("/hospital/blog/");
+    await this.request(`/hospital/blog/${slug}/`, {  
+      method: "DELETE",
+    });
+  }
+  async getBlogStats(): Promise<any> {
+    return this.cachedRequest("/hospital/blog/admin/stats/");
+  }
+  async getAllBlogPosts(): Promise<any[]> {
+    return this.cachedRequest("/hospital/blog/admin/all/");
+  }
+  async searchBlogPosts(query: string): Promise<any[]> {
+    return this.cachedRequest(`/hospital/blog/search/?q=${encodeURIComponent(query)}`);
+  }
+  async getLatestBlogPosts(limit: number = 6): Promise<any[]> {
+    return this.cachedRequest(`/hospital/blog/latest/?limit=${limit}`);
+  }
   // Cache invalidation helper
   private invalidateCache(pattern: string) {
     for (const key of this.cache.keys()) {

@@ -16,7 +16,7 @@ const Layout: React.FC<LayoutProps> = ({
   children, 
   currentPage = 'home', 
   onNavigate,
-  onLoginClick 
+  onLoginClick,
 }) => {
   const { user, logout } = useAuth();
 

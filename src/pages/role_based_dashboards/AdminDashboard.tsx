@@ -1,210 +1,488 @@
-// components/dashboards/AdminDashboard.tsx
+// components/AdminDashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-// import { apiService } from '../../services/api';
-import { Users, Calendar, FileText, Settings } from 'lucide-react';
+import { apiService } from '../../services/api';
 
-interface Stats {
+interface DashboardStats {
   totalPatients: number;
   totalDoctors: number;
   totalNurses: number;
   totalLabScientists: number;
   totalAppointments: number;
-  pendingAppointments: number;
+  blogStats: {
+    total_posts: number;
+    published_posts: number;
+    draft_posts: number;
+    posts_with_toc: number;
+    toc_usage_rate: number;
+  };
+}
+
+interface StaffMember {
+  id: number;
+  fullname: string;
+  role: string;
+  user: {
+    email: string;
+    username: string;
+  };
+}
+
+interface Patient {
+  id: number;
+  fullname: string;
+  user: {
+    email: string;
+    username: string;
+  };
+  appointments_count: number;
 }
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState<Stats>({
-    totalPatients: 0,
-    totalDoctors: 0,
-    totalNurses: 0,
-    totalLabScientists: 0,
-    totalAppointments: 0,
-    pendingAppointments: 0
-  });
+  const [activeTab, setActiveTab] = useState<'overview' | 'patients' | 'staff' | 'blog'>('overview');
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadStats();
-  }, []);
+  // Safe checks throughout the component
+  const isAdmin = user?.profile?.role === 'ADMIN';
+  const userName = user?.profile?.fullname || 'Admin';
 
-  const loadStats = async () => {
+  useEffect(() => {
+    if (isAdmin) {
+      loadDashboardData();
+    }
+  }, [isAdmin]);
+
+  const loadDashboardData = async () => {
     try {
-      // In a real app, you'd have API endpoints for these stats
-      // For now, we'll simulate the data
-      const simulatedStats: Stats = {
-        totalPatients: 1247,
-        totalDoctors: 23,
-        totalNurses: 45,
-        totalLabScientists: 12,
-        totalAppointments: 289,
-        pendingAppointments: 34
+      setLoading(true);
+      
+      // Load staff members
+      const staffData = await apiService.getStaffMembers();
+      setStaff(staffData);
+
+      // Load appointments to get patient data
+      const appointments = await apiService.getAppointments();
+      
+      // Extract unique patients from appointments
+      const patientMap = new Map();
+      appointments.forEach((appointment: any) => {
+        if (appointment.patient && !patientMap.has(appointment.patient.id)) {
+          patientMap.set(appointment.patient.id, {
+            ...appointment.patient,
+            appointments_count: appointments.filter((a: any) => a.patient?.id === appointment.patient.id).length
+          });
+        }
+      });
+      setPatients(Array.from(patientMap.values()));
+
+      // Load blog stats
+      const blogStats = await apiService.getBlogStats();
+
+      // Calculate dashboard stats
+      const dashboardStats: DashboardStats = {
+        totalPatients: patientMap.size,
+        totalDoctors: staffData.filter((s: StaffMember) => s.role === 'DOCTOR').length,
+        totalNurses: staffData.filter((s: StaffMember) => s.role === 'NURSE').length,
+        totalLabScientists: staffData.filter((s: StaffMember) => s.role === 'LAB').length,
+        totalAppointments: appointments.length,
+        blogStats: blogStats
       };
-      setStats(simulatedStats);
+
+      setStats(dashboardStats);
     } catch (error) {
-      console.error('Failed to load stats:', error);
+      console.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-xl text-red-600">Access denied. Admin role required.</div>
+      </div>
+    );
+  }
+
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-xl">Loading dashboard...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Admin {user?.profile?.fullname || user?.username}
-        </h1>
-        <p className="text-gray-600 mt-2">Administrator Dashboard</p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <Users className="h-8 w-8 text-blue-600" />
-            <div className="ml-4">
-              <h3 className="text-lg font-semibold">Total Patients</h3>
-              <p className="text-2xl font-bold">{stats.totalPatients}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <Users className="h-8 w-8 text-green-600" />
-            <div className="ml-4">
-              <h3 className="text-lg font-semibold">Medical Staff</h3>
-              <p className="text-2xl font-bold">
-                {stats.totalDoctors + stats.totalNurses + stats.totalLabScientists}
-              </p>
-              <p className="text-sm text-gray-600">
-                {stats.totalDoctors} Doctors, {stats.totalNurses} Nurses, {stats.totalLabScientists} Lab Scientists
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <Calendar className="h-8 w-8 text-purple-600" />
-            <div className="ml-4">
-              <h3 className="text-lg font-semibold">Appointments</h3>
-              <p className="text-2xl font-bold">{stats.totalAppointments}</p>
-              <p className="text-sm text-gray-600">
-                {stats.pendingAppointments} pending
-              </p>
+      <div className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            <div className="text-sm text-gray-500">
+              Welcome, {userName}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Management Sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* User Management */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold">User Management</h2>
-          </div>
-          <div className="p-6 space-y-4">
-            <button className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <div className="flex items-center">
-                <Users className="h-6 w-6 text-blue-600" />
-                <div className="ml-3">
-                  <h3 className="font-medium">Manage Patients</h3>
-                  <p className="text-sm text-gray-600">View and manage patient accounts</p>
-                </div>
-              </div>
-            </button>
-
-            <button className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <div className="flex items-center">
-                <Users className="h-6 w-6 text-green-600" />
-                <div className="ml-3">
-                  <h3 className="font-medium">Manage Staff</h3>
-                  <p className="text-sm text-gray-600">Manage doctors, nurses, and lab staff</p>
-                </div>
-              </div>
-            </button>
-          </div>
+      {/* Navigation Tabs */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="-mb-px flex space-x-8">
+            {[
+              { id: 'overview', name: 'Overview' },
+              { id: 'patients', name: 'Patients' },
+              { id: 'staff', name: 'Staff' },
+              { id: 'blog', name: 'Blog Management' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {tab.name}
+              </button>
+            ))}
+          </nav>
         </div>
+      </div>
 
-        {/* System Management */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold">System Management</h2>
-          </div>
-          <div className="p-6 space-y-4">
-            <button className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <div className="flex items-center">
-                <Calendar className="h-6 w-6 text-purple-600" />
-                <div className="ml-3">
-                  <h3 className="font-medium">Appointment Overview</h3>
-                  <p className="text-sm text-gray-600">View all appointments and status</p>
-                </div>
-              </div>
-            </button>
+      {/* Content */}
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          {activeTab === 'overview' && <OverviewTab stats={stats} />}
+          {activeTab === 'patients' && <PatientsTab patients={patients} />}
+          {activeTab === 'staff' && <StaffTab staff={staff} />}
+          {activeTab === 'blog' && <BlogManagementTab />}
+        </div>
+      </div>
+    </div>
+  );
+};
 
-            <button className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <div className="flex items-center">
-                <FileText className="h-6 w-6 text-orange-600" />
-                <div className="ml-3">
-                  <h3 className="font-medium">Medical Records</h3>
-                  <p className="text-sm text-gray-600">Access and manage medical records</p>
-                </div>
-              </div>
-            </button>
+// Overview Tab Component
+const OverviewTab: React.FC<{ stats: DashboardStats | null }> = ({ stats }) => {
+  if (!stats) return null;
 
-            <button className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <div className="flex items-center">
-                <Settings className="h-6 w-6 text-gray-600" />
-                <div className="ml-3">
-                  <h3 className="font-medium">System Settings</h3>
-                  <p className="text-sm text-gray-600">Configure system preferences</p>
-                </div>
+  return (
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Hospital Stats */}
+      <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="p-5">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">👥</span>
               </div>
-            </button>
+            </div>
+            <div className="ml-5 w-0 flex-1">
+              <dl>
+                <dt className="text-sm font-medium text-gray-500 truncate">Total Patients</dt>
+                <dd className="text-lg font-medium text-gray-900">{stats.totalPatients}</dd>
+              </dl>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="mt-8 bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold">Recent Activity</h2>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div>
-                <p className="font-medium">New patient registration</p>
-                <p className="text-sm text-gray-600">John Doe registered as a new patient</p>
+      <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="p-5">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">👨‍⚕️</span>
               </div>
-              <span className="text-sm text-gray-500">2 hours ago</span>
             </div>
-            
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div>
-                <p className="font-medium">Appointment completed</p>
-                <p className="text-sm text-gray-600">Medical report generated for Jane Smith</p>
-              </div>
-              <span className="text-sm text-gray-500">4 hours ago</span>
-            </div>
-            
-            <div className="flex items-center justify-between py-3">
-              <div>
-                <p className="font-medium">Lab tests completed</p>
-                <p className="text-sm text-gray-600">Blood tests results submitted for Robert Johnson</p>
-              </div>
-              <span className="text-sm text-gray-500">6 hours ago</span>
+            <div className="ml-5 w-0 flex-1">
+              <dl>
+                <dt className="text-sm font-medium text-gray-500 truncate">Doctors</dt>
+                <dd className="text-lg font-medium text-gray-900">{stats.totalDoctors}</dd>
+              </dl>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="p-5">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">👩‍⚕️</span>
+              </div>
+            </div>
+            <div className="ml-5 w-0 flex-1">
+              <dl>
+                <dt className="text-sm font-medium text-gray-500 truncate">Nurses</dt>
+                <dd className="text-lg font-medium text-gray-900">{stats.totalNurses}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="p-5">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">🔬</span>
+              </div>
+            </div>
+            <div className="ml-5 w-0 flex-1">
+              <dl>
+                <dt className="text-sm font-medium text-gray-500 truncate">Lab Scientists</dt>
+                <dd className="text-lg font-medium text-gray-900">{stats.totalLabScientists}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Blog Stats */}
+      <div className="bg-white overflow-hidden shadow rounded-lg col-span-2">
+        <div className="p-5">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Blog Statistics</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <dt className="text-sm font-medium text-gray-500">Total Posts</dt>
+              <dd className="text-2xl font-bold text-blue-600">{stats.blogStats.total_posts}</dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-500">Published</dt>
+              <dd className="text-2xl font-bold text-green-600">{stats.blogStats.published_posts}</dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-500">Drafts</dt>
+              <dd className="text-2xl font-bold text-yellow-600">{stats.blogStats.draft_posts}</dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-500">With TOC</dt>
+              <dd className="text-2xl font-bold text-purple-600">{stats.blogStats.posts_with_toc}</dd>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Patients Tab Component
+const PatientsTab: React.FC<{ patients: Patient[] }> = ({ patients }) => {
+  return (
+    <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div className="px-4 py-5 sm:px-6">
+        <h3 className="text-lg leading-6 font-medium text-gray-900">Patients</h3>
+        <p className="mt-1 max-w-2xl text-sm text-gray-500">All registered patients in the system.</p>
+      </div>
+      <div className="border-t border-gray-200">
+        <ul className="divide-y divide-gray-200">
+          {patients.map((patient) => (
+            <li key={patient.id} className="px-4 py-4 sm:px-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="h-10 w-10 bg-gray-300 rounded-full flex items-center justify-center">
+                      <span className="text-gray-600 text-sm font-medium">
+                        {patient.fullname.split(' ').map(n => n[0]).join('')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <div className="text-sm font-medium text-gray-900">{patient.fullname}</div>
+                    <div className="text-sm text-gray-500">{patient.user.email}</div>
+                  </div>
+                </div>
+                <div className="text-sm text-gray-500">
+                  {patient.appointments_count} appointment(s)
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+// Staff Tab Component
+const StaffTab: React.FC<{ staff: StaffMember[] }> = ({ staff }) => {
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'DOCTOR': return 'bg-blue-100 text-blue-800';
+      case 'NURSE': return 'bg-purple-100 text-purple-800';
+      case 'LAB': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div className="px-4 py-5 sm:px-6">
+        <h3 className="text-lg leading-6 font-medium text-gray-900">Staff Members</h3>
+        <p className="mt-1 max-w-2xl text-sm text-gray-500">All hospital staff including doctors, nurses, and lab scientists.</p>
+      </div>
+      <div className="border-t border-gray-200">
+        <ul className="divide-y divide-gray-200">
+          {staff.map((member) => (
+            <li key={member.id} className="px-4 py-4 sm:px-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="h-10 w-10 bg-gray-300 rounded-full flex items-center justify-center">
+                      <span className="text-gray-600 text-sm font-medium">
+                        {member.fullname.split(' ').map(n => n[0]).join('')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <div className="text-sm font-medium text-gray-900">{member.fullname}</div>
+                    <div className="text-sm text-gray-500">{member.user.email}</div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(member.role)}`}>
+                    {member.role}
+                  </span>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+// Blog Management Tab Component
+const BlogManagementTab: React.FC = () => {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg leading-6 font-medium text-gray-900">Blog Management</h3>
+        <button
+          onClick={() => window.location.href = '/blog/admin/create'}
+          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+        >
+          Create New Post
+        </button>
+      </div>
+      
+      <BlogPostList />
+    </div>
+  );
+};
+
+// Blog Post List Component
+const BlogPostList: React.FC = () => {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadBlogPosts();
+  }, []);
+
+  const loadBlogPosts = async () => {
+    try {
+      const blogPosts = await apiService.getAllBlogPosts();
+      setPosts(blogPosts);
+    } catch (error) {
+      console.error('Error loading blog posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (slug: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) return;
+    
+    try {
+      await apiService.deleteBlogPost(slug);
+      loadBlogPosts(); // Reload the list
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-4">Loading blog posts...</div>;
+  }
+
+  return (
+    <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div className="px-4 py-5 sm:px-6">
+        <h3 className="text-lg leading-6 font-medium text-gray-900">Blog Posts</h3>
+        <p className="mt-1 max-w-2xl text-sm text-gray-500">Manage all blog posts and their publication status.</p>
+      </div>
+      <div className="border-t border-gray-200">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Title
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Author
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {posts.map((post) => (
+              <tr key={post.id}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">{post.title}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    post.published 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {post.published ? 'Published' : 'Draft'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {post.author?.fullname}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(post.created_at).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                  <button
+                    onClick={() => window.location.href = `/blog/admin/edit/${post.slug}`}
+                    className="text-blue-600 hover:text-blue-900"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(post.slug)}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
