@@ -34,7 +34,7 @@ const Services = () => {
       ),
       title: "Surgery",
       description:
-        "Etta-Atlantic Hospital Lekki Lagos has a state of the art surgical centre offering a wide range of surgical services.",
+        "Etha-Atlantic Memorial Hospital Ikorodu Lagos has a state of the art surgical centre offering a wide range of surgical services.",
     },
   ];
 
@@ -47,7 +47,7 @@ const Services = () => {
       ),
       title: "Family Healthcare",
       description:
-        "Visit Etta-Atlantic Memorial Hospital in Lekki Lagos for preventive health screenings (check-ups) for you and your family.",
+        "Visit Etha-Atlantic Memorial Hospital in Ikorodu Lagos for preventive health screenings (check-ups) for you and your family.",
     },
     {
       icon: (
@@ -67,32 +67,32 @@ const Services = () => {
       ),
       title: "Health Insurance",
       description:
-        "Fortunately, Etta-Atlantic Hospital Lekki Lagos work collaboratively with various Health Maintenance Organizations (HMOs) to ensure adequate coverage for your healthcare.",
+        "Fortunately, Etha-Atlantic Memorial Hospital Ikorodu Lagos work collaboratively with various Health Maintenance Organizations (HMOs) to ensure adequate coverage for your healthcare.",
     },
   ];
 
   return (
-    <section className="py-16 bg-white">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-2">
-            Etta-Atlantic Memorial Hospital Lekki Lagos
+    <section className="py-12 bg-gray-50">
+      <div className="container mx-auto px-12">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-[#2b2e32] mb-2">
+            Etha-Atlantic Memorial Hospital Ikorodu Lagos
           </h2>
           <h3 className="text-4xl font-bold text-blue-600">
             Our Medical Services
           </h3>
         </div>
 
-        <div className="mb-16">
+        <div className="mb-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {firstRowServices.map((service, index) => (
               <div key={index} className="text-center">
                 {service.icon}
-                <h4 className="text-2xl font-bold text-gray-900 mb-4">
+                <h4 className="text-2xl text-[#2b2e32] font-bold mb-2">
                   {service.title}
                 </h4>
-                <div className="w-12 h-1 bg-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600 leading-relaxed">
+                <div className="w-12 h-1 bg-blue-600 mx-auto mb-2"></div>
+                <p className="text-[#2b2e32] leading-normal">
                   {service.description}
                 </p>
               </div>
@@ -105,11 +105,11 @@ const Services = () => {
             {secondRowServices.map((service, index) => (
               <div key={index} className="text-center">
                 {service.icon}
-                <h4 className="text-2xl font-bold text-gray-900 mb-4">
+                <h4 className="text-2xl font-bold text-gray-900 mb-2">
                   {service.title}
                 </h4>
-                <div className="w-12 h-1 bg-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600 leading-relaxed">
+                <div className="w-12 h-1 bg-blue-600 mx-auto mb-2"></div>
+                <p className="text-gray-600 leading-normal">
                   {service.description}
                 </p>
               </div>

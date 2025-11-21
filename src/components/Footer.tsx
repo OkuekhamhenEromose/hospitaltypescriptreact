@@ -4,7 +4,7 @@ import { Activity, Facebook, Twitter, Instagram } from 'lucide-react';
 const Footer = () => {
   return (
     <footer className="bg-blue-600 text-white">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-12 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           <div>
             <div className="flex items-center space-x-3 mb-6">
@@ -12,7 +12,7 @@ const Footer = () => {
                 <Activity className="w-8 h-8 text-red-500" strokeWidth={3} />
               </div>
               <div>
-                <h1 className="text-lg font-bold tracking-tight">ETTA-ATLANTIC</h1>
+                <h1 className="text-lg font-bold tracking-tight">ETHA-ATLANTIC</h1>
                 <p className="text-xs font-semibold tracking-wider">MEMORIAL</p>
               </div>
             </div>
@@ -24,10 +24,10 @@ const Footer = () => {
 
           <div>
             <h3 className="text-2xl font-bold mb-6">About Us</h3>
-            <ul className="space-y-3">
+            <ul className="space-y-2">
               <li>
                 <a href="#about" className="hover:text-gray-200 transition-colors">
-                  About Etta-Atlantic Memorial
+                  About Etha-Atlantic Memorial
                 </a>
               </li>
               <li>
@@ -45,7 +45,7 @@ const Footer = () => {
 
           <div>
             <h3 className="text-2xl font-bold mb-6">Useful Links</h3>
-            <ul className="space-y-3">
+            <ul className="space-y-2">
               <li>
                 <a href="#services" className="hover:text-gray-200 transition-colors">
                   Services
@@ -65,13 +65,13 @@ const Footer = () => {
           </div>
 
           <div>
-            <p className="text-base leading-relaxed mb-4">
+            <p className="text-sm leading-normal mb-4">
               Call us now if you are in a medical emergency need, we will reply swiftly and provide you with a medical aid.
             </p>
-            <p className="text-3xl font-bold mb-2">08083734008</p>
-            <p className="text-lg mb-6">hello@ettaatlantic.com</p>
+            <p className="text-3xl font-bold mb-2">09067784278</p>
+            <p className="text-lg mb-6">hello@ethaatlantic.com</p>
 
-            <p className="text-base mb-3">Visit us on social networks:</p>
+            <p className="text-sm mb-3">Visit us on social networks:</p>
             <div className="flex space-x-3">
               <a
                 href="#"
@@ -99,10 +99,10 @@ const Footer = () => {
         </div>
       </div>
 
-      <div className="bg-blue-700 py-4">
+      <div className="bg-gray-50 py-4">
         <div className="container mx-auto px-4">
-          <p className="text-center text-sm">
-            © 2025 Etta-Atlantic Memorial Hospital | All rights reserved.
+          <p className="text-center text-[#2b2e32] text-sm">
+            © 2025 Chardev | All rights reserved.
           </p>
         </div>
       </div>

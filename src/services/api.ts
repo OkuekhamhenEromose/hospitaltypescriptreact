@@ -12,24 +12,28 @@ class ApiService {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = localStorage.getItem("access_token");
 
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-      ...options.headers,
-    } as HeadersInit;
+    // Don't set Content-Type for FormData - let the browser set it with boundary
+    const headers: HeadersInit = {};
 
-    if (token) {
-      (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+    // Only set Content-Type for JSON requests
+    if (!(options.body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
     }
 
-    // Request deduplication - prevent duplicate simultaneous requests
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    // Merge with any existing headers from options
+    Object.assign(headers, options.headers);
+
     const requestKey = `${endpoint}-${JSON.stringify(options)}`;
     if (this.requestQueue.has(requestKey)) {
       return this.requestQueue.get(requestKey);
     }
 
-    // Add timeout to prevent hanging requests
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for file uploads
 
     const requestPromise = (async () => {
       try {
@@ -53,6 +57,14 @@ class ApiService {
               response.statusText || `API error: ${response.status}`;
           }
           throw new Error(errorMessage);
+        }
+
+        // Handle empty responses for DELETE
+        if (
+          response.status === 204 ||
+          response.headers.get("content-length") === "0"
+        ) {
+          return null;
         }
 
         return response.json();
@@ -211,48 +223,52 @@ class ApiService {
     const staff = await this.getStaffMembers();
     return staff.filter((member) => member.role === "NURSE");
   }
-//  Add methods to refresh appointments
-async refreshAppointments(): Promise<any> {
-  // Clear cache and fetch fresh data
-  this.invalidateCache('/hospital/appointments/');
-  return this.getAppointments();
-}
+  //  Add methods to refresh appointments
+  async refreshAppointments(): Promise<any> {
+    // Clear cache and fetch fresh data
+    this.invalidateCache("/hospital/appointments/");
+    return this.getAppointments();
+  }
 
-async refreshTestRequests(): Promise<any> {
-  this.invalidateCache('/hospital/test-requests/');
-  return this.getTestRequests();
-}
+  async refreshTestRequests(): Promise<any> {
+    this.invalidateCache("/hospital/test-requests/");
+    return this.getTestRequests();
+  }
 
-async refreshVitalRequests(): Promise<any> {
-  this.invalidateCache('/hospital/vital-requests/');
-  return this.getVitalRequests();
-}
-async getBlogPosts(): Promise<any[]> {
+  async refreshVitalRequests(): Promise<any> {
+    this.invalidateCache("/hospital/vital-requests/");
+    return this.getVitalRequests();
+  }
+  async getBlogPosts(): Promise<any[]> {
     return this.cachedRequest("/hospital/blog/");
-}
-async getBlogPost(slug: string): Promise<any> {
+  }
+  async getBlogPost(slug: string): Promise<any> {
     return this.cachedRequest(`/hospital/blog/${slug}/`);
-}
-async createBlogPost(data: FormData): Promise<any> {
+  }
+  async createBlogPost(data: FormData): Promise<any> {
     this.invalidateCache("/hospital/blog/");
     return this.request("/hospital/blog/", {
       method: "POST",
       body: data,
+      // Don't set Content-Type header - let browser set it with boundary
     });
   }
-async updateBlogPost(slug: string, data: FormData): Promise<any> {
+  async updateBlogPost(slug: string, data: FormData): Promise<any> {
     this.invalidateCache("/hospital/blog/");
     return this.request(`/hospital/blog/${slug}/`, {  
       method: "PUT",
       body: data,
+      // Don't set Content-Type header
     });
   }
-async deleteBlogPost(slug: string): Promise<void> {
+
+  async deleteBlogPost(slug: string): Promise<void> {
     this.invalidateCache("/hospital/blog/");
     await this.request(`/hospital/blog/${slug}/`, {  
       method: "DELETE",
     });
   }
+  
   async getBlogStats(): Promise<any> {
     return this.cachedRequest("/hospital/blog/admin/stats/");
   }
@@ -260,7 +276,9 @@ async deleteBlogPost(slug: string): Promise<void> {
     return this.cachedRequest("/hospital/blog/admin/all/");
   }
   async searchBlogPosts(query: string): Promise<any[]> {
-    return this.cachedRequest(`/hospital/blog/search/?q=${encodeURIComponent(query)}`);
+    return this.cachedRequest(
+      `/hospital/blog/search/?q=${encodeURIComponent(query)}`
+    );
   }
   async getLatestBlogPosts(limit: number = 6): Promise<any[]> {
     return this.cachedRequest(`/hospital/blog/latest/?limit=${limit}`);

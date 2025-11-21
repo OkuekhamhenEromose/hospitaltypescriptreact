@@ -1,4 +1,4 @@
-// contexts/AuthContext.tsx
+// contexts/AuthContext.tsx - Updated with dashboard redirect
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { User, LoginData, RegisterData, AuthResponse } from '../services/auth';
@@ -18,7 +18,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Memoized loadUser to prevent unnecessary re-renders
   const loadUser = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token');
@@ -29,12 +28,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const response = await apiService.getDashboard();
       
-      // Handle response structure safely
       if (response && typeof response === 'object') {
         if ('user' in response) {
           setUser((response as any).user);
         } else {
-          // If response is user object directly
           setUser(response as any);
         }
       }
@@ -56,13 +53,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('access_token', response.access);
     localStorage.setItem('refresh_token', response.refresh);
     
-    // Set user immediately from login response - NO additional API call
     setUser(response.user);
+    
+    // Redirect to dashboard after successful login
+    window.location.href = '/dashboard';
   }, []);
 
   const register = useCallback(async (data: RegisterData) => {
     try {
-      // Register and login in single flow
       await apiService.register(data);
       const loginResponse: AuthResponse = await apiService.login({ 
         username: data.username, 
@@ -72,6 +70,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('access_token', loginResponse.access);
       localStorage.setItem('refresh_token', loginResponse.refresh);
       setUser(loginResponse.user);
+      
+      // Redirect to dashboard after successful registration
+      window.location.href = '/dashboard';
     } catch (error: any) {
       console.error('Registration failed:', error);
       throw error;
@@ -86,6 +87,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       setUser(null);
       setLoading(false);
+      // Redirect to home page after logout
+      window.location.href = '/';
     }
   }, []);
 

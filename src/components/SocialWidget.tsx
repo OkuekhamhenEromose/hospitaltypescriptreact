@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { MessageCircle, X, Send, Activity } from 'lucide-react';
+import { X, Send, Activity } from 'lucide-react';
+import Whatsapp from '../assets/img/whatsapp-logo-removebg-preview.png';
 
 const SocialButton = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,10 +16,14 @@ const SocialButton = () => {
     <>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition-colors z-50 flex items-center space-x-2"
+        className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition-colors z-50 flex items-center space-x-1"
         aria-label="Chat with us"
       >
-        <MessageCircle className="w-6 h-6" />
+        <img
+            src={Whatsapp}
+            alt="Medical professional"
+            className="w-6 h-6"
+          />
         <span className="font-medium">Hello, how can I help you today?</span>
       </button>
 

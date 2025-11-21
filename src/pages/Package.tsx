@@ -1,5 +1,8 @@
 // import React from 'react';
-import { Heart, Activity, TrendingUp, Pill, Shield, Clock } from 'lucide-react';
+import ethaPackages from "../assets/img/etha-packages1-removebg-preview.png"
+// import { Heart, Activity, TrendingUp, Pill, Shield, Clock } from 'lucide-react';
+
+
 
 const Packages = () => {
   const healthCheckPackages = {
@@ -155,30 +158,26 @@ const Packages = () => {
     ],
   };
 
-  const icons = [
-    { Icon: Heart, color: 'text-red-500' },
-    { Icon: Activity, color: 'text-blue-500' },
-    { Icon: TrendingUp, color: 'text-pink-500' },
-    { Icon: Pill, color: 'text-blue-400' },
-    { Icon: Shield, color: 'text-pink-400' },
-    { Icon: Clock, color: 'text-blue-600' },
-    { Icon: Heart, color: 'text-pink-500' },
-    { Icon: Activity, color: 'text-blue-300' },
-    { Icon: Shield, color: 'text-blue-600' },
-  ];
-
   return (
-    <div className="min-h-screen bg-white">
-      <div className="bg-blue-500 py-24">
-        <div className="container mx-auto px-4">
-          <h1 className="text-5xl font-bold text-white">Our Packages</h1>
+    <div className="min-h-screen bg-white font-sans">
+      <section className="relative bg-blue-500 py-16 overflow-hidden pt-48">
+        <div className="absolute inset-0 opacity-30">
+          <img
+            src="https://images.pexels.com/photos/3376790/pexels-photo-3376790.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+            alt="Medical services background"
+            className="w-full h-full object-cover"
+          />
         </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-16">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 relative z-10">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white">
+            Our Packages
+          </h1>
+        </div>
+      </section>
+      <div className="container mx-auto px-16 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-24">
           <div>
-            <h2 className="text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-6xl font-light text-gray-900 mb-2">
               Select any of
             </h2>
             <h2 className="text-5xl font-bold text-blue-600 mb-4">
@@ -186,11 +185,19 @@ const Packages = () => {
             </h2>
             <div className="w-20 h-1 bg-blue-500 mb-6"></div>
             <p className="text-gray-700 text-lg">
-              Healthcare services in Lekki Lagos made simple!
+              Healthcare services in Ikorodu Lagos made simple!
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-6">
+          <div className="flex justify-center lg:justify-end">
+            <img
+              src={ethaPackages}
+              alt="Healthcare Plans"
+              className="w-full max-w-sm h-auto"
+            />
+          </div>
+
+          {/* <div className="grid grid-cols-3 gap-6">
             {icons.map((item, index) => {
               const IconComponent = item.Icon;
               return (
@@ -199,7 +206,7 @@ const Packages = () => {
                 </div>
               );
             })}
-          </div>
+          </div> */}
         </div>
 
         <div className="mb-24">
@@ -207,9 +214,9 @@ const Packages = () => {
           <div className="w-20 h-1 bg-blue-500 mb-12"></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Silver</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Silver</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {healthCheckPackages.silver.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -218,9 +225,9 @@ const Packages = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Gold</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Gold</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {healthCheckPackages.gold.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -229,9 +236,9 @@ const Packages = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Platinum</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Platinum</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {healthCheckPackages.platinum.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -247,9 +254,9 @@ const Packages = () => {
           <div className="w-20 h-1 bg-blue-500 mb-12"></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Pre School</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Pre School</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {healthChecks.preSchool.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -258,9 +265,9 @@ const Packages = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Pre Nanny/Domestic Staff</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Pre Nanny/Domestic Staff</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {healthChecks.preNanny.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -269,9 +276,9 @@ const Packages = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Pre Employment</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Pre Employment</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {healthChecks.preEmployment.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -283,9 +290,9 @@ const Packages = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Pre Marital</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Pre Marital</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {healthChecks.preMarital.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -294,9 +301,9 @@ const Packages = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Food Handlers Test</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Food Handlers Test</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {healthChecks.foodHandlers.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -305,9 +312,9 @@ const Packages = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Food Handlers Test (plus)</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Food Handlers Test (plus)</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {healthChecks.foodHandlersPlus.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -323,9 +330,9 @@ const Packages = () => {
           <div className="w-20 h-1 bg-blue-500 mb-12"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-16">
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Lifestyle Plan A</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Lifestyle Plan A</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {lifestylePlans.planA.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -334,9 +341,9 @@ const Packages = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Lifestyle Plan B</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Lifestyle Plan B</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {lifestylePlans.planB.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -350,9 +357,9 @@ const Packages = () => {
           <div className="w-20 h-1 bg-blue-500 mb-12"></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">UTI Checks</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">UTI Checks</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {utiChecks.basic.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -361,9 +368,9 @@ const Packages = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">UTI Check Plus</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">UTI Check Plus</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {utiChecks.plus.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -372,9 +379,9 @@ const Packages = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">UTI Check Ultra</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">UTI Check Ultra</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {utiChecks.ultra.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -390,9 +397,9 @@ const Packages = () => {
           <div className="w-20 h-1 bg-blue-500 mb-12"></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Basic</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">Basic</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {sexualHealth.basic.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -401,9 +408,9 @@ const Packages = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Comprehensive</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Comprehensive</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {sexualHealth.comprehensive.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}
@@ -412,9 +419,9 @@ const Packages = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Comprehensive Plus</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Comprehensive Plus</h2>
               <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-3">
+              <ul className="space-y-1">
                 {sexualHealth.comprehensivePlus.map((item, index) => (
                   <li key={index} className="text-gray-700 text-base leading-relaxed">
                     {item}

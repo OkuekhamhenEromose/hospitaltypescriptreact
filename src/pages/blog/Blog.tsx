@@ -1,17 +1,44 @@
-// pages/blog/blog.tsx
-import React, { useState } from 'react';
+// pages/blog/Blog.tsx - Updated to fetch from API
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
-import { blogPosts } from './blogPosts';
+import { apiService } from '../../services/api';
+import { useNavigate } from "react-router-dom"
 
 
 const Blog: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  const filteredPosts = blogPosts.filter(post =>
+  useEffect(() => {
+    loadBlogPosts();
+  }, []);
+
+  const loadBlogPosts = async () => {
+    try {
+      setLoading(true);
+      const blogPosts = await apiService.getBlogPosts();
+      setPosts(blogPosts);
+    } catch (error) {
+      console.error('Error loading blog posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredPosts = posts.filter(post =>
     post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.category.toLowerCase().includes(searchQuery.toLowerCase())
+    post.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -48,25 +75,24 @@ const Blog: React.FC = () => {
           {filteredPosts.map((post) => (
             <div key={post.id} className="flex flex-col lg:flex-row gap-8 pb-12 border-b border-gray-200 last:border-0">
               <div className="lg:w-1/3">
-                <img
-                  src={post.imageUrl}
-                  alt={post.title}
-                  className="w-full h-64 object-cover rounded-lg"
-                />
+                {post.featured_image ? (
+                  <img
+                    src={post.featured_image}
+                    alt={post.title}
+                    className="w-full h-64 object-cover rounded-lg"
+                  />
+                ) : (
+                  <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <span className="text-gray-400">No image</span>
+                  </div>
+                )}
                 <div className="mt-4 flex items-center text-sm text-gray-600">
-                  <span className="mr-4">Etta-Atlantic</span>
-                  <span>{post.date}</span>
+                  <span className="mr-4">{post.author?.fullname || 'Etta-Atlantic'}</span>
+                  <span>{new Date(post.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
 
               <div className="lg:w-2/3">
-                <div className="mb-3">
-                  <span className="inline-flex items-center text-gray-700 text-sm">
-                    <span className="mr-2">🏷️</span>
-                    {post.category}
-                  </span>
-                </div>
-
                 <h2 className="text-3xl font-bold text-blue-500 mb-4 leading-tight">
                   {post.title}
                 </h2>
@@ -74,10 +100,13 @@ const Blog: React.FC = () => {
                 <div className="w-16 h-1 bg-red-500 mb-6"></div>
 
                 <p className="text-gray-700 text-base leading-relaxed mb-6">
-                  {post.excerpt}
+                  {post.description}
                 </p>
 
-                <button className="bg-blue-500 text-white px-8 py-3 rounded-full hover:bg-blue-600 transition-colors font-medium">
+                <button 
+                  onClick={() => navigate(`/blog/${post.slug}`)}
+                  className="bg-blue-500 text-white px-8 py-3 rounded-full hover:bg-blue-600 transition-colors font-medium"
+                >
                   CONTINUE READING
                 </button>
               </div>
@@ -95,5 +124,4 @@ const Blog: React.FC = () => {
   );
 };
 
-// Make sure this default export exists
 export default Blog;
