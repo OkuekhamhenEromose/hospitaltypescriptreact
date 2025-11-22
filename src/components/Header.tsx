@@ -1,12 +1,13 @@
-// Header.tsx - Redesigned with semi-transparent overlay and collapsible top section
+// Header.tsx - Updated with profile click functionality
 import React, { useState, useEffect } from 'react';
-import { Activity, User, LogOut } from 'lucide-react';
+import { Activity, User, LogOut, ChevronDown } from 'lucide-react';
 
 interface HeaderProps {
   currentPage: string;
   onNavigate?: (page: string) => void;
   user: any;
   onLoginClick: () => void;
+  onProfileClick: () => void;
   onLogout: () => void;
 }
 
@@ -15,10 +16,12 @@ const Header: React.FC<HeaderProps> = ({
   onNavigate, 
   user, 
   onLoginClick, 
+  onProfileClick,
   onLogout 
 }) => {
   const [scrolled, setScrolled] = useState(false);
   const [hideTopSection, setHideTopSection] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -29,6 +32,18 @@ const Header: React.FC<HeaderProps> = ({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleProfileClick = () => {
+    if (onProfileClick) {
+      onProfileClick();
+    }
+    setShowProfileDropdown(false);
+  };
+
+  const handleLogout = () => {
+    onLogout();
+    setShowProfileDropdown(false);
+  };
 
   return (
     <header 
@@ -72,22 +87,44 @@ const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center space-x-4">
               {user ? (
                 <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-gray-200">
-                    <User className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-800">
-                      {user.profile?.fullname || user.username}
-                    </span>
-                    <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium">
-                      {user.profile?.role}
-                    </span>
+                  {/* Profile Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                      className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <User className="w-4 h-4 text-gray-600" />
+                      <span className="text-sm font-medium text-gray-800">
+                        {user.profile?.fullname || user.username}
+                      </span>
+                      <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium">
+                        {user.profile?.role}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform ${
+                        showProfileDropdown ? 'rotate-180' : ''
+                      }`} />
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {showProfileDropdown && (
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                        <button
+                          onClick={handleProfileClick}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                        >
+                          <User className="w-4 h-4" />
+                          <span>Go to Dashboard</span>
+                        </button>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center space-x-2"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>Logout</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <button
-                    onClick={onLogout}
-                    className="flex items-center space-x-1 text-gray-700 hover:text-red-600 transition-colors bg-white/50 hover:bg-white px-3 py-1.5 rounded-full"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span className="text-sm font-medium">Logout</span>
-                  </button>
                 </div>
               ) : (
                 <button 

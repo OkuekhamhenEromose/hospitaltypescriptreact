@@ -1,4 +1,4 @@
-// App.tsx - Updated with React Router for proper URL routing
+// App.tsx - Updated with proper authentication flow
 import React, { lazy, Suspense } from 'react';
 import type { ComponentType } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
@@ -11,6 +11,11 @@ interface BlogProps {
   onPostClick?: (slug: string) => void;
 }
 
+interface BlogPostDetailProps {
+  slug: string;
+  onBack?: () => void;
+}
+
 interface HomeProps {
   onBlogPostClick?: (slug: string) => void;
 }
@@ -21,10 +26,31 @@ const AboutUs = lazy(() => import('./pages/About'));
 const Services = lazy(() => import('./pages/Services'));
 const Packages = lazy(() => import('./pages/Package'));
 const Blog = lazy(() => import('./pages/blog/Blog')) as ComponentType<BlogProps>;
-const BlogPostDetail = lazy(() => import('./pages/blog/BlogPostDetail'));
+const BlogPostDetail = lazy(() => import('./pages/blog/BlogPostDetail')) as ComponentType<BlogPostDetailProps>;
 const Contact = lazy(() => import('./pages/Contact'));
 const AuthModal = lazy(() => import('./pages/authform/AuthModal'));
 const DashboardRouter = lazy(() => import('./pages/DashboardRouter'));
+
+// Protected route component
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Public route component - redirects to dashboard if user is logged in
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+};
 
 // Wrapper component to handle routing logic
 const AppRoutes: React.FC = () => {
@@ -55,20 +81,27 @@ const AppRoutes: React.FC = () => {
     navigate(route);
   };
 
+  const handleLoginClick = () => {
+    setShowAuthModal(true);
+  };
 
-  // Protected route component
-  const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    React.useEffect(() => {
-      if (!user) {
-        setShowAuthModal(true);
-      }
-    }, [user]);
-
-    if (!user) {
-      return <Navigate to="/" replace />;
+  // Handle profile click - navigate to dashboard
+  const handleProfileClick = () => {
+    if (user) {
+      navigate('/dashboard');
     }
+  };
+
+  // Blog post detail wrapper component
+  const BlogPostDetailWrapper: React.FC = () => {
+    const slug = useLocation().pathname.split('/').pop() || '';
     
-    return <>{children}</>;
+    return (
+      <BlogPostDetail 
+        slug={slug} 
+        onBack={() => navigate('/blog')} 
+      />
+    );
   };
 
   return (
@@ -76,15 +109,16 @@ const AppRoutes: React.FC = () => {
       <Layout
         currentPage={getCurrentPage()}
         onNavigate={handleNavigate}
-        onLoginClick={() => setShowAuthModal(true)}
+        onLoginClick={handleLoginClick}
+        onProfileClick={handleProfileClick}
       >
         <Suspense fallback={<LoadingSpinner message="Loading page..." />}>
           <Routes>
-            {/* Public Routes */}
+            {/* Public Routes - accessible to all */}
             <Route
               path="/"
               element={
-                  <Home onBlogPostClick={(slug) => navigate(`/blog/${slug}`)} />
+                <Home onBlogPostClick={(slug) => navigate(`/blog/${slug}`)} />
               }
             />
             <Route path="/about-us" element={<AboutUs />} />
@@ -96,7 +130,7 @@ const AppRoutes: React.FC = () => {
             />
             <Route
               path="/blog/:slug"
-              element={<BlogPostDetail />}
+              element={<BlogPostDetailWrapper />}
             />
             <Route path="/contact" element={<Contact />} />
 
@@ -107,6 +141,24 @@ const AppRoutes: React.FC = () => {
                 <ProtectedRoute>
                   <DashboardRouter />
                 </ProtectedRoute>
+              }
+            />
+
+            {/* Auth routes - redirect to home if already logged in */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Navigate to="/" replace />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <Navigate to="/" replace />
+                </PublicRoute>
               }
             />
 

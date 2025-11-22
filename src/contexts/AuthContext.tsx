@@ -1,4 +1,4 @@
-// contexts/AuthContext.tsx - Updated with dashboard redirect
+// contexts/AuthContext.tsx - Fixed with proper redirect handling
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { User, LoginData, RegisterData, AuthResponse } from '../services/auth';
@@ -55,8 +55,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     setUser(response.user);
     
-    // Redirect to dashboard after successful login
-    window.location.href = '/dashboard';
+    // Don't redirect here - let the component handle it
   }, []);
 
   const register = useCallback(async (data: RegisterData) => {
@@ -71,8 +70,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('refresh_token', loginResponse.refresh);
       setUser(loginResponse.user);
       
-      // Redirect to dashboard after successful registration
-      window.location.href = '/dashboard';
+      // Don't redirect here - let the component handle it
     } catch (error: any) {
       console.error('Registration failed:', error);
       throw error;
@@ -86,9 +84,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Logout error:', error);
     } finally {
       setUser(null);
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
       setLoading(false);
-      // Redirect to home page after logout
-      window.location.href = '/';
+      // Don't redirect here - let the component handle it
     }
   }, []);
 
