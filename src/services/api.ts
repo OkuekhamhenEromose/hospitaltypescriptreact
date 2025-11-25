@@ -2,7 +2,54 @@
 import type { LoginData, RegisterData, AuthResponse } from "./auth";
 
 const API_BASE_URL = "http://localhost:8000/api";
+const MEDIA_BASE_URL = "http://localhost:8000"; // for images
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+
+// ======================================
+// 🔥 MEDIA URL FIX
+// ======================================
+const normalizeMediaUrl = (url: string | null) => {
+  if (!url) return null;
+  if (url.startsWith("http")) return url;
+  return `${MEDIA_BASE_URL}${url}`;
+};
+
+// ======================================
+// 🔥 BLOG POST NORMALIZER (IMAGES + FIELDS)
+// ======================================
+const normalizeBlogPost = (post: any) => ({
+  id: post.id,
+  ...post,
+
+  // Fix image fields
+  featured_image: normalizeMediaUrl(post.featured_image),
+  image_1: normalizeMediaUrl(post.image_1),
+  image_2: normalizeMediaUrl(post.image_2),
+
+  // Fix description variations
+  description:
+    post.description ||
+    post.short_description ||
+    post.excerpt ||
+    post.content ||
+    "",
+
+  // Fix subheadings field variations
+  subheadings:
+    post.subheadings ||
+    post.sub_headings ||
+    post.sections ||
+    post.subSections ||
+    [],
+
+  // Fix TOC variations
+  table_of_contents:
+    post.table_of_contents ||
+    post.toc ||
+    post.toc_items ||
+    post.contents ||
+    [],
+});
 
 class ApiService {
   private cache = new Map<string, { data: any; timestamp: number }>();
@@ -12,10 +59,8 @@ class ApiService {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = localStorage.getItem("access_token");
 
-    // Don't set Content-Type for FormData - let the browser set it with boundary
     const headers: HeadersInit = {};
 
-    // Only set Content-Type for JSON requests
     if (!(options.body instanceof FormData)) {
       headers["Content-Type"] = "application/json";
     }
@@ -24,7 +69,6 @@ class ApiService {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    // Merge with any existing headers from options
     Object.assign(headers, options.headers);
 
     const requestKey = `${endpoint}-${JSON.stringify(options)}`;
@@ -33,7 +77,7 @@ class ApiService {
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for file uploads
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     const requestPromise = (async () => {
       try {
@@ -59,7 +103,6 @@ class ApiService {
           throw new Error(errorMessage);
         }
 
-        // Handle empty responses for DELETE
         if (
           response.status === 204 ||
           response.headers.get("content-length") === "0"
@@ -80,7 +123,6 @@ class ApiService {
     return requestPromise;
   }
 
-  // Cache frequently used requests
   private async cachedRequest(endpoint: string, options: RequestInit = {}) {
     const cacheKey = `${endpoint}-${JSON.stringify(options)}`;
     const cached = this.cache.get(cacheKey);
@@ -93,6 +135,10 @@ class ApiService {
     this.cache.set(cacheKey, { data, timestamp: Date.now() });
     return data;
   }
+
+  // ============================
+  // AUTH ENDPOINTS
+  // ============================
 
   async login(loginData: LoginData): Promise<AuthResponse> {
     return this.request("/users/login/", {
@@ -131,36 +177,27 @@ class ApiService {
   private clearLocalStorage(): void {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
-    this.cache.clear(); // Clear API cache on logout
+    this.cache.clear();
   }
 
   async getDashboard(): Promise<any> {
-    // Cache dashboard data since it doesn't change frequently
     return this.cachedRequest("/users/dashboard/");
   }
 
-  // Hospital endpoints with caching where appropriate
+  // ============================
+  // HOSPITAL DATA
+  // ============================
+
   async getAppointments() {
     return this.cachedRequest("/hospital/appointments/");
   }
 
-  // services/api.ts - Update createAppointment method
   async createAppointment(data: any) {
-    try {
-      // Invalidate appointments cache when creating new appointment
-      this.invalidateCache("/hospital/appointments/");
-
-      const response = await this.request("/hospital/appointments/create/", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-
-      console.log("Appointment created successfully:", response);
-      return response;
-    } catch (error) {
-      console.error("Appointment creation failed:", error);
-      throw error;
-    }
+    this.invalidateCache("/hospital/appointments/");
+    return this.request("/hospital/appointments/create/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   }
 
   async getTestRequests() {
@@ -208,9 +245,7 @@ class ApiService {
     });
   }
 
-  // services/api.ts - Add methods to get staff members
   async getStaffMembers(): Promise<any[]> {
-    // This endpoint should be created in your backend to return staff members
     return this.cachedRequest("/hospital/staff/");
   }
 
@@ -223,67 +258,86 @@ class ApiService {
     const staff = await this.getStaffMembers();
     return staff.filter((member) => member.role === "NURSE");
   }
-  //  Add methods to refresh appointments
-  async refreshAppointments(): Promise<any> {
-    // Clear cache and fetch fresh data
+
+  async refreshAppointments() {
     this.invalidateCache("/hospital/appointments/");
     return this.getAppointments();
   }
 
-  async refreshTestRequests(): Promise<any> {
+  async refreshTestRequests() {
     this.invalidateCache("/hospital/test-requests/");
     return this.getTestRequests();
   }
 
-  async refreshVitalRequests(): Promise<any> {
+  async refreshVitalRequests() {
     this.invalidateCache("/hospital/vital-requests/");
     return this.getVitalRequests();
   }
+
+  // ============================
+  // BLOG ENDPOINTS (FIXED!)
+  // ============================
+
   async getBlogPosts(): Promise<any[]> {
-    return this.cachedRequest("/hospital/blog/");
+    const data = await this.cachedRequest("/hospital/blog/");
+    return data.map(normalizeBlogPost);
   }
+
   async getBlogPost(slug: string): Promise<any> {
-    return this.cachedRequest(`/hospital/blog/${slug}/`);
+    const data = await this.cachedRequest(`/hospital/blog/${slug}/`);
+    return normalizeBlogPost(data);
   }
+
   async createBlogPost(data: FormData): Promise<any> {
     this.invalidateCache("/hospital/blog/");
     return this.request("/hospital/blog/", {
       method: "POST",
       body: data,
-      // Don't set Content-Type header - let browser set it with boundary
     });
   }
+
   async updateBlogPost(slug: string, data: FormData): Promise<any> {
     this.invalidateCache("/hospital/blog/");
-    return this.request(`/hospital/blog/${slug}/`, {  
+    return this.request(`/hospital/blog/${slug}/`, {
       method: "PUT",
       body: data,
-      // Don't set Content-Type header
     });
   }
 
   async deleteBlogPost(slug: string): Promise<void> {
     this.invalidateCache("/hospital/blog/");
-    await this.request(`/hospital/blog/${slug}/`, {  
+    await this.request(`/hospital/blog/${slug}/`, {
       method: "DELETE",
     });
   }
-  
+
   async getBlogStats(): Promise<any> {
     return this.cachedRequest("/hospital/blog/admin/stats/");
   }
+
   async getAllBlogPosts(): Promise<any[]> {
-    return this.cachedRequest("/hospital/blog/admin/all/");
+    const data = await this.cachedRequest("/hospital/blog/admin/all/");
+    return data.map(normalizeBlogPost);
   }
+
   async searchBlogPosts(query: string): Promise<any[]> {
-    return this.cachedRequest(
+    const data = await this.cachedRequest(
       `/hospital/blog/search/?q=${encodeURIComponent(query)}`
     );
+    return data.map(normalizeBlogPost);
   }
+
   async getLatestBlogPosts(limit: number = 6): Promise<any[]> {
-    return this.cachedRequest(`/hospital/blog/latest/?limit=${limit}`);
+    const data = await this.cachedRequest(
+      `/hospital/blog/latest/?limit=${limit}`
+    );
+    return data.map(normalizeBlogPost);
   }
-  // Cache invalidation helper
+
+  // ============================
+  // CACHE INVALIDATION
+  // ============================
+
   private invalidateCache(pattern: string) {
     for (const key of this.cache.keys()) {
       if (key.startsWith(pattern)) {
@@ -291,6 +345,7 @@ class ApiService {
       }
     }
   }
+
 }
 
 export const apiService = new ApiService();

@@ -520,3 +520,458 @@ const ZipCashSection = () => {
 };
 
 export default ZipCashSection;
+
+
+
+HOME.TSX
+
+// pages/home/Home.tsx - Fully Patched
+import Hero from "./Hero";
+import AboutCards from "./AboutCards";
+import Services from "./ServiceCards";
+import BookAppointment from "./BookApointment";
+import { useState, useEffect } from "react";
+import { apiService } from "../../services/api";
+import { useNavigate } from "react-router-dom";
+
+interface HomeProps {
+  onBlogPostClick?: (slug: string) => void;
+}
+
+const Home: React.FC<HomeProps> = ({ onBlogPostClick }) => {
+  const [latestPost, setLatestPost] = useState<any>(null);
+  const [loadingBlogs, setLoadingBlogs] = useState(true);
+  const [email, setEmail] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    loadLatestPost();
+  }, []);
+
+  const loadLatestPost = async () => {
+    try {
+      setLoadingBlogs(true);
+      const posts = await apiService.getLatestBlogPosts(1);
+
+      if (posts && posts.length > 0) {
+        setLatestPost(posts[0]);
+      } else {
+        setLatestPost(null);
+      }
+    } catch (error) {
+      console.error("Failed to load latest blog posts:", error);
+      setLatestPost(null);
+    } finally {
+      setLoadingBlogs(false);
+    }
+  };
+
+  const handleBlogPostClick = (slug: string) => {
+    if (onBlogPostClick) {
+      onBlogPostClick(slug);
+    } else {
+      navigate(`/blog/${slug}`);
+    }
+  };
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    alert("Thank you for subscribing!");
+    setEmail("");
+  };
+
+  // Fixed universal image URL resolver
+  const getImageUrl = (path: string | null) => {
+    if (!path) return null;
+
+    if (path.startsWith("http")) return path;
+
+    if (path.startsWith("/")) {
+      return `http://localhost:8000${path}`;
+    }
+
+    return `http://localhost:8000/media/blog_images/${path}`;
+  };
+
+  // FIXED Subheading extractor
+  const getFirstTwoSubheadings = (post: any) => {
+    if (post.subheadings && post.subheadings.length > 0) {
+      return post.subheadings.slice(0, 2);
+    }
+    return null;
+  };
+
+  const firstTwoSubheadings = latestPost ? getFirstTwoSubheadings(latestPost) : null;
+
+  const featuredImageUrl = latestPost ? getImageUrl(latestPost.featured_image) : null;
+  // const image1Url = latestPost ? getImageUrl(latestPost.image_1) : null;
+  // const image2Url = latestPost ? getImageUrl(latestPost.image_2) : null;
+
+  return (
+    <>
+      <Hero />
+      <AboutCards />
+      <Services />
+
+      {/* Blog Section */}
+      <section className="py-20 bg-white">
+  <div className="max-w-7xl mx-auto px-4">
+    
+    {/* SECTION TITLE */}
+    <h2 className="text-3xl font-light text-gray-700 mb-10">Post of the Week</h2>
+
+    {loadingBlogs ? (
+      <div className="flex justify-center py-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    ) : latestPost ? (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+
+        {/* LEFT MAIN CONTENT */}
+        <div className="lg:col-span-2">
+
+          {/* BIG TITLE */}
+          <h1 className="text-5xl md:text-6xl font-light text-gray-900 leading-tight">
+            {latestPost.title}
+          </h1>
+
+          <h2 className="text-5xl md:text-6xl font-bold text-blue-600 mt-4">
+            Connecting the Dots
+          </h2>
+
+          <div className="w-20 h-[3px] bg-blue-600 my-6"></div>
+
+          {/* INTRO PARAGRAPH */}
+          <p className="text-gray-600 text-lg leading-relaxed max-w-3xl">
+            {latestPost.description}
+          </p>
+
+          <p className="mt-6 text-gray-600 leading-relaxed max-w-3xl">
+            Buckle up as we connect the dots between these two crucial health issues
+            and explore what you need to know to protect yourself and your loved ones.
+          </p>
+
+          {/* FIRST SUBHEADING + RIGHT IMAGE */}
+          {firstTwoSubheadings && firstTwoSubheadings[0] && (
+            <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+
+              {/* TEXT */}
+              <div className="md:col-span-2">
+                <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                  {firstTwoSubheadings[0].title}
+                </h3>
+
+                <p className="text-gray-600 leading-relaxed">
+                  {firstTwoSubheadings[0].description}
+                </p>
+              </div>
+
+              {/* IMAGE */}
+              <div>
+                {featuredImageUrl && (
+                  <img
+                    src={featuredImageUrl}
+                    alt="Section Image"
+                    className="w-full h-52 object-cover rounded-lg shadow-lg"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* SECOND SUBHEADING */}
+          {firstTwoSubheadings && firstTwoSubheadings[1] && (
+            <div className="mt-16">
+              <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                {firstTwoSubheadings[1].title}
+              </h3>
+
+              <p className="text-gray-600 leading-relaxed max-w-3xl">
+                {firstTwoSubheadings[1].description}
+              </p>
+
+              <button
+                onClick={() => handleBlogPostClick(latestPost.slug)}
+                className="mt-6 bg-blue-600 text-white px-10 py-4 rounded-full text-lg font-semibold hover:bg-blue-700 transition-all"
+              >
+                GET MORE DETAILS!
+              </button>
+            </div>
+          )}
+
+        </div>
+
+        {/* RIGHT SIDEBAR */}
+        <div>
+          <div className="bg-blue-600 text-white p-10 rounded-2xl shadow-xl">
+            <h3 className="text-3xl font-bold mb-4">We Have Some Good News</h3>
+            <div className="w-16 h-[3px] bg-white mb-6"></div>
+
+            <p className="text-white/90 leading-relaxed mb-6">
+              Sign up for our newsletter...
+            </p>
+
+            <form onSubmit={handleSubscribe} className="flex flex-col gap-4">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Type in your email address"
+                className="w-full px-4 py-3 rounded-lg text-gray-800"
+              />
+
+              <button className="bg-white text-blue-600 font-bold py-3 rounded-lg">
+                Subscribe
+              </button>
+            </form>
+
+            <div className="mt-10">
+              <h4 className="text-2xl font-bold mb-4">
+                We offer the Best Healthcare Plans
+              </h4>
+
+              <button
+                onClick={() => navigate("/packages")}
+                className="w-full bg-red-600 text-white py-4 rounded-full font-bold"
+              >
+                Our Packages »
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    ) : (
+      <div className="text-center py-12 bg-gray-100 rounded-lg shadow">
+        <p className="text-gray-500 text-lg">No blog posts available yet.</p>
+      </div>
+    )}
+
+    <div className="text-center mt-16">
+      <button
+        onClick={() => navigate("/blog")}
+        className="bg-blue-600 text-white px-10 py-4 rounded-full font-semibold hover:bg-blue-700"
+      >
+        View All Blog Posts
+      </button>
+    </div>
+  </div>
+</section>
+
+
+      <BookAppointment />
+    </>
+  );
+};
+
+export default Home;
+
+
+
+import React, { useEffect, useState } from "react";
+import { apiService } from "../../services/api";
+
+interface HomeProps {
+  onSelectPost: (slug: string) => void;
+}
+
+const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
+  const [latestPost, setLatestPost] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const loadLatestPost = async () => {
+    try {
+      setLoading(true);
+      const posts = await apiService.getLatestBlogPosts(1);
+      setLatestPost(posts[0] || null);
+    } catch (error) {
+      console.error("Error loading latest blog post:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadLatestPost();
+  }, []);
+
+  const getImageUrl = (path: string | null) => {
+    if (!path) return null;
+    if (path.startsWith("http")) return path;
+    if (path.startsWith("/")) return `http://localhost:8000${path}`;
+    return `http://localhost:8000/media/blog_images/${path}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <p className="text-gray-600">Loading latest post...</p>
+      </div>
+    );
+  }
+
+  if (!latestPost) return null;
+
+  const { title, slug, description, content, image_1, image_2, subheadings } =
+    latestPost;
+
+  const image1Url = getImageUrl(image_1);
+  const image2Url = getImageUrl(image_2);
+
+  const firstTwo = subheadings ? subheadings.slice(0, 2) : [];
+
+  const openDetails = () => {
+    onSelectPost(slug);
+  };
+
+  return (
+    <div className="px-4 md:px-12 lg:px-20">
+
+      {/* Header */}
+      <section className="bg-white text-center py-6 md:py-10">
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 tracking-tight uppercase">
+          Dr Mark Hamlings
+        </h1>
+        <p className="text-base md:text-lg text-gray-600">
+          Working towards bridging the gap between the patients and the doctor’s management
+        </p>
+      </section>
+
+      {/* Main Grid */}
+      <div className="bg-gray-50 py-8 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+
+          {/* Left Column */}
+          <div className="lg:col-span-2 bg-white shadow-lg rounded-xl p-6 md:p-8 border border-gray-200">
+
+            <h2 className="text-xl uppercase font-bold text-gray-900 tracking-widest mb-2">
+              Post of the Week
+            </h2>
+
+            <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+              {title}
+            </h3>
+
+            <p className="text-lg text-gray-600 mb-6 italic">
+              Connecting the Dots
+            </p>
+
+            <p className="text-gray-700 text-lg mb-6 leading-relaxed">
+              {description}
+            </p>
+
+            <p className="text-gray-600 mb-8 leading-relaxed">
+              {content}
+            </p>
+
+            {/* BIG Banner Image */}
+            {image2Url && (
+              <img
+                src={image2Url}
+                alt="Main visual"
+                className="w-full h-64 object-cover rounded-lg shadow-md mb-12"
+              />
+            )}
+
+            {/* FIRST SUBHEADING */}
+            {firstTwo[0] && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mb-12">
+                <div className="md:col-span-2">
+                  <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                    {firstTwo[0].title}
+                  </h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    {firstTwo[0].description}
+                  </p>
+                </div>
+
+                {image1Url && (
+                  <img
+                    src={image1Url}
+                    alt="Subheading visual"
+                    className="w-full h-52 object-cover rounded-lg shadow-md"
+                  />
+                )}
+              </div>
+            )}
+
+            {/* SECOND SUBHEADING */}
+            {firstTwo[1] && (
+              <div className="mb-12">
+                <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                  {firstTwo[1].title}
+                </h3>
+                <p className="text-gray-700 leading-relaxed">
+                  {firstTwo[1].description}
+                </p>
+              </div>
+            )}
+
+            <button
+              onClick={openDetails}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition duration-300"
+            >
+              Get More Details!
+            </button>
+          </div>
+
+          {/* Sidebar */}
+          <div>
+            <div className="bg-white shadow-lg rounded-xl p-6 border border-gray-200 mb-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Book an Appointment</h3>
+              <button
+                onClick={() => (window.location.href = "/packages")}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white px-5 py-3 rounded-md font-semibold"
+              >
+                Explore Services
+              </button>
+            </div>
+
+            <div className="bg-blue-600 text-white rounded-xl p-6 shadow-md">
+              <h3 className="text-xl font-semibold mb-2">Newsletter</h3>
+              <p className="text-sm text-blue-100 mb-4">
+                Get updates on new health tips and blog posts.
+              </p>
+
+              <NewsletterForm />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const NewsletterForm = () => {
+  const [email, setEmail] = useState("");
+
+  const submit = () => {
+    if (!email.includes("@")) {
+      alert("Please enter a valid email");
+      return;
+    }
+    alert("Thank you for subscribing!");
+    setEmail("");
+  };
+
+  return (
+    <div>
+      <input
+        type="email"
+        value={email}
+        placeholder="Enter your email"
+        onChange={(e) => setEmail(e.target.value)}
+        className="w-full p-3 rounded-md text-black mb-3 outline-none"
+      />
+      <button
+        onClick={submit}
+        className="w-full bg-white text-blue-600 font-bold p-3 rounded-md"
+      >
+        Subscribe
+      </button>
+    </div>
+  );
+};
+
+export default Home;

@@ -468,6 +468,7 @@ const BlogManagementTab: React.FC<{
 };
 
 // Create Blog Modal Component
+// pages/role_based_dashboards/AdminDashboard.tsx - Update CreateBlogModal
 const CreateBlogModal: React.FC<{
   onClose: () => void;
   onSuccess: () => void;
@@ -479,7 +480,9 @@ const CreateBlogModal: React.FC<{
     published: false,
     enable_toc: true,
   });
-  const [image, setImage] = useState<File | null>(null);
+  const [featuredImage, setFeaturedImage] = useState<File | null>(null);
+  const [image1, setImage1] = useState<File | null>(null);
+  const [image2, setImage2] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -504,22 +507,33 @@ const CreateBlogModal: React.FC<{
       formDataToSend.append("published", formData.published.toString());
       formDataToSend.append("enable_toc", formData.enable_toc.toString());
 
-      if (image) {
-        formDataToSend.append("featured_image", image);
+      if (featuredImage) {
+        formDataToSend.append("featured_image", featuredImage);
       }
+      if (image1) {
+        formDataToSend.append("image_1", image1);
+      }
+      if (image2) {
+        formDataToSend.append("image_2", image2);
+      }
+
       console.log("Creating blog post with data:", {
         title: formData.title,
         published: formData.published,
-        hasImage: !!image,
+        hasFeaturedImage: !!featuredImage,
+        hasImage1: !!image1,
+        hasImage2: !!image2,
       });
 
       await apiService.createBlogPost(formDataToSend);
+      
+      // Refresh blog data
       await Promise.all([
         apiService.getAllBlogPosts(),
         apiService.getLatestBlogPosts(),
       ]);
 
-      console.log("Blog post created successfully, refreshing data...");
+      console.log("Blog post created successfully!");
       onSuccess();
     } catch (error: any) {
       console.error("Error creating blog post:", error);
@@ -533,12 +547,15 @@ const CreateBlogModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b">
           <h2 className="text-2xl font-bold">Create New Blog Post</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Add a main image and two additional images for your blog post
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Title *
@@ -551,6 +568,7 @@ const CreateBlogModal: React.FC<{
                 setFormData({ ...formData, title: e.target.value })
               }
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter blog post title"
             />
           </div>
 
@@ -566,6 +584,7 @@ const CreateBlogModal: React.FC<{
                 setFormData({ ...formData, description: e.target.value })
               }
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter a brief description that will appear on the blog listing"
             />
           </div>
 
@@ -575,29 +594,78 @@ const CreateBlogModal: React.FC<{
             </label>
             <textarea
               required
-              rows={10}
+              rows={15}
               value={formData.content}
               onChange={(e) =>
                 setFormData({ ...formData, content: e.target.value })
               }
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="Use HTML tags for formatting (h1, h2, p, etc.)"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 font-mono"
+              placeholder={`Write your blog post content using HTML tags. Headings will be used for table of contents.
+
+Example structure:
+<h1>Main Heading</h1>
+<p>Introduction paragraph...</p>
+
+<h2>First Subheading</h2>
+<p>Content for first section...</p>
+
+<h2>Second Subheading</h2>
+<p>Content for second section...</p>
+
+<h3>Nested Subheading</h3>
+<p>More detailed content...</p>
+
+Make sure to include at least 6 subheadings for proper structure.`}
             />
+            <p className="text-sm text-gray-500 mt-1">
+              Use HTML heading tags (h1-h6) for subheadings. They will be automatically extracted for the table of contents.
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Featured Image
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setImage(e.target.files?.[0] || null)}
-              className="w-full"
-            />
+          {/* Image Uploads */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Featured Image (Main) *
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setFeaturedImage(e.target.files?.[0] || null)}
+                className="w-full text-sm"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">Main image displayed at top</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Additional Image 1
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImage1(e.target.files?.[0] || null)}
+                className="w-full text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">Second image for content</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Additional Image 2
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImage2(e.target.files?.[0] || null)}
+                className="w-full text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">Third image for content</p>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
             <label className="flex items-center">
               <input
                 type="checkbox"
@@ -607,7 +675,7 @@ const CreateBlogModal: React.FC<{
                 }
                 className="mr-2"
               />
-              <span className="text-sm">Publish immediately</span>
+              <span className="text-sm font-medium">Publish immediately</span>
             </label>
 
             <label className="flex items-center">
@@ -619,22 +687,22 @@ const CreateBlogModal: React.FC<{
                 }
                 className="mr-2"
               />
-              <span className="text-sm">Enable table of contents</span>
+              <span className="text-sm font-medium">Enable table of contents</span>
             </label>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex justify-end space-x-3 pt-6 border-t">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
             >
               {loading ? "Creating..." : "Create Post"}
             </button>

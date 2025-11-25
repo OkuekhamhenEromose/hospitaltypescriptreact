@@ -1,45 +1,122 @@
-// pages/home/Home.tsx - Fixed version
+// pages/home/Home.tsx - Complete version with blog post display
 import Hero from "./Hero";
 import AboutCards from "./AboutCards";
 import Services from "./ServiceCards";
 import BookAppointment from "./BookApointment";
+import slugify from "slugify";
+
 import { useState, useEffect } from "react";
 import { apiService } from "../../services/api";
 import { useNavigate } from "react-router-dom";
 
 interface HomeProps {
-  onBlogPostClick?: (slug: string) => void;
+  onSelectPost?: (slug: string) => void;
 }
 
-const Home: React.FC<HomeProps> = ({ onBlogPostClick }) => {
-  const [latestPosts, setLatestPosts] = useState<any[]>([]);
+const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
+  const [latestPost, setLatestPost] = useState<any>(null);
   const [loadingBlogs, setLoadingBlogs] = useState(true);
+  const [email, setEmail] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadLatestPosts();
+    loadLatestPost();
   }, []);
 
-  const loadLatestPosts = async () => {
+  const loadLatestPost = async () => {
     try {
       setLoadingBlogs(true);
-      const posts = await apiService.getLatestBlogPosts(3); // show 3 latest posts
-      setLatestPosts(posts);
+      const posts = await apiService.getLatestBlogPosts(1);
+
+      if (posts && posts.length > 0) {
+        const post = posts[0];
+        if (post.subheadings) {
+        post.subheadings = normalizeSubheadings(post.subheadings);
+      }
+        if (post.first_two_subheadings) {
+        post.first_two_subheadings = normalizeSubheadings(post.first_two_subheadings);
+      }
+        
+        console.log("=== BLOG POST DEBUG ===");
+        console.log("Post data:", post);
+        console.log("Subheadings:", post.subheadings);
+        console.log("First two subheadings:", post.first_two_subheadings);
+        console.log("Featured image:", post.featured_image);
+        console.log("Image 1:", post.image_1);
+        console.log("Image 2:", post.image_2);
+        
+        setLatestPost(post);
+      } else {
+        setLatestPost(null);
+      }
     } catch (error) {
       console.error("Failed to load latest blog posts:", error);
+      setLatestPost(null);
     } finally {
       setLoadingBlogs(false);
     }
+    
   };
 
   const handleBlogPostClick = (slug: string) => {
-    if (onBlogPostClick) {
-      onBlogPostClick(slug);
+    if (onSelectPost) {
+      onSelectPost(slug);
     } else {
-      // Fallback: navigate directly
       navigate(`/blog/${slug}`);
     }
   };
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Subscribing email:", email);
+    alert("Thank you for subscribing!");
+    setEmail("");
+  };
+
+  // Universal image URL resolver
+  const getImageUrl = (path: string | null) => {
+  if (!path) return null;
+
+  // FULL url already
+  if (path.startsWith("http")) return path;
+
+  // Django returns absolute media paths like "/media/blog_images/xxx.jpg"
+  if (path.startsWith("/media")) return `http://localhost:8000${path}`;
+
+  // Django returns only filename "xx.jpg"
+  return `http://localhost:8000/media/blog_images/${path}`;
+};
+
+const normalizeSubheadings = (sub: any[]) => {
+  return sub.map((item: any, index: number) => ({
+    id: index + 1,
+    title: item.title,
+    description: item.description,
+    level: item.level || 2,
+    anchor: slugify(item.title || "", { lower: true })
+  }));
+};
+
+
+
+  // Extract first two subheadings with fallbacks
+  const getFirstTwoSubheadings = (post: any) => {
+    // Try multiple possible field names
+    if (post.first_two_subheadings && post.first_two_subheadings.length > 0) {
+      return post.first_two_subheadings;
+    }
+    
+    if (post.subheadings && post.subheadings.length > 0) {
+      return post.subheadings.slice(0, 2);
+    }
+    
+    return null;
+  };
+
+  const firstTwoSubheadings = latestPost ? getFirstTwoSubheadings(latestPost) : null;
+  const featuredImageUrl = latestPost ? getImageUrl(latestPost.featured_image) : null;
+  const image1Url = latestPost ? getImageUrl(latestPost.image_1) : null;
+  const image2Url = latestPost ? getImageUrl(latestPost.image_2) : null;
 
   return (
     <>
@@ -47,74 +124,242 @@ const Home: React.FC<HomeProps> = ({ onBlogPostClick }) => {
       <AboutCards />
       <Services />
 
-      {/* Blog Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Latest From Our Blog</h2>
-          <div className="w-20 h-1 bg-blue-500 mb-12"></div>
+      {/* BLOG SECTION - Enhanced with proper blog post display */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          
+          {/* SECTION TITLE */}
+          <h2 className="text-3xl font-light text-gray-700 mb-10">Post of the Week</h2>
 
           {loadingBlogs ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {latestPosts.map((post) => (
-                <div
-                  key={post.id}
-                  className="bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => handleBlogPostClick(post.slug)}
-                >
-                  {post.featured_image ? (
-                    <img
-                      src={post.featured_image}
-                      alt={post.title}
-                      className="h-48 w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-48 w-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                      <span className="text-white text-2xl">📝</span>
-                    </div>
-                  )}
+          ) : latestPost ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-blue-500 mb-3 line-clamp-2">
-                      {post.title}
+              {/* MAIN CONTENT - Enhanced blog post display */}
+              <div className="lg:col-span-2">
+
+                {/* Blog Post Title */}
+                <h1 className="text-5xl md:text-6xl font-light text-gray-900 leading-tight">
+                  {latestPost.title}
+                </h1>
+
+                {/* Blog Post Subtitle */}
+                <h2 className="text-5xl md:text-6xl font-bold text-blue-600 mt-4">
+                  Connecting the Dots
+                </h2>
+
+                <div className="w-20 h-[3px] bg-blue-600 my-6"></div>
+
+                {/* Blog Post Description */}
+                <p className="text-gray-600 text-lg leading-relaxed max-w-3xl">
+                  {latestPost.description}
+                </p>
+
+                {/* Additional Content Image if available */}
+                {image2Url && (
+                  <div className="mt-8">
+                    <img
+                      src={image2Url}
+                      alt="Blog content visual"
+                      className="w-full h-64 object-cover rounded-lg shadow-lg"
+                      onError={(e) => {
+                        console.error("Image 2 failed to load:", image2Url);
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* FIRST SUBHEADING WITH IMAGE - Enhanced display */}
+                {firstTwoSubheadings && firstTwoSubheadings[0] && (
+                  <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+                    
+                    {/* Text Content */}
+                    <div className="md:col-span-2">
+                      <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                        {firstTwoSubheadings[0].title}
+                      </h3>
+                      <p className="text-gray-600 leading-relaxed text-lg">
+                        {firstTwoSubheadings[0].description}
+                      </p>
+                    </div>
+
+                    {/* Image - Try multiple image sources */}
+                    <div className="flex justify-center">
+                      {featuredImageUrl && (
+                        <img
+                          src={featuredImageUrl}
+                          alt={firstTwoSubheadings[0].title}
+                          className="w-full h-52 object-cover rounded-lg shadow-lg"
+                          onError={(e) => {
+                            console.error("Featured image failed to load:", featuredImageUrl);
+                            // Try fallback to image1
+                            if (image1Url) {
+                              e.currentTarget.src = image1Url;
+                            } else {
+                              e.currentTarget.style.display = 'none';
+                            }
+                          }}
+                        />
+                      )}
+                      {!featuredImageUrl && image1Url && (
+                        <img
+                          src={image1Url}
+                          alt={firstTwoSubheadings[0].title}
+                          className="w-full h-52 object-cover rounded-lg shadow-lg"
+                          onError={(e) => {
+                            console.error("Image 1 failed to load:", image1Url);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                    </div>
+
+                  </div>
+                )}
+
+                {/* SECOND SUBHEADING */}
+                {firstTwoSubheadings && firstTwoSubheadings[1] && (
+                  <div className="mt-16">
+                    <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                      {firstTwoSubheadings[1].title}
                     </h3>
 
-                    <p className="text-gray-700 text-sm mb-4 line-clamp-3">
-                      {post.description}
+                    <p className="text-gray-600 leading-relaxed max-w-3xl text-lg">
+                      {firstTwoSubheadings[1].description}
                     </p>
 
-                    <button className="text-blue-600 font-semibold hover:underline flex items-center">
-                      Read More →
+                    <button
+                      onClick={() => handleBlogPostClick(latestPost.slug)}
+                      className="mt-8 bg-blue-600 text-white px-10 py-4 rounded-full text-lg font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg uppercase tracking-wide"
+                    >
+                      GET MORE DETAILS!
+                    </button>
+                  </div>
+                )}
+
+                {/* FALLBACK - If no subheadings are available */}
+                {(!firstTwoSubheadings || firstTwoSubheadings.length === 0) && (
+                  <div className="mt-16 bg-gray-50 p-8 rounded-lg border border-gray-200">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                      Explore More Content
+                    </h3>
+                    <p className="text-gray-600 leading-relaxed mb-6">
+                      This blog post contains valuable insights and detailed information about healthcare topics. 
+                      Click below to read the full article and discover comprehensive guidance.
+                    </p>
+                    <button
+                      onClick={() => handleBlogPostClick(latestPost.slug)}
+                      className="bg-blue-600 text-white px-10 py-4 rounded-full text-lg font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg uppercase tracking-wide"
+                    >
+                      READ FULL ARTICLE
+                    </button>
+                  </div>
+                )}
+
+              </div>
+
+              {/* SIDEBAR - Enhanced newsletter section */}
+              <div className="space-y-8">
+                {/* Newsletter Card */}
+                <div className="bg-blue-600 text-white p-8 rounded-2xl shadow-xl">
+                  <h3 className="text-3xl font-bold mb-4">We Have Some Good News</h3>
+                  <div className="w-16 h-[3px] bg-white mb-6"></div>
+
+                  <p className="text-white/90 leading-relaxed mb-8">
+                    Don't hesitate – sign up for our newsletter now to stay informed about 
+                    our services, gain valuable healthcare insights, and access exclusive offers from 
+                    Etta-Atlantic Memorial Hospital in Lagos, Nigeria.
+                  </p>
+
+                  {/* Newsletter Form */}
+                  <form onSubmit={handleSubscribe} className="space-y-4">
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Type in your email address"
+                      className="w-full px-4 py-3 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+                    />
+
+                    <button 
+                      type="submit"
+                      className="w-full bg-white text-blue-600 font-bold py-3 rounded-lg hover:bg-gray-100 transition-all uppercase tracking-wide"
+                    >
+                      Subscribe
+                    </button>
+                  </form>
+
+                  {/* Healthcare Plans Section */}
+                  <div className="mt-12 pt-8 border-t border-blue-500 border-opacity-30">
+                    <h4 className="text-2xl font-bold mb-4">
+                      We offer the Best Healthcare Plans
+                    </h4>
+                    <p className="text-white text-sm leading-relaxed mb-6">
+                      Check out our different healthcare packages, ranging from health checks, 
+                      lifestyle plans, UTI checks to sexual health.
+                    </p>
+                    <button
+                      onClick={() => navigate('/packages')}
+                      className="w-full bg-red-600 text-white py-4 rounded-full font-bold hover:bg-red-700 transition-all uppercase tracking-wide flex items-center justify-center shadow-md hover:shadow-lg"
+                    >
+                      Our Packages <span className="ml-2">»</span>
                     </button>
                   </div>
                 </div>
-              ))}
-              
-              {latestPosts.length === 0 && (
-                <div className="col-span-3 text-center py-12">
-                  <p className="text-gray-500 text-lg">No blog posts available yet.</p>
-                  <p className="text-gray-400 text-sm">Check back later for updates!</p>
+
+                {/* Additional Call-to-Action */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+                  <h4 className="text-xl font-bold text-gray-900 mb-3">Quick Appointment</h4>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Need immediate medical attention? Book an appointment with our specialists.
+                  </p>
+                  <button
+                    onClick={() => navigate('/appointment')}
+                    className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-all"
+                  >
+                    Book Now
+                  </button>
                 </div>
-              )}
+              </div>
+
+            </div>
+          ) : (
+            /* No Posts Available State */
+            <div className="text-center py-16 bg-gray-50 rounded-2xl shadow-inner">
+              <div className="max-w-md mx-auto">
+                <div className="text-6xl mb-4">📝</div>
+                <h3 className="text-2xl font-bold text-gray-700 mb-2">No Blog Posts Yet</h3>
+                <p className="text-gray-500 mb-6">
+                  We're working on creating valuable content for you. Check back soon for updates!
+                </p>
+                <button
+                  onClick={() => navigate('/blog')}
+                  className="bg-gray-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-gray-700 transition-all"
+                >
+                  Visit Blog
+                </button>
+              </div>
             </div>
           )}
-          
-          {latestPosts.length > 0 && (
-            <div className="text-center mt-12">
-              <button
-                onClick={() => navigate('/blog')}
-                className="bg-blue-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
-              >
-                View All Blog Posts
-              </button>
-            </div>
-          )}
+
+          {/* View All Blog Posts Button */}
+          <div className="text-center mt-16">
+            <button
+              onClick={() => navigate('/blog')}
+              className="bg-blue-600 text-white px-12 py-4 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg text-lg uppercase tracking-wide"
+            >
+              View All Blog Posts
+            </button>
+          </div>
+
         </div>
       </section>
-      
+
       <BookAppointment />
     </>
   );
