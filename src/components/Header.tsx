@@ -1,4 +1,4 @@
-// Header.tsx - Updated with profile click functionality
+// Header.tsx - Fixed with proper image error handling
 import React, { useState, useEffect } from 'react';
 import { Activity, User, LogOut, ChevronDown } from 'lucide-react';
 
@@ -22,12 +22,13 @@ const Header: React.FC<HeaderProps> = ({
   const [scrolled, setScrolled] = useState(false);
   const [hideTopSection, setHideTopSection] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       setScrolled(scrollPosition > 50);
-      setHideTopSection(scrollPosition > 100); // Hide top section after scrolling 100px
+      setHideTopSection(scrollPosition > 100);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -44,6 +45,23 @@ const Header: React.FC<HeaderProps> = ({
     onLogout();
     setShowProfileDropdown(false);
   };
+
+  // Function to get profile image URL
+  const getProfileImageUrl = (profile: any) => {
+    if (!profile?.profile_pix) return null;
+    
+    if (profile.profile_pix.startsWith('http')) {
+      return profile.profile_pix;
+    }
+    
+    // Assuming your media is served from localhost:8000
+    return `http://localhost:8000${profile.profile_pix}`;
+  };
+
+  // Reset image error when user changes
+  useEffect(() => {
+    setImageError(false);
+  }, [user]);
 
   return (
     <header 
@@ -66,7 +84,7 @@ const Header: React.FC<HeaderProps> = ({
           transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
-        <div className="container mx-auto px-4 py-3">
+        <div className="container mx-auto px-12 py-3">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center space-x-3">
@@ -93,7 +111,24 @@ const Header: React.FC<HeaderProps> = ({
                       onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                       className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
                     >
-                      <User className="w-4 h-4 text-gray-600" />
+                      {/* Profile Image or Fallback Icon */}
+                      {user.profile?.profile_pix && !imageError ? (
+                        <div className="w-6 h-6 rounded-full overflow-hidden border border-gray-300 flex items-center justify-center">
+                          <img 
+                            src={getProfileImageUrl(user.profile)} 
+                            alt="Profile" 
+                            className="w-full h-full object-cover"
+                            onError={() => setImageError(true)}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                          <span className="text-white text-xs font-medium">
+                            {user.profile?.fullname?.charAt(0) || user.username?.charAt(0) || 'U'}
+                          </span>
+                        </div>
+                      )}
+                      
                       <span className="text-sm font-medium text-gray-800">
                         {user.profile?.fullname || user.username}
                       </span>
@@ -141,7 +176,7 @@ const Header: React.FC<HeaderProps> = ({
 
       {/* Navigation Section */}
       <nav className="bg-gradient-to-r from-white/50 to-white/30 backdrop-blur-sm border-b border-white/10">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-12">
           <div className="flex items-center justify-between h-14">
             {/* Navigation Links */}
             <ul className="flex space-x-8">

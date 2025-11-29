@@ -1,8 +1,9 @@
-// components/AuthModal.tsx
+// components/AuthModal.tsx - Updated with image upload
 import React, { useState } from "react";
-import { X } from "lucide-react";
+import { X, Upload, User } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import type { LoginData, RegisterData } from "../../services/auth";
+import type { LoginData } from "../../services/auth";
+import { apiService } from "../../services/api"; // Add this import
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ interface AuthFormData {
   phone?: string;
   gender?: string;
   role?: string;
+  profile_pix?: File | null;
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
@@ -34,13 +36,41 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       phone: "",
       gender: "",
       role: "PATIENT",
+      profile_pix: null,
     }),
   });
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login, register } = useAuth();
+  const { login } = useAuth();
 
   if (!isOpen) return null;
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError("Please select a valid image file");
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image size should be less than 5MB");
+        return;
+      }
+
+      setFormData(prev => ({ ...prev, profile_pix: file }));
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,20 +104,44 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           throw new Error("Passwords do not match");
         }
 
-        // Create the exact data structure expected by the backend
-        const registerData: RegisterData = {
-          username: formData.username.trim(),
-          email: formData.email.trim(),
-          password1: formData.password1,
-          password2: formData.password2,
-          fullname: formData.fullname.trim(),
-          phone: formData.phone?.trim() || "",
-          gender: formData.gender?.trim() || "M", // Default to Male if not selected
-          role: formData.role?.trim() || "PATIENT",
-        };
+        // Create FormData for file upload
+        const formDataToSend = new FormData();
+        formDataToSend.append("username", formData.username.trim());
+        formDataToSend.append("email", formData.email.trim());
+        formDataToSend.append("password1", formData.password1);
+        formDataToSend.append("password2", formData.password2);
+        formDataToSend.append("fullname", formData.fullname.trim());
+        formDataToSend.append("phone", formData.phone?.trim() || "");
+        formDataToSend.append("gender", formData.gender?.trim() || "M");
+        formDataToSend.append("role", formData.role?.trim() || "PATIENT");
+        
+        if (formData.profile_pix) {
+          formDataToSend.append("profile_pix", formData.profile_pix);
+        }
 
-        console.log("Sending registration data:", registerData);
-        await register(registerData);
+        console.log("Sending registration data with image");
+
+        await apiService.registerWithImage(formDataToSend);
+        
+        // You'll need to update your API service to handle FormData
+        // const response = await fetch("http://localhost:8000/api/users/register/", {
+        //   method: "POST",
+        //   body: formDataToSend,
+        // });
+
+        // if (!response.ok) {
+        //   const errorData = await response.json();
+        //   throw new Error(errorData.detail || JSON.stringify(errorData));
+        // }
+
+        // const data = await response.json();
+        
+        // Auto-login after registration
+        const loginData: LoginData = {
+          username: formData.username,
+          password: formData.password1 || "",
+        };
+        await login(loginData);
       }
       onClose();
     } catch (err: any) {
@@ -110,6 +164,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const switchMode = () => {
     setIsLogin(!isLogin);
     setError("");
+    setPreviewImage(null);
     if (isLogin) {
       setFormData((prev) => ({
         username: prev.username,
@@ -120,6 +175,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         phone: "",
         gender: "",
         role: "PATIENT",
+        profile_pix: null,
       }));
     } else {
       setFormData((prev) => ({
@@ -159,6 +215,41 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             {error && (
               <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm">
                 {error}
+              </div>
+            )}
+
+            {/* Profile Image Upload - Only for Registration */}
+            {!isLogin && (
+              <div className="flex flex-col items-center space-y-3">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50">
+                    {previewImage ? (
+                      <img 
+                        src={previewImage} 
+                        alt="Profile preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-8 h-8 text-gray-400" />
+                    )}
+                  </div>
+                </div>
+                
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                  <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm">
+                    <Upload className="w-4 h-4" />
+                    <span>Upload Profile Image</span>
+                  </div>
+                </label>
+                <p className="text-xs text-gray-500 text-center">
+                  JPG, PNG or GIF • Max 5MB
+                </p>
               </div>
             )}
 

@@ -333,6 +333,20 @@ class ApiService {
     );
     return data.map(normalizeBlogPost);
   }
+  // services/api.ts - Add this method
+async registerWithImage(formData: FormData): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/users/register/`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail || JSON.stringify(errorData));
+  }
+
+  return response.json();
+}
 
   // ============================
   // CACHE INVALIDATION

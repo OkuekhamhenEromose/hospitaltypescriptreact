@@ -31,12 +31,14 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
       if (posts && posts.length > 0) {
         const post = posts[0];
         if (post.subheadings) {
-        post.subheadings = normalizeSubheadings(post.subheadings);
-      }
+          post.subheadings = normalizeSubheadings(post.subheadings);
+        }
         if (post.first_two_subheadings) {
-        post.first_two_subheadings = normalizeSubheadings(post.first_two_subheadings);
-      }
-        
+          post.first_two_subheadings = normalizeSubheadings(
+            post.first_two_subheadings
+          );
+        }
+
         console.log("=== BLOG POST DEBUG ===");
         console.log("Post data:", post);
         console.log("Subheadings:", post.subheadings);
@@ -44,7 +46,7 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
         console.log("Featured image:", post.featured_image);
         console.log("Image 1:", post.image_1);
         console.log("Image 2:", post.image_2);
-        
+
         setLatestPost(post);
       } else {
         setLatestPost(null);
@@ -55,7 +57,6 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
     } finally {
       setLoadingBlogs(false);
     }
-    
   };
 
   const handleBlogPostClick = (slug: string) => {
@@ -75,29 +76,27 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
 
   // Universal image URL resolver
   const getImageUrl = (path: string | null) => {
-  if (!path) return null;
+    if (!path) return null;
 
-  // FULL url already
-  if (path.startsWith("http")) return path;
+    // FULL url already
+    if (path.startsWith("http")) return path;
 
-  // Django returns absolute media paths like "/media/blog_images/xxx.jpg"
-  if (path.startsWith("/media")) return `http://localhost:8000${path}`;
+    // Django returns absolute media paths like "/media/blog_images/xxx.jpg"
+    if (path.startsWith("/media")) return `http://localhost:8000${path}`;
 
-  // Django returns only filename "xx.jpg"
-  return `http://localhost:8000/media/blog_images/${path}`;
-};
+    // Django returns only filename "xx.jpg"
+    return `http://localhost:8000/media/blog_images/${path}`;
+  };
 
-const normalizeSubheadings = (sub: any[]) => {
-  return sub.map((item: any, index: number) => ({
-    id: index + 1,
-    title: item.title,
-    description: item.description,
-    level: item.level || 2,
-    anchor: slugify(item.title || "", { lower: true })
-  }));
-};
-
-
+  const normalizeSubheadings = (sub: any[]) => {
+    return sub.map((item: any, index: number) => ({
+      id: index + 1,
+      title: item.title,
+      description: item.description,
+      level: item.level || 2,
+      anchor: slugify(item.title || "", { lower: true }),
+    }));
+  };
 
   // Extract first two subheadings with fallbacks
   const getFirstTwoSubheadings = (post: any) => {
@@ -105,16 +104,20 @@ const normalizeSubheadings = (sub: any[]) => {
     if (post.first_two_subheadings && post.first_two_subheadings.length > 0) {
       return post.first_two_subheadings;
     }
-    
+
     if (post.subheadings && post.subheadings.length > 0) {
       return post.subheadings.slice(0, 2);
     }
-    
+
     return null;
   };
 
-  const firstTwoSubheadings = latestPost ? getFirstTwoSubheadings(latestPost) : null;
-  const featuredImageUrl = latestPost ? getImageUrl(latestPost.featured_image) : null;
+  const firstTwoSubheadings = latestPost
+    ? getFirstTwoSubheadings(latestPost)
+    : null;
+  const featuredImageUrl = latestPost
+    ? getImageUrl(latestPost.featured_image)
+    : null;
   const image1Url = latestPost ? getImageUrl(latestPost.image_1) : null;
   const image2Url = latestPost ? getImageUrl(latestPost.image_2) : null;
 
@@ -126,21 +129,20 @@ const normalizeSubheadings = (sub: any[]) => {
 
       {/* BLOG SECTION - Enhanced with proper blog post display */}
       <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          
+        <div className="max-w-7xl mx-auto px-12">
           {/* SECTION TITLE */}
-          <h2 className="text-3xl font-light text-gray-700 mb-10">Post of the Week</h2>
+          <h2 className="text-3xl font-light text-gray-700 mb-6">
+            Post of the Week
+          </h2>
 
           {loadingBlogs ? (
-            <div className="flex justify-center py-8">
+            <div className="flex justify-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : latestPost ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-
               {/* MAIN CONTENT - Enhanced blog post display */}
               <div className="lg:col-span-2">
-
                 {/* Blog Post Title */}
                 <h1 className="text-5xl md:text-6xl font-light text-gray-900 leading-tight">
                   {latestPost.title}
@@ -151,23 +153,23 @@ const normalizeSubheadings = (sub: any[]) => {
                   Connecting the Dots
                 </h2>
 
-                <div className="w-20 h-[3px] bg-blue-600 my-6"></div>
+                <div className="w-20 h-[3px] bg-blue-600 my-3"></div>
 
                 {/* Blog Post Description */}
-                <p className="text-gray-600 text-lg leading-relaxed max-w-3xl">
+                <p className="text-gray-600 text-base leading-relaxed max-w-3xl">
                   {latestPost.description}
                 </p>
 
                 {/* Additional Content Image if available */}
                 {image2Url && (
-                  <div className="mt-8">
+                  <div className="mt-6">
                     <img
                       src={image2Url}
                       alt="Blog content visual"
                       className="w-full h-64 object-cover rounded-lg shadow-lg"
                       onError={(e) => {
                         console.error("Image 2 failed to load:", image2Url);
-                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.style.display = "none";
                       }}
                     />
                   </div>
@@ -175,14 +177,13 @@ const normalizeSubheadings = (sub: any[]) => {
 
                 {/* FIRST SUBHEADING WITH IMAGE - Enhanced display */}
                 {firstTwoSubheadings && firstTwoSubheadings[0] && (
-                  <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-                    
+                  <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
                     {/* Text Content */}
                     <div className="md:col-span-2">
-                      <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                      <h3 className="text-3xl font-bold text-gray-900 mb-2">
                         {firstTwoSubheadings[0].title}
                       </h3>
-                      <p className="text-gray-600 leading-relaxed text-lg">
+                      <p className="text-gray-600 leading-relaxed text-base">
                         {firstTwoSubheadings[0].description}
                       </p>
                     </div>
@@ -195,12 +196,15 @@ const normalizeSubheadings = (sub: any[]) => {
                           alt={firstTwoSubheadings[0].title}
                           className="w-full h-52 object-cover rounded-lg shadow-lg"
                           onError={(e) => {
-                            console.error("Featured image failed to load:", featuredImageUrl);
+                            console.error(
+                              "Featured image failed to load:",
+                              featuredImageUrl
+                            );
                             // Try fallback to image1
                             if (image1Url) {
                               e.currentTarget.src = image1Url;
                             } else {
-                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.style.display = "none";
                             }
                           }}
                         />
@@ -212,23 +216,22 @@ const normalizeSubheadings = (sub: any[]) => {
                           className="w-full h-52 object-cover rounded-lg shadow-lg"
                           onError={(e) => {
                             console.error("Image 1 failed to load:", image1Url);
-                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.style.display = "none";
                           }}
                         />
                       )}
                     </div>
-
                   </div>
                 )}
 
                 {/* SECOND SUBHEADING */}
                 {firstTwoSubheadings && firstTwoSubheadings[1] && (
-                  <div className="mt-16">
+                  <div className="mt-6">
                     <h3 className="text-3xl font-bold text-gray-900 mb-4">
                       {firstTwoSubheadings[1].title}
                     </h3>
 
-                    <p className="text-gray-600 leading-relaxed max-w-3xl text-lg">
+                    <p className="text-gray-600 leading-relaxed max-w-3xl text-base">
                       {firstTwoSubheadings[1].description}
                     </p>
 
@@ -248,8 +251,9 @@ const normalizeSubheadings = (sub: any[]) => {
                       Explore More Content
                     </h3>
                     <p className="text-gray-600 leading-relaxed mb-6">
-                      This blog post contains valuable insights and detailed information about healthcare topics. 
-                      Click below to read the full article and discover comprehensive guidance.
+                      This blog post contains valuable insights and detailed
+                      information about healthcare topics. Click below to read
+                      the full article and discover comprehensive guidance.
                     </p>
                     <button
                       onClick={() => handleBlogPostClick(latestPost.slug)}
@@ -259,20 +263,22 @@ const normalizeSubheadings = (sub: any[]) => {
                     </button>
                   </div>
                 )}
-
               </div>
 
               {/* SIDEBAR - Enhanced newsletter section */}
-              <div className="space-y-8">
+              <div className="space-y-8 mt-48">
                 {/* Newsletter Card */}
-                <div className="bg-blue-600 text-white p-8 rounded-2xl shadow-xl">
-                  <h3 className="text-3xl font-bold mb-4">We Have Some Good News</h3>
+                <div className="bg-blue-600 text-white p-8 shadow-xl">
+                  <h3 className="text-3xl font-bold mb-4">
+                    We Have Some Good News
+                  </h3>
                   <div className="w-16 h-[3px] bg-white mb-6"></div>
 
                   <p className="text-white/90 leading-relaxed mb-8">
-                    Don't hesitate – sign up for our newsletter now to stay informed about 
-                    our services, gain valuable healthcare insights, and access exclusive offers from 
-                    Etta-Atlantic Memorial Hospital in Lagos, Nigeria.
+                    Don't hesitate – sign up for our newsletter now to stay
+                    informed about our services, gain valuable healthcare
+                    insights, and access exclusive offers from Etta-Atlantic
+                    Memorial Hospital in Lagos, Nigeria.
                   </p>
 
                   {/* Newsletter Form */}
@@ -286,7 +292,7 @@ const normalizeSubheadings = (sub: any[]) => {
                       className="w-full px-4 py-3 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
                     />
 
-                    <button 
+                    <button
                       type="submit"
                       className="w-full bg-white text-blue-600 font-bold py-3 rounded-lg hover:bg-gray-100 transition-all uppercase tracking-wide"
                     >
@@ -300,45 +306,34 @@ const normalizeSubheadings = (sub: any[]) => {
                       We offer the Best Healthcare Plans
                     </h4>
                     <p className="text-white text-sm leading-relaxed mb-6">
-                      Check out our different healthcare packages, ranging from health checks, 
-                      lifestyle plans, UTI checks to sexual health.
+                      Check out our different healthcare packages, ranging from
+                      health checks, lifestyle plans, UTI checks to sexual
+                      health.
                     </p>
                     <button
-                      onClick={() => navigate('/packages')}
+                      onClick={() => navigate("/packages")}
                       className="w-full bg-red-600 text-white py-4 rounded-full font-bold hover:bg-red-700 transition-all uppercase tracking-wide flex items-center justify-center shadow-md hover:shadow-lg"
                     >
                       Our Packages <span className="ml-2">»</span>
                     </button>
                   </div>
                 </div>
-
-                {/* Additional Call-to-Action */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
-                  <h4 className="text-xl font-bold text-gray-900 mb-3">Quick Appointment</h4>
-                  <p className="text-gray-600 text-sm mb-4">
-                    Need immediate medical attention? Book an appointment with our specialists.
-                  </p>
-                  <button
-                    onClick={() => navigate('/appointment')}
-                    className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-all"
-                  >
-                    Book Now
-                  </button>
-                </div>
               </div>
-
             </div>
           ) : (
             /* No Posts Available State */
             <div className="text-center py-16 bg-gray-50 rounded-2xl shadow-inner">
               <div className="max-w-md mx-auto">
                 <div className="text-6xl mb-4">📝</div>
-                <h3 className="text-2xl font-bold text-gray-700 mb-2">No Blog Posts Yet</h3>
+                <h3 className="text-2xl font-bold text-gray-700 mb-2">
+                  No Blog Posts Yet
+                </h3>
                 <p className="text-gray-500 mb-6">
-                  We're working on creating valuable content for you. Check back soon for updates!
+                  We're working on creating valuable content for you. Check back
+                  soon for updates!
                 </p>
                 <button
-                  onClick={() => navigate('/blog')}
+                  onClick={() => navigate("/blog")}
                   className="bg-gray-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-gray-700 transition-all"
                 >
                   Visit Blog
@@ -350,13 +345,12 @@ const normalizeSubheadings = (sub: any[]) => {
           {/* View All Blog Posts Button */}
           <div className="text-center mt-16">
             <button
-              onClick={() => navigate('/blog')}
+              onClick={() => navigate("/blog")}
               className="bg-blue-600 text-white px-12 py-4 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg text-lg uppercase tracking-wide"
             >
               View All Blog Posts
             </button>
           </div>
-
         </div>
       </section>
 

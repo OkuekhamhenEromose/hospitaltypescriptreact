@@ -1,4 +1,4 @@
-// App.tsx - Updated with proper authentication flow
+// App.tsx - Updated with admin blog editor route
 import React, { lazy, Suspense } from 'react';
 import type { ComponentType } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
@@ -30,6 +30,7 @@ const BlogPostDetail = lazy(() => import('./pages/blog/BlogPostDetail')) as Comp
 const Contact = lazy(() => import('./pages/Contact'));
 const AuthModal = lazy(() => import('./pages/authform/AuthModal'));
 const DashboardRouter = lazy(() => import('./pages/DashboardRouter'));
+const BlogEditor = lazy(() => import('./pages/blog/BlogEditor')); // Add this import
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -37,6 +38,22 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   
   if (!user) {
     return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Admin route component - only accessible to admins
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+  
+  // Check if user is admin
+  if (user.profile?.role !== 'ADMIN') {
+    return <Navigate to="/dashboard" replace />;
   }
   
   return <>{children}</>;
@@ -141,6 +158,16 @@ const AppRoutes: React.FC = () => {
                 <ProtectedRoute>
                   <DashboardRouter />
                 </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Blog Editor Route */}
+            <Route
+              path="/admin/blog/edit/:slug"
+              element={
+                <AdminRoute>
+                  <BlogEditor />
+                </AdminRoute>
               }
             />
 
