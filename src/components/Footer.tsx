@@ -17,7 +17,7 @@ const Footer = () => {
               </div>
             </div>
             <address className="not-italic text-base leading-relaxed">
-              <strong>22 Abioro Street, Ikate Lekki, Lagos State</strong><br />
+              <strong>22 Abioro Street, Ikorodu, Lagos State</strong><br />
               Nigeria
             </address>
           </div>

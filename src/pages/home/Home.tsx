@@ -1,9 +1,11 @@
-// pages/home/Home.tsx - Complete version with blog post display
+// pages/home/Home.tsx - With specific Framer Motion animations
 import Hero from "./Hero";
 import AboutCards from "./AboutCards";
 import Services from "./ServiceCards";
 import BookAppointment from "./BookApointment";
 import slugify from "slugify";
+import { motion } from "framer-motion";
+import type { Variants } from "framer-motion";
 
 import { useState, useEffect } from "react";
 import { apiService } from "../../services/api";
@@ -22,6 +24,25 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
   useEffect(() => {
     loadLatestPost();
   }, []);
+
+  // Animation variants
+  const fadeInLeft: Variants = {
+    hidden: { opacity: 0, x: -50 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] },
+    },
+  };
+
+  const zoomOut: Variants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: { duration: 0.6, ease: "easeOut" }
+    }
+  };
 
   const loadLatestPost = async () => {
     try {
@@ -141,8 +162,14 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
             </div>
           ) : latestPost ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-              {/* MAIN CONTENT - Enhanced blog post display */}
-              <div className="lg:col-span-2">
+              {/* MAIN CONTENT - Enhanced blog post display with fadeInLeft */}
+              <motion.div 
+                className="lg:col-span-2"
+                variants={fadeInLeft}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+              >
                 {/* Blog Post Title */}
                 <h1 className="text-5xl md:text-6xl font-light text-gray-900 leading-tight">
                   {latestPost.title}
@@ -235,12 +262,14 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
                       {firstTwoSubheadings[1].description}
                     </p>
 
-                    <button
+                    <motion.button
                       onClick={() => handleBlogPostClick(latestPost.slug)}
                       className="mt-8 bg-blue-600 text-white px-10 py-4 rounded-full text-lg font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg uppercase tracking-wide"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
                       GET MORE DETAILS!
-                    </button>
+                    </motion.button>
                   </div>
                 )}
 
@@ -255,20 +284,32 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
                       information about healthcare topics. Click below to read
                       the full article and discover comprehensive guidance.
                     </p>
-                    <button
+                    <motion.button
                       onClick={() => handleBlogPostClick(latestPost.slug)}
                       className="bg-blue-600 text-white px-10 py-4 rounded-full text-lg font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg uppercase tracking-wide"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
                       READ FULL ARTICLE
-                    </button>
+                    </motion.button>
                   </div>
                 )}
-              </div>
+              </motion.div>
 
-              {/* SIDEBAR - Enhanced newsletter section */}
-              <div className="space-y-8 mt-48">
+              {/* SIDEBAR - Enhanced newsletter section with zoom out */}
+              <motion.div 
+                className="space-y-8 mt-48"
+                variants={zoomOut}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+              >
                 {/* Newsletter Card */}
-                <div className="bg-blue-600 text-white p-8 shadow-xl">
+                <motion.div 
+                  className="bg-blue-600 text-white p-8 shadow-xl"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   <h3 className="text-3xl font-bold mb-4">
                     We Have Some Good News
                   </h3>
@@ -283,21 +324,24 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
 
                   {/* Newsletter Form */}
                   <form onSubmit={handleSubscribe} className="space-y-4">
-                    <input
+                    <motion.input
                       type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Type in your email address"
                       className="w-full px-4 py-3 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+                      whileFocus={{ scale: 1.02 }}
                     />
 
-                    <button
+                    <motion.button
                       type="submit"
                       className="w-full bg-white text-blue-600 font-bold py-3 rounded-lg hover:bg-gray-100 transition-all uppercase tracking-wide"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
                       Subscribe
-                    </button>
+                    </motion.button>
                   </form>
 
                   {/* Healthcare Plans Section */}
@@ -310,15 +354,17 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
                       health checks, lifestyle plans, UTI checks to sexual
                       health.
                     </p>
-                    <button
+                    <motion.button
                       onClick={() => navigate("/packages")}
                       className="w-full bg-red-600 text-white py-4 rounded-full font-bold hover:bg-red-700 transition-all uppercase tracking-wide flex items-center justify-center shadow-md hover:shadow-lg"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
                       Our Packages <span className="ml-2">»</span>
-                    </button>
+                    </motion.button>
                   </div>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             </div>
           ) : (
             /* No Posts Available State */
@@ -344,12 +390,14 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
 
           {/* View All Blog Posts Button */}
           <div className="text-center mt-16">
-            <button
+            <motion.button
               onClick={() => navigate("/blog")}
               className="bg-blue-600 text-white px-12 py-4 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg text-lg uppercase tracking-wide"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               View All Blog Posts
-            </button>
+            </motion.button>
           </div>
         </div>
       </section>

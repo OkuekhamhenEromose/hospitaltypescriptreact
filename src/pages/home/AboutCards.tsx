@@ -33,7 +33,7 @@ const AboutCards = () => {
               Great Facilities
             </h3>
             <p className="text-sm leading-normal">
-              We use standard medical and imaging equipment including BiPAP ventilators, CTG, defibrillators, ultrasound scan machines, ECG, cardiac monitors, infusion pumps etc. Also, our hospital in Ikate Lekki includes world-class hospital furniture and a well-equipped medical laboratory to cater to all your health needs.
+              We use standard medical and imaging equipment including BiPAP ventilators, CTG, defibrillators, ultrasound scan machines, ECG, cardiac monitors, infusion pumps etc. Also, our hospital in Ikorodu includes world-class hospital furniture and a well-equipped medical laboratory to cater to all your health needs.
             </p>
           </div>
 

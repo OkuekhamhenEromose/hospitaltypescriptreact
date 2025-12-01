@@ -1,8 +1,6 @@
-// import React from 'react';
-import ethaPackages from "../assets/img/etha-packages1-removebg-preview.png"
-// import { Heart, Activity, TrendingUp, Pill, Shield, Clock } from 'lucide-react';
-
-
+import { motion } from "framer-motion";
+import type { Variants } from "framer-motion";
+import PackageDoctor from "../assets/img/packagedoctor2.jpg"
 
 const Packages = () => {
   const healthCheckPackages = {
@@ -51,81 +49,6 @@ const Packages = () => {
     ],
   };
 
-  const healthChecks = {
-    preSchool: [
-      'General Physical Examination',
-      'Temperature',
-      'Heart Rate',
-      'Eye, Ear, Nose Check',
-      'Malaria Parasite Testing',
-      'Blood Group & Genotype',
-    ],
-    preNanny: [
-      'General Physical Examination',
-      'Retroviral Screening',
-      'Hepatitis B Screening',
-      'Hepatitis C Screening',
-      'VDRL',
-      'Tuberculosis Screening Test',
-      'Pregnancy Test (for female)',
-    ],
-    preEmployment: [
-      'General Physical Examination',
-      'Visual Acuity',
-      'Blood Pressure Check',
-      'Random Blood Sugar',
-      'Complete Blood Count',
-      'Tuberculosis Screening',
-      'Blood Group',
-      'Urinalysis',
-      'With ECG (optional)',
-    ],
-    preMarital: [
-      'General Physical Examination',
-      'Retroviral Screening',
-      'Hepatitis B & C Screening',
-    ],
-    foodHandlers: [
-      'Hepatitis A',
-      'Tuberculosis Screening',
-      'Vidal Test',
-    ],
-    foodHandlersPlus: [
-      'Hepatitis A',
-      'Tuberculosis Screening',
-      'Vidal Test',
-    ],
-  };
-
-  const lifestylePlans = {
-    planA: [
-      'Kidney Function Tests',
-      'Liver Function Tests',
-    ],
-    planB: [
-      'HbA1c Test',
-      'Kidney Function Tests',
-      'Liver Function Tests',
-    ],
-  };
-
-  const utiChecks = {
-    basic: [
-      'Urinalysis',
-      'Urine MCS',
-    ],
-    plus: [
-      'Urinalysis',
-      'Urine MCS',
-      'HVS/Urethral Swab',
-    ],
-    ultra: [
-      'For Reports of Rashes in the Genital Area',
-      'Urinalysis',
-      'Urine MCS',
-    ],
-  };
-
   const sexualHealth = {
     basic: [
       'Syphilis',
@@ -158,8 +81,79 @@ const Packages = () => {
     ],
   };
 
+  // Animation variants
+  const fadeInRight: Variants = {
+    hidden: { opacity: 0, x: 50 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] },
+    },
+  };
+
+  const fadeInLeft: Variants = {
+    hidden: { opacity: 0, x: -50 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] },
+    },
+  };
+
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+        delayChildren: 0.3,
+      },
+    },
+  };
+
+  const packageCardVariants: Variants = {
+    hidden: { 
+      opacity: 0, 
+      y: 30,
+      scale: 0.9
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { 
+        type: "spring", 
+        duration: 0.6, 
+        bounce: 0.3 
+      },
+    },
+  };
+
+  const sectionVariants: Variants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { 
+        type: "spring", 
+        duration: 0.8,
+        bounce: 0.4
+      }
+    }
+  };
+
+  const textVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans">
+      {/* Hero Section */}
       <section className="relative bg-[#0052a4] py-12 overflow-hidden pt-16">
         <div className="absolute inset-0 opacity-30">
           <img
@@ -169,268 +163,176 @@ const Packages = () => {
           />
         </div>
         <div className="container mx-auto px-4 md:px-8 lg:px-12 relative z-10">
-          <h1 className="text-6xl mt-4 md:text-7xl lg:text-8xl font-bold text-white">
+          <motion.h1 
+            className="text-6xl mt-4 md:text-7xl lg:text-8xl font-bold text-white"
+            variants={fadeInRight}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+          >
             Our Packages
-          </h1>
+          </motion.h1>
         </div>
       </section>
+
       <div className="container mx-auto px-16 py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-24">
-          <div>
-            <h2 className="text-6xl font-light text-gray-900 mb-2">
-              Select any of
-            </h2>
-            <h2 className="text-5xl font-bold text-blue-600 mb-4">
-              our healthcare plans
-            </h2>
-            <div className="w-20 h-1 bg-blue-500 mb-6"></div>
-            <p className="text-gray-700 text-lg">
-              Healthcare services in Ikorodu Lagos made simple!
-            </p>
-          </div>
-
-          <div className="flex justify-center lg:justify-end">
-            <img
-              src={ethaPackages}
-              alt="Healthcare Plans"
-              className="w-full max-w-sm h-auto"
-            />
-          </div>
-
-          {/* <div className="grid grid-cols-3 gap-6">
-            {icons.map((item, index) => {
-              const IconComponent = item.Icon;
-              return (
-                <div key={index} className="flex justify-center items-center">
-                  <IconComponent className={`w-12 h-12 ${item.color}`} />
-                </div>
-              );
-            })}
-          </div> */}
-        </div>
-
-        <div className="mb-24">
+        {/* Health Check Packages Section */}
+        <motion.div 
+          className="mb-24"
+          variants={sectionVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+        >
           <h2 className="text-4xl font-bold text-gray-900 mb-3">Health Check Packages</h2>
           <div className="w-20 h-1 bg-blue-500 mb-12"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Silver</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {healthCheckPackages.silver.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Gold</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {healthCheckPackages.gold.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Platinum</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {healthCheckPackages.platinum.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-12"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+          >
+            {['silver', 'gold', 'platinum'].map((type) => (
+              <motion.div
+                key={type}
+                variants={packageCardVariants}
+                whileHover={{ 
+                  scale: 1.02,
+                  y: -5,
+                  transition: { duration: 0.3 }
+                }}
+              >
+                <h2 className="text-2xl font-bold text-gray-900 mb-2 capitalize">
+                  {type === 'silver' ? 'Silver' : type === 'gold' ? 'Gold' : 'Platinum'}
+                </h2>
+                <div className="w-12 h-1 bg-red-500 mb-6"></div>
+                <ul className="space-y-1">
+                  {healthCheckPackages[type as keyof typeof healthCheckPackages].map((item, index) => (
+                    <li key={index} className="text-gray-700 text-base leading-relaxed">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
 
-        <div className="mb-24">
-          <h2 className="text-4xl font-bold text-gray-900 mb-3">Health Checks</h2>
-          <div className="w-20 h-1 bg-blue-500 mb-12"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Pre School</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {healthChecks.preSchool.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Pre Nanny/Domestic Staff</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {healthChecks.preNanny.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Pre Employment</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {healthChecks.preEmployment.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Pre Marital</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {healthChecks.preMarital.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Food Handlers Test</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {healthChecks.foodHandlers.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Food Handlers Test (plus)</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {healthChecks.foodHandlersPlus.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-24">
-          <h2 className="text-4xl font-bold text-gray-900 mb-3">Lifestyle Plan Package</h2>
-          <div className="w-20 h-1 bg-blue-500 mb-12"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-16">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Lifestyle Plan A</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {lifestylePlans.planA.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Lifestyle Plan B</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {lifestylePlans.planB.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <h2 className="text-4xl font-bold text-gray-900 mb-3">UTI Checks Plan</h2>
-          <div className="w-20 h-1 bg-blue-500 mb-12"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">UTI Checks</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {utiChecks.basic.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">UTI Check Plus</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {utiChecks.plus.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">UTI Check Ultra</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {utiChecks.ultra.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div>
+        {/* Sexual Health Panel */}
+        <motion.div 
+          className="mb-24"
+          variants={sectionVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+        >
           <h2 className="text-4xl font-bold text-gray-900 mb-3">Sexual Health Panel</h2>
           <div className="w-20 h-1 bg-blue-500 mb-12"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-1">Basic</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {sexualHealth.basic.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Comprehensive</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {sexualHealth.comprehensive.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Comprehensive Plus</h2>
-              <div className="w-12 h-1 bg-red-500 mb-6"></div>
-              <ul className="space-y-1">
-                {sexualHealth.comprehensivePlus.map((item, index) => (
-                  <li key={index} className="text-gray-700 text-base leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-12"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+          >
+            {['basic', 'comprehensive', 'comprehensivePlus'].map((type) => (
+              <motion.div
+                key={type}
+                variants={packageCardVariants}
+                whileHover={{ 
+                  scale: 1.02,
+                  y: -5,
+                  transition: { duration: 0.3 }
+                }}
+              >
+                <h2 className="text-2xl font-bold text-gray-900 mb-2 capitalize">
+                  {type === 'basic' ? 'Basic' : type === 'comprehensive' ? 'Comprehensive' : 'Comprehensive Plus'}
+                </h2>
+                <div className="w-12 h-1 bg-red-500 mb-6"></div>
+                <ul className="space-y-1">
+                  {sexualHealth[type as keyof typeof sexualHealth].map((item, index) => (
+                    <li key={index} className="text-gray-700 text-base leading-relaxed">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
+
+        {/* Consultation Section with Styled Quote */}
+        <motion.div 
+          className="bg-white py-16"
+          variants={sectionVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+        >
+          <div className="max-w-7xl mx-auto">
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start"
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.2 }}
+            >
+              {/* Package Doctor Image - Fades in from left */}
+              <motion.div variants={fadeInLeft}>
+                <img
+                  src={PackageDoctor}
+                  alt="Healthcare professional"
+                  className="w-full h-60 object-cover"
+                />
+              </motion.div>
+
+              {/* Middle Content */}
+              <motion.div variants={textVariants}>
+                <div className="bg-blue-500 text-white px-2 py-1 mb-6 rounded-sm">
+                  <h2 className="text-xl font-medium">
+                    Book for a Consultation, let a Specialist attend to you
+                  </h2>
+                </div>
+
+                <p className="text-gray-700 text-sm leading-relaxed mb-6">
+                  If you have been looking for an affordable healthcare services in Lagos, you may have found a place suitable for you.
+                </p>
+
+                <p className="text-gray-700 text-sm leading-relaxed">
+                  We have healthcare packages that suit your budget.
+                </p>
+              </motion.div>
+
+              {/* Right Quote Section */}
+              <motion.div 
+                className="p-6 rounded-lg relative pt-10"
+                variants={textVariants}
+              >
+                {/* Styled Quotation Mark */}
+                <svg 
+                  className="absolute -top-2 -left-2 w-24 h-24 text-gray-300 opacity-50" 
+                  viewBox="0 0 24 24" 
+                  fill="currentColor"
+                >
+                  <path d="M18 7h-3l-2 4v6h6v-6h-3zM10 7H7L5 11v6h6v-6h-3z"/>
+                </svg>
+
+                <p className="text-gray-700 text-lg leading-loose">
+                  Kindly select from any of our healthcare packages above or Contact Us now.
+                </p>
+
+                <p className="text-gray-700 text-lg leading-loose">
+                  Our professional teams are on ground to attend to your medical needs.
+                </p>
+
+                <p className="text-gray-700 font-semibold">
+                  Healthcare Services in Ikorodu Lagos made simple!
+                </p>
+              </motion.div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

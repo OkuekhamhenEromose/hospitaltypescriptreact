@@ -118,7 +118,7 @@ const Contact = () => {
                 <h3 className="text-xl font-bold text-gray-900 mb-2">ADDRESS</h3>
                 <p className="text-gray-700 text-lg">
                   22 Abioro Street<br />
-                  Ikate, Lekki<br />
+                  Ikorodu,<br />
                   Lagos State
                 </p>
               </div>

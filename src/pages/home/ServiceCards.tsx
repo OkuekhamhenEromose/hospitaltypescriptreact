@@ -1,3 +1,7 @@
+import React from "react";
+import { motion } from "framer-motion";
+import type { Variants } from "framer-motion";
+
 interface ServiceCard {
   icon: React.ReactNode;
   title: string;
@@ -71,51 +75,128 @@ const Services = () => {
     },
   ];
 
+  // Animation variants
+    const containerVariants: Variants = {
+      hidden: { opacity: 0 },
+      visible: {
+        opacity: 1,
+        transition: {
+          staggerChildren: 0.3,
+          delayChildren: 0.2,
+        },
+      },
+    };
+
+  const cardVariants: Variants = {
+    hidden: { 
+      opacity: 0, 
+      y: 50,
+      scale: 0.8
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { 
+        type: "spring", 
+        duration: 0.8, 
+        bounce: 0.3 
+      },
+    },
+  };
+
+  const titleVariants: Variants = {
+    hidden: { opacity: 0, y: -30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" }
+    },
+  };
+
   return (
     <section className="py-12 bg-gray-50">
       <div className="container mx-auto px-12">
-        <div className="text-center mb-12">
+        {/* Animated Title */}
+        <motion.div 
+          className="text-center mb-12"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.5 }}
+          variants={titleVariants}
+        >
           <h2 className="text-4xl font-bold text-[#2b2e32] mb-2">
             Etha-Atlantic Memorial Hospital Ikorodu Lagos
           </h2>
           <h3 className="text-4xl font-bold text-blue-600">
             Our Medical Services
           </h3>
-        </div>
+        </motion.div>
 
-        <div className="mb-12">
+        {/* First Row Services */}
+        <motion.div 
+          className="mb-12"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+        >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {firstRowServices.map((service, index) => (
-              <div key={index} className="text-center">
+              <motion.div
+                key={index}
+                className="text-center"
+                variants={cardVariants}
+                whileHover={{ 
+                  scale: 1.05,
+                  y: -5,
+                  transition: { duration: 0.3 }
+                }}
+              >
                 {service.icon}
                 <h4 className="text-2xl text-[#2b2e32] font-bold mb-2">
                   {service.title}
                 </h4>
                 <div className="w-12 h-1 bg-blue-600 mx-auto mb-2"></div>
-                <p className="text-[#2b2e32] leading-normal">
+                <p className="text-[#2b2e32] text-sm leading-normal">
                   {service.description}
                 </p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        <div>
+        {/* Second Row Services */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+        >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {secondRowServices.map((service, index) => (
-              <div key={index} className="text-center">
+              <motion.div
+                key={index}
+                className="text-center"
+                variants={cardVariants}
+                whileHover={{ 
+                  scale: 1.05,
+                  y: -5,
+                  transition: { duration: 0.3 }
+                }}
+              >
                 {service.icon}
                 <h4 className="text-2xl font-bold text-gray-900 mb-2">
                   {service.title}
                 </h4>
                 <div className="w-12 h-1 bg-blue-600 mx-auto mb-2"></div>
-                <p className="text-gray-600 leading-normal">
+                <p className="text-gray-600 leading-normal text-sm">
                   {service.description}
                 </p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
