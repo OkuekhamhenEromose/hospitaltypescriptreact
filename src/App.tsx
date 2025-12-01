@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavig
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import LoadingSpinner from './components/LoadSpinner';
+import AuthCallback from './components/AuthCallback';
 
 // Define component prop types
 interface BlogProps {
@@ -191,6 +192,7 @@ const AppRoutes: React.FC = () => {
 
             {/* Catch-all redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
           </Routes>
         </Suspense>
       </Layout>

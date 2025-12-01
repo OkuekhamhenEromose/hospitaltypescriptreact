@@ -3,8 +3,8 @@ import contactImg from '../assets/img/contact-us-illustration-540x355.webp';
 
 const Contact = () => {
   return (
-    <div className="min-h-screen bg-white">
-      <section className="relative bg-blue-500 py-16 overflow-hidden pt-48">
+    <div className="min-h-screen bg-white font-sans">
+      <section className="relative bg-[#0052a4] py-12 overflow-hidden pt-16">
         <div className="absolute inset-0 opacity-30">
           <img
             src="https://images.pexels.com/photos/3376790/pexels-photo-3376790.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
@@ -13,7 +13,7 @@ const Contact = () => {
           />
         </div>
         <div className="container mx-auto px-4 md:px-8 lg:px-12 relative z-10">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white">
+          <h1 className="text-6xl mt-4 md:text-7xl lg:text-8xl font-bold text-white">
             Contact Us
           </h1>
         </div>

@@ -1,7 +1,8 @@
-// pages/blog/BlogPostDetail.tsx - Fixed version with proper image handling
+// pages/blog/BlogPostDetail.tsx - Redesigned to match screenshot
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 // Helper function to create slugs from text
 const slugify = (text: string): string => {
@@ -17,7 +18,7 @@ const BlogPostDetail: React.FC = () => {
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTocItem, setActiveTocItem] = useState<string | null>(null);
+  const [expandedTOC, setExpandedTOC] = useState(false);
 
   useEffect(() => {
     if (slug) {
@@ -29,14 +30,12 @@ const BlogPostDetail: React.FC = () => {
     try {
       setLoading(true);
       const blogPost = await apiService.getBlogPost(slug!);
-      console.log("Blog post data:", blogPost); // Debug log
-      console.log("Blog post images:", {
-        featured: blogPost.featured_image,
-        image1: blogPost.image_1,
-        image2: blogPost.image_2
-      }); // Debug log
-      console.log("Blog post subheadings:", blogPost.subheadings); // Debug log
+      console.log("Blog post data:", blogPost);
       setPost(blogPost);
+      // Auto-expand TOC if it exists
+      if (blogPost.enable_toc && blogPost.table_of_contents?.length > 0) {
+        setExpandedTOC(false);
+      }
     } catch (err) {
       console.error('Error loading blog post:', err);
       setError('Failed to load blog post');
@@ -45,12 +44,14 @@ const BlogPostDetail: React.FC = () => {
     }
   };
 
-  // Smooth scroll for TOC items
+  const toggleTOC = () => {
+    setExpandedTOC(!expandedTOC);
+  };
+
   const scrollToHeading = (anchor: string) => {
     const element = document.getElementById(anchor);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-      setActiveTocItem(anchor);
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -60,36 +61,70 @@ const BlogPostDetail: React.FC = () => {
     }
 
     return (
-      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-900">Table of Contents</h3>
-          <div className="w-8 h-1 bg-blue-500"></div>
-        </div>
-        <nav>
-          <ul className="space-y-2">
-            {post.table_of_contents.map((item: any, index: number) => (
-              <li key={index} style={{ marginLeft: `${(item.level - 1) * 16}px` }}>
-                <button
-                  onClick={() => scrollToHeading(item.anchor)}
-                  className={`text-left w-full px-3 py-2 rounded-lg transition-all text-sm font-medium ${
-                    activeTocItem === item.anchor
-                      ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-500'
-                      : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {item.id}. {item.title}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
+      <div className="mb-8 border w-full max-w-[450px] border-gray-300 rounded-lg bg-white shadow-sm overflow-hidden">
+        {/* TOC Header */}
+        <button
+          onClick={toggleTOC}
+          className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
+          aria-expanded={expandedTOC}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <svg
+                className="w-5 h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">
+              Table of Contents
+            </h3>
+          </div>
+          {expandedTOC ? (
+            <ChevronUp className="w-6 h-6 text-gray-600" />
+          ) : (
+            <ChevronDown className="w-6 h-6 text-gray-600" />
+          )}
+        </button>
+
+        {/* TOC Content */}
+        {expandedTOC && (
+          <div className="px-4 pb-4">
+            <nav>
+              <ul className="space-y-1">
+                {post.table_of_contents.map((item: any, index: number) => (
+                  <li key={item.id || index}>
+                    <button
+                      onClick={() => scrollToHeading(item.anchor)}
+                      className="flex items-start gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors group"
+                    >
+                      <span className="font-semibold text-sm text-gray-700 group-hover:text-blue-600 min-w-[24px]">
+                        {item.id}.
+                      </span>
+                      <span className="text-gray-800 group-hover:text-blue-600 font-medium text-base leading-relaxed">
+                        {item.title}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </div>
+        )}
       </div>
     );
   };
 
-  const renderSubheadings = () => {
+  const renderContent = () => {
     if (!post.subheadings || post.subheadings.length === 0) {
-      // Fallback: render the full content if no subheadings are extracted
       return (
         <div 
           className="prose prose-lg max-w-none text-gray-700 leading-relaxed"
@@ -99,21 +134,19 @@ const BlogPostDetail: React.FC = () => {
     }
 
     return (
-      <div className="space-y-8">
+      <div className="space-y-12">
         {post.subheadings.map((subheading: any, index: number) => (
-          <div key={index} id={slugify(subheading.title)} className="scroll-mt-20">
-            <div className="flex items-start space-x-4 mb-6">
-              <div className="flex-shrink-0 w-2 h-12 bg-blue-500 rounded-full mt-2"></div>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-gray-900 mb-3">
-                  {subheading.title}
-                </h2>
-                <div 
-                  className="prose prose-lg text-gray-700 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: subheading.full_content }}
-                />
-              </div>
-            </div>
+          <div key={index} id={slugify(subheading.title)} className="scroll-mt-24">
+            {/* Subheading Title */}
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              {subheading.title}
+            </h2>
+            
+            {/* Subheading Content */}
+            <div 
+              className="prose prose-lg max-w-none text-gray-700 leading-relaxed mb-6"
+              dangerouslySetInnerHTML={{ __html: subheading.full_content }}
+            />
             
             {/* Display additional images between subheadings */}
             {index === 0 && post.image_1 && (
@@ -121,9 +154,8 @@ const BlogPostDetail: React.FC = () => {
                 <img
                   src={post.image_1}
                   alt={`${subheading.title} illustration`}
-                  className="w-full h-64 object-cover rounded-lg shadow-md"
+                  className="w-full h-auto rounded-lg shadow-md"
                 />
-                <p className="text-sm text-gray-500 text-center mt-2">Illustration for {subheading.title}</p>
               </div>
             )}
             {index === 2 && post.image_2 && (
@@ -131,9 +163,8 @@ const BlogPostDetail: React.FC = () => {
                 <img
                   src={post.image_2}
                   alt={`${subheading.title} illustration`}
-                  className="w-full h-64 object-cover rounded-lg shadow-md"
+                  className="w-full h-auto rounded-lg shadow-md"
                 />
-                <p className="text-sm text-gray-500 text-center mt-2">Illustration for {subheading.title}</p>
               </div>
             )}
           </div>
@@ -158,9 +189,9 @@ const BlogPostDetail: React.FC = () => {
           <div className="text-center mt-4">
             <button
               onClick={() => navigate('/blog')}
-              className="text-blue-600 hover:text-blue-700"
+              className="text-blue-600 hover:text-blue-700 font-semibold"
             >
-              Return to Blog
+              ← Return to Blog
             </button>
           </div>
         </div>
@@ -169,115 +200,83 @@ const BlogPostDetail: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-blue-600 py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-              {post.title}
-            </h1>
-            <div className="w-24 h-1 bg-red-500 mx-auto mb-6"></div>
-            <div className="flex items-center justify-center text-white text-sm space-x-4">
-              <span>{new Date(post.published_date || post.created_at).toLocaleDateString()}</span>
-              <span>•</span>
-              <span>by {post.author?.fullname || 'Etta-Atlantic'}</span>
-            </div>
+    <div className="min-h-screen bg-white">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        {/* Category Tag */}
+        <div className="flex items-center mb-6">
+          <span className="inline-flex items-center text-gray-600">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            General health
+          </span>
+        </div>
+
+        {/* Title */}
+        <h1 className="text-4xl md:text-5xl font-bold text-blue-600 mb-6 leading-tight">
+          {post.title}
+        </h1>
+
+        {/* Red underline */}
+        <div className="w-24 h-1 bg-red-500 mb-6"></div>
+
+        {/* Meta Information */}
+        <div className="flex items-center text-gray-600 text-sm mb-8 space-x-4">
+          <div className="flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>
+              {new Date(post.published_date || post.created_at).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </span>
+          </div>
+          <span>/</span>
+          <div className="flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/>
+            </svg>
+            <span>by {post.author?.fullname || 'Etha-Atlantic'}</span>
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Sidebar with TOC */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24">
-                {renderTableOfContents()}
-                
-                {/* Social Share */}
-                <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                  <h4 className="font-semibold text-gray-900 mb-4">Share this post</h4>
-                  <div className="flex space-x-3">
-                    <button 
-                      onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${window.location.href}`, '_blank')}
-                      className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      Facebook
-                    </button>
-                    <button 
-                      onClick={() => window.open(`https://twitter.com/intent/tweet?url=${window.location.href}&text=${post.title}`, '_blank')}
-                      className="flex-1 bg-blue-400 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors"
-                    >
-                      Twitter
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="lg:col-span-3">
-              <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                {/* Featured Image */}
-                {post.featured_image && (
-                  <div className="relative">
-                    <img
-                      src={post.featured_image}
-                      alt={post.title}
-                      className="w-full h-96 object-cover"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4">
-                      <p className="text-white text-sm text-center">Featured Image</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="p-8">
-                  {/* Description */}
-                  {post.description && (
-                    <div className="text-gray-700 text-lg leading-relaxed mb-8 p-6 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                      {post.description}
-                    </div>
-                  )}
-
-                  {/* Subheadings Content */}
-                  {renderSubheadings()}
-
-                  {/* Display any remaining images that weren't placed between subheadings */}
-                  {post.image_1 && !post.subheadings?.[0] && (
-                    <div className="my-8">
-                      <img
-                        src={post.image_1}
-                        alt="Additional content image 1"
-                        className="w-full h-64 object-cover rounded-lg shadow-md"
-                      />
-                    </div>
-                  )}
-                  {post.image_2 && !post.subheadings?.[2] && (
-                    <div className="my-8">
-                      <img
-                        src={post.image_2}
-                        alt="Additional content image 2"
-                        className="w-full h-64 object-cover rounded-lg shadow-md"
-                      />
-                    </div>
-                  )}
-
-                  {/* Back to Blog */}
-                  <div className="mt-12 pt-8 border-t border-gray-200 text-center">
-                    <button
-                      onClick={() => navigate('/blog')}
-                      className="bg-blue-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
-                    >
-                      ← Back to Blog
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* Featured Image */}
+        {post.featured_image && (
+          <div className="mb-8">
+            <img
+              src={post.featured_image}
+              alt={post.title}
+              className="w-full h-auto rounded-lg shadow-lg"
+            />
           </div>
+        )}
+
+        {/* Table of Contents */}
+        {renderTableOfContents()}
+
+        {/* Description/Introduction */}
+        {post.description && (
+          <div className="mb-8 text-gray-700 text-lg leading-relaxed">
+            <p>{post.description}</p>
+          </div>
+        )}
+
+        {/* Main Content with Subheadings */}
+        <div className="prose prose-lg max-w-none">
+          {renderContent()}
+        </div>
+
+        {/* Back to Blog Button */}
+        <div className="mt-12 pt-8 border-t border-gray-200">
+          <button
+            onClick={() => navigate('/blog')}
+            className="bg-blue-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
+          >
+            ← Back to Blog
+          </button>
         </div>
       </div>
     </div>

@@ -4,23 +4,23 @@ const AboutUs = () => {
   return (
     <div className="min-h-screen bg-white font-sans">
       {/* Hero Section */}
-      <section className="relative bg-blue-600 py-14 overflow-hidden pt-32">
+      <section className="relative bg-[#0052a4] py-12 overflow-hidden pt-16">
         <div className="absolute inset-0 opacity-30">
           <img
-            src="https://images.pexels.com/photos/3938022/pexels-photo-3938022.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+            src="https://images.pexels.com/photos/3376790/pexels-photo-3376790.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
             alt="Medical background"
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="container mx-auto px-4 md:px-8 pt-12 py-4 lg:px-12 relative z-10">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 relative z-10">
+          <h1 className="text-6xl mt-4 md:text-7xl lg:text-8xl font-bold text-white">
             About Us
           </h1>
         </div>
       </section>
 
       {/* Main Content Section */}
-      <section className="py-16 md:py-20 bg-gray-50">
+      <section className="py-12 md:py-20 bg-gray-50">
         <div className="container mx-auto px-4 md:px-8 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
             {/* About Hospital Column */}

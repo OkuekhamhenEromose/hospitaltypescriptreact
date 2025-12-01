@@ -277,7 +277,7 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
                   <p className="text-white/90 leading-relaxed mb-8">
                     Don't hesitate – sign up for our newsletter now to stay
                     informed about our services, gain valuable healthcare
-                    insights, and access exclusive offers from Etta-Atlantic
+                    insights, and access exclusive offers from Etha-Atlantic
                     Memorial Hospital in Lagos, Nigeria.
                   </p>
 

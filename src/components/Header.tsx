@@ -1,6 +1,8 @@
-// Header.tsx - Fixed with proper image error handling
+// Header.tsx - Updated with logo click navigation to homepage
 import React, { useState, useEffect } from 'react';
-import { Activity, User, LogOut, ChevronDown } from 'lucide-react';
+import { User, LogOut, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import HeaderLogo from "../assets/img/etta-replace1-removebg-preview.png"
 
 interface HeaderProps {
   currentPage: string;
@@ -23,6 +25,7 @@ const Header: React.FC<HeaderProps> = ({
   const [hideTopSection, setHideTopSection] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -44,6 +47,15 @@ const Header: React.FC<HeaderProps> = ({
   const handleLogout = () => {
     onLogout();
     setShowProfileDropdown(false);
+  };
+
+  // Function to handle logo click - navigate to homepage
+  const handleLogoClick = () => {
+    navigate('/');
+    // Also call onNavigate if provided for consistency
+    if (onNavigate) {
+      onNavigate('home');
+    }
   };
 
   // Function to get profile image URL
@@ -86,20 +98,23 @@ const Header: React.FC<HeaderProps> = ({
       >
         <div className="container mx-auto px-12 py-3">
           <div className="flex items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center border-4 border-red-500 shadow-md">
-                <Activity className="w-7 h-7 text-red-500" strokeWidth={3} />
+            {/* Logo - Now clickable */}
+            <button 
+              onClick={handleLogoClick}
+              className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
+            >
+              <div className="bg-white rounded-full flex items-center justify-center">
+                <img src={HeaderLogo} alt="ETTA-ATLANTIC Logo" className="w-16 h-16 object-contain" />
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gray-900 tracking-tight leading-tight">
-                  ETTA-ATLANTIC
+                  ETHA-ATLANTIC
                 </h1>
                 <p className="text-xs font-semibold text-gray-700 tracking-wider">
                   MEMORIAL
                 </p>
               </div>
-            </div>
+            </button>
 
             {/* User Section */}
             <div className="flex items-center space-x-4">
