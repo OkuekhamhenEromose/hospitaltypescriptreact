@@ -150,9 +150,9 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
 
       {/* BLOG SECTION - Enhanced with proper blog post display */}
       <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-12">
+        <div className="max-w-7xl mx-auto  sm:px-6 md:px-8 lg:px-12 px-8">
           {/* SECTION TITLE */}
-          <h2 className="text-3xl font-light text-gray-700 mb-6">
+          <h2 className="text-2xl font-light text-gray-700 mb-6">
             Post of the Week
           </h2>
 
@@ -204,13 +204,13 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
 
                 {/* FIRST SUBHEADING WITH IMAGE - Enhanced display */}
                 {firstTwoSubheadings && firstTwoSubheadings[0] && (
-                  <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
                     {/* Text Content */}
                     <div className="md:col-span-2">
                       <h3 className="text-3xl font-bold text-gray-900 mb-2">
                         {firstTwoSubheadings[0].title}
                       </h3>
-                      <p className="text-gray-600 leading-relaxed text-base">
+                      <p className="text-gray-600 leading-relaxed text-sm">
                         {firstTwoSubheadings[0].description}
                       </p>
                     </div>
@@ -253,18 +253,18 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
 
                 {/* SECOND SUBHEADING */}
                 {firstTwoSubheadings && firstTwoSubheadings[1] && (
-                  <div className="mt-6">
+                  <div className="mt-1">
                     <h3 className="text-3xl font-bold text-gray-900 mb-4">
                       {firstTwoSubheadings[1].title}
                     </h3>
 
-                    <p className="text-gray-600 leading-relaxed max-w-3xl text-base">
+                    <p className="text-gray-600 leading-relaxed max-w-3xl text-sm">
                       {firstTwoSubheadings[1].description}
                     </p>
 
                     <motion.button
                       onClick={() => handleBlogPostClick(latestPost.slug)}
-                      className="mt-8 bg-blue-600 text-white px-10 py-4 rounded-full text-lg font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg uppercase tracking-wide"
+                      className="mt-2 bg-blue-600 text-white px-6 py-2 rounded-full text-xs font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg uppercase tracking-wide"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -298,7 +298,7 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
 
               {/* SIDEBAR - Enhanced newsletter section with zoom out */}
               <motion.div 
-                className="space-y-8 mt-48"
+                className="space-y-8 mt-4"
                 variants={zoomOut}
                 initial="hidden"
                 whileInView="visible"
@@ -306,64 +306,69 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
               >
                 {/* Newsletter Card */}
                 <motion.div 
-                  className="bg-blue-600 text-white p-8 shadow-xl"
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <h3 className="text-3xl font-bold mb-4">
-                    We Have Some Good News
-                  </h3>
-                  <div className="w-16 h-[3px] bg-white mb-6"></div>
+  className="bg-[#1378e5] text-white p-8 shadow-xl"
+  whileHover={{ scale: 1.02 }}
+  transition={{ type: "spring", stiffness: 300 }}
+>
+  <h3 className="text-3xl font-bold mb-4">
+    We Have Some Good News
+  </h3>
+  <div className="w-16 h-[3px] bg-white mb-6"></div>
 
-                  <p className="text-white/90 leading-relaxed mb-8">
-                    Don't hesitate – sign up for our newsletter now to stay
-                    informed about our services, gain valuable healthcare
-                    insights, and access exclusive offers from Etha-Atlantic
-                    Memorial Hospital in Lagos, Nigeria.
-                  </p>
+  <p className="text-white/90 leading-relaxed mb-8">
+    Don't hesitate – sign up for our newsletter now to stay
+    informed about our services, gain valuable healthcare
+    insights, and access exclusive offers from Etha-Atlantic
+    Memorial Hospital in Lagos, Nigeria.
+  </p>
 
-                  {/* Newsletter Form */}
-                  <form onSubmit={handleSubscribe} className="space-y-4">
-                    <motion.input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Type in your email address"
-                      className="w-full px-4 py-3 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
-                      whileFocus={{ scale: 1.02 }}
-                    />
+  {/* Newsletter Form */}
+  <form onSubmit={handleSubscribe} className="space-y-4">
+    <motion.input
+      type="email"
+      required
+      value={email}
+      onChange={(e) => setEmail(e.target.value)}
+      placeholder="Type in your email address"
+      className="w-full bg-[#177fed] px-4 py-3 rounded-full text-white placeholder:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+      whileFocus={{ scale: 1.02 }}
+    />
 
-                    <motion.button
-                      type="submit"
-                      className="w-full bg-white text-blue-600 font-bold py-3 rounded-lg hover:bg-gray-100 transition-all uppercase tracking-wide"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      Subscribe
-                    </motion.button>
-                  </form>
+    {/* Center the Subscribe button */}
+    <div className="flex justify-center">
+      <motion.button
+        type="submit"
+        className="bg-blue-600 text-white font-bold py-3 px-8 rounded-full hover:bg-blue-700 transition-all uppercase tracking-wide"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        Subscribe
+      </motion.button>
+    </div>
+  </form>
 
-                  {/* Healthcare Plans Section */}
-                  <div className="mt-12 pt-8 border-t border-blue-500 border-opacity-30">
-                    <h4 className="text-2xl font-bold mb-4">
-                      We offer the Best Healthcare Plans
-                    </h4>
-                    <p className="text-white text-sm leading-relaxed mb-6">
-                      Check out our different healthcare packages, ranging from
-                      health checks, lifestyle plans, UTI checks to sexual
-                      health.
-                    </p>
-                    <motion.button
-                      onClick={() => navigate("/packages")}
-                      className="w-full bg-red-600 text-white py-4 rounded-full font-bold hover:bg-red-700 transition-all uppercase tracking-wide flex items-center justify-center shadow-md hover:shadow-lg"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      Our Packages <span className="ml-2">»</span>
-                    </motion.button>
-                  </div>
-                </motion.div>
+  {/* Healthcare Plans Section */}
+  <div className="mt-2 pt-2 border-t border-blue-500 border-opacity-30 ">
+    <h4 className="text-2xl font-bold mb-4 text-center">
+      We offer the Best Healthcare Plans
+    </h4>
+    <p className="text-white text-sm leading-relaxed mb-6 text-center">
+      Check out our different healthcare packages, ranging from
+      health checks, lifestyle plans, UTI checks to sexual
+      health.
+    </p>
+    <div className="flex justify-center">
+    <motion.button
+      onClick={() => navigate("/packages")}
+      className="bg-red-600 text-sm text-white py-4 px-10 rounded-full font-bold hover:bg-red-700 transition-all uppercase tracking-wide flex items-center justify-center shadow-md hover:shadow-lg mb-4 sm:mb-8 md:mb-32"
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+    >
+      Our Packages <span className="ml-2">»</span>
+    </motion.button>
+    </div>
+  </div>
+</motion.div>
               </motion.div>
             </div>
           ) : (
@@ -389,10 +394,10 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
           )}
 
           {/* View All Blog Posts Button */}
-          <div className="text-center mt-16">
+          <div className="text-center mt-12">
             <motion.button
               onClick={() => navigate("/blog")}
-              className="bg-blue-600 text-white px-12 py-4 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg text-lg uppercase tracking-wide"
+              className="bg-blue-600 text-white px-8 py-4 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg text-lg uppercase tracking-wide"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >

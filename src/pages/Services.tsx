@@ -179,7 +179,7 @@ const Services = () => {
   return (
     <div className="min-h-screen bg-white font-sans">
       {/* Hero Section with Background Image */}
-      <section className="relative bg-[#0052a4] py-12 overflow-hidden pt-16">
+      <section className="relative bg-blue-700 py-12 overflow-hidden pt-12">
         <div className="absolute inset-0 opacity-30">
           <img
             src="https://images.pexels.com/photos/3376790/pexels-photo-3376790.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
@@ -189,7 +189,7 @@ const Services = () => {
         </div>
         <div className="container mx-auto px-4 md:px-8 lg:px-12 relative z-10">
           <motion.h1 
-            className="text-6xl md:text-7xl lg:text-8xl mt-4 font-bold text-white"
+            className="text-6xl md:text-6xl lg:text-7xl mt-4 font-bold text-white"
             variants={fadeInRight}
             initial="hidden"
             whileInView="visible"
@@ -211,7 +211,7 @@ const Services = () => {
         >
           {/* LEFT TEXT */}
           <motion.div className="lg:col-span-7" variants={textVariants}>
-            <p className="text-gray-700 text-2xl leading-normal">
+            <p className="text-black text-2xl leading-normal font-light">
               We offer a wide range of general medical services in Ikorodu Lagos
               and Nigeria at large, which involves the management of chronic and
               acute illnesses.
@@ -219,8 +219,8 @@ const Services = () => {
           </motion.div>
 
           {/* RIGHT TEXT */}
-          <motion.div className="lg:col-span-5 flex justify-end" variants={textVariants}>
-            <p className="text-gray-700 text-sm font-semibold leading-relaxed max-w-md">
+          <motion.div className="lg:col-span-5 flex justify-start" variants={textVariants}>
+            <p className="text-black text-sm font-semibold leading-relaxed max-w-md text-left mt-16 md:mt-0">
               Our Medical Centre in Lagos is well equipped with modern medical
               equipment and professionals ready to attend to your healthcare
               needs.
@@ -233,7 +233,7 @@ const Services = () => {
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
+          viewport={{ once: true, amount: 0.1 }}
         >
           {/* First Row */}
           <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-12 mt-20 mx-8" variants={containerVariants}>
@@ -246,7 +246,7 @@ const Services = () => {
                 {emergencyServices.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -263,7 +263,7 @@ const Services = () => {
                 {internalMedicine.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -280,7 +280,7 @@ const Services = () => {
                 {generalPractice.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -300,7 +300,7 @@ const Services = () => {
                 {gynecologyObstetrics.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -317,7 +317,7 @@ const Services = () => {
                 {generalSurgery.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -334,7 +334,7 @@ const Services = () => {
                 {orthopedicSurgery.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -354,7 +354,7 @@ const Services = () => {
                 {dermatology.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -371,7 +371,7 @@ const Services = () => {
                 {laboratoryDiagnostics.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -388,7 +388,7 @@ const Services = () => {
                 {pharmacy.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -408,7 +408,7 @@ const Services = () => {
                 {plasticSurgery.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -425,7 +425,7 @@ const Services = () => {
                 {acuteIllnesses.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -442,7 +442,7 @@ const Services = () => {
                 {hematology.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -462,7 +462,7 @@ const Services = () => {
                 {cardiology.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -479,7 +479,7 @@ const Services = () => {
                 {gastroenterology.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -496,7 +496,7 @@ const Services = () => {
                 {nephrology.map((service, index) => (
                   <li
                     key={index}
-                    className="text-gray-700 text-base leading-relaxed"
+                    className="text-black font-light text-base leading-relaxed"
                   >
                     {service}
                   </li>
@@ -508,7 +508,7 @@ const Services = () => {
 
         {/* Bottom Section with Image and Text */}
         <motion.div 
-          className="mt-16 grid grid-cols-2 gap-12 items-center"
+          className="mt-16 md:grid md:grid-cols-2 md:gap-12 items-center"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
@@ -516,12 +516,12 @@ const Services = () => {
         >
           {/* Left Text Content */}
           <motion.div className="mb-20" variants={fadeInLeft}>
-            <p className="text-gray-700 text-lg leading-relaxed mb-8">
+            <p className="text-black font-light text-lg leading-relaxed mb-8">
               We have different healthcare plans, ranging from health checks, lifestyle plans, UTI checks to sexual health.
             </p>
 
             <div className="mb-8">
-              <h2 className="text-gray-700 text-lg mb-2">
+              <h2 className="text-black font-light text-lg">
                 <span className="font-semibold">Healthcare/ Medical Services</span> <span className="text-gray-500">in Ikorodu Lagos made simple!</span>
               </h2>
               <p className="text-blue-500 text-2xl font-bold">
@@ -530,12 +530,12 @@ const Services = () => {
             </div>
 
             <motion.button 
-              className="border-2 border-blue-500 text-blue-500 px-8 py-3 rounded-full text-lg font-semibold hover:bg-blue-50 transition-colors"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Our Packages
-            </motion.button>
+                className="border-2 border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white font-semibold px-8 py-3 rounded-full transition duration-300"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Our Packages
+              </motion.button>
           </motion.div>
 
           {/* Right Image - Fades in from right */}

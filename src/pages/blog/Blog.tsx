@@ -210,8 +210,8 @@ const Blog: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white font-sans">
-      <section className="relative bg-[#0052a4] py-12 overflow-hidden pt-16">
+    <div className="min-h-screen bg-white">
+      <section className="relative bg-blue-700 py-12 overflow-hidden pt-12">
         <div className="absolute inset-0 opacity-30">
           <img
             src="https://images.pexels.com/photos/3376790/pexels-photo-3376790.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
@@ -220,7 +220,7 @@ const Blog: React.FC = () => {
           />
         </div>
         <div className="container mx-auto px-4 md:px-8 lg:px-12 relative z-10">
-          <h1 className="text-6xl mt-4 md:text-7xl lg:text-8xl font-bold text-white">
+          <h1 className="text-6xl mt-4 md:text-5xl lg:text-6xl font-bold text-white">
             Our Blog
           </h1>
         </div>
@@ -522,20 +522,21 @@ const Blog: React.FC = () => {
                     )}
                     {/* Description */}
                     <div className="prose prose-lg max-w-none mb-8">
-                      <p className="text-gray-700 text-lg leading-relaxed">
+                      <p className="text-gray-700 font-light text-sm leading-relaxed">
                         {post.description}
                       </p>
                     </div>
 
                     <div className="border-t border-gray-300 my-6"></div>
                     {/* Continue Reading + Share Buttons */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                    <div className="flex flex-col sm:flex-row items-center lg:items-start sm:items-center justify-between gap-6">
                       <button
                         onClick={() => navigate(`/blog/${post.slug}`)}
                         className="bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg uppercase tracking-wide text-sm"
                       >
                         CONTINUE READING
                       </button>
+                      {/* <div className="border-t border-blue-700 my-2"></div> */}
 
                       {/* Share Icons */}
                       <div className="flex items-center space-x-3">
@@ -631,7 +632,7 @@ const Blog: React.FC = () => {
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">
                     Search
                   </h3>
-                  <div className="w-12 h-1 bg-blue-500 mb-6"></div>
+                  <div className="w-12 h-0.5 bg-blue-500 mb-4"></div>
 
                   <div className="flex items-center">
                     <input

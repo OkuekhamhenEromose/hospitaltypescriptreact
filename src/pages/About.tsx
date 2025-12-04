@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
-import ethadoc from "../assets/img/etha-doctor2.webp"
+import ethadoc from "../assets/img/etha-about3-removebg-preview.png"
 
 const AboutUs = () => {
   // Animation variants
@@ -45,7 +45,7 @@ const AboutUs = () => {
   return (
     <div className="min-h-screen bg-white font-sans">
       {/* Hero Section */}
-      <section className="relative bg-[#0052a4] py-12 overflow-hidden pt-16">
+      <section className="relative bg-blue-700 py-12 overflow-hidden pt-12">
         <div className="absolute inset-0 opacity-30">
           <img
             src="https://images.pexels.com/photos/3376790/pexels-photo-3376790.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
@@ -55,7 +55,7 @@ const AboutUs = () => {
         </div>
         <div className="container mx-auto px-4 md:px-8 lg:px-12 relative z-10">
           <motion.h1 
-            className="text-6xl mt-4 md:text-7xl lg:text-8xl font-bold text-white"
+            className="mt-4 text-6xl md:text-6xl lg:text-7xl font-bold text-white"
             variants={fadeInRight}
             initial="hidden"
             whileInView="visible"
@@ -84,7 +84,7 @@ const AboutUs = () => {
               <p className="text-xl md:text-2xl text-gray-600 leading-relaxed mb-6">
                 Etha-Atlantic Memorial Hospital Ikorodu Lagos was established with the goal of providing an international level of health care for all Nigerians.
               </p>
-              <p className="text-xl md:text-2xl text-gray-600 leading-relaxed">
+              <p className="text-xl md:text-2xl text-black leading-relaxed font-light">
                 Etha-Atlantic Memorial Hospital was established by physicians with training in the US, they have teamed up with bright and dedicated Nigerian physicians and other allied health professionals to provide excellent care based on standards set by the World Health Organization
               </p>
             </motion.div>
@@ -94,7 +94,7 @@ const AboutUs = () => {
               <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-6">
                 Our Mission
               </h2>
-              <p className="text-xl md:text-2xl text-gray-600 leading-relaxed">
+              <p className="text-xl md:text-2xl text-black leading-relaxed font-light">
                 In a country with scarce resources, especially where physical and mental health are concerned, we have set out to be the exception. A sick patient is a vulnerable patient and the role of a physician or medical care personnel is to provide an appropriate, timely and effective diagnosis with a treatment plan while displaying compassion, empathy and humility. We will work tirelessly to be that Hospital for you and your loved ones
               </p>
             </motion.div>
@@ -119,11 +119,11 @@ const AboutUs = () => {
             >
               <img
                 src={ethadoc}
-                alt="Dr. Justin Ngene"
+                alt="Dr. Maryam Peters"
                 className="w-full lg:w-[380px] h-auto object-cover"
               />
               <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mt-6">
-                Dr. John Doe
+                Dr. Maryam Peters
               </h3>
               <p className="text-base md:text-lg text-gray-500 mt-2">
                 Medical Director
@@ -135,10 +135,10 @@ const AboutUs = () => {
               className="flex-1"
               variants={childVariants}
             >
-              <p className="text-xl md:text-2xl text-gray-600 leading-relaxed mb-6">
-                <strong className="text-gray-900">Dr. John Doe</strong> studied at the University of Bridgeport in Connecticut, USA. He then attended medical school at University of Illinois, College of Medicine where he fell in love with Internal Medicine with a focus in acutely ill patients in the hospital. Subsequently, Dr. Justin did his Internal Medicine residency at Rutgers University, the Medical School of New Jersey. He became board certificated in Internal Medicine and is, presently, a Diplomate of the American board of Internal Medicine. He has been practicing Internal Medicine/Acute Hospitalist Medicine since 2010.
+              <p className="text-xl md:text-2xl text-black leading-relaxed mb-6 font-light">
+                <strong className="text-gray-900">Dr. Maryam Peters</strong> studied at the University of Bridgeport in Connecticut, USA. He then attended medical school at University of Illinois, College of Medicine where he fell in love with Internal Medicine with a focus in acutely ill patients in the hospital. Subsequently, Dr. Justin did his Internal Medicine residency at Rutgers University, the Medical School of New Jersey. He became board certificated in Internal Medicine and is, presently, a Diplomate of the American board of Internal Medicine. He has been practicing Internal Medicine/Acute Hospitalist Medicine since 2010.
               </p>
-              <p className="text-xl md:text-2xl text-gray-600 leading-relaxed">
+              <p className="text-xl md:text-2xl text-black leading-relaxed font-light">
                 In 2018, he committed to making a contribution to the health sector in the best way. The goal being 'reverse MEDICAL tourism' affordable for everyone. His vision is to provide quality medical care in line with the World Health Organization standards and principled on evidence-based medicine.
               </p>
             </motion.div>

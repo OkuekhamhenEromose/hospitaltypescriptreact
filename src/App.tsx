@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import LoadingSpinner from './components/LoadSpinner';
 import AuthCallback from './components/AuthCallback';
+import ScrollToTop from './components/ScrollToTop';
 
 // Define component prop types
 interface BlogProps {
@@ -32,6 +33,7 @@ const Contact = lazy(() => import('./pages/Contact'));
 const AuthModal = lazy(() => import('./pages/authform/AuthModal'));
 const DashboardRouter = lazy(() => import('./pages/DashboardRouter'));
 const BlogEditor = lazy(() => import('./pages/blog/BlogEditor')); // Add this import
+
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -80,7 +82,17 @@ const AppRoutes: React.FC = () => {
   // Get current page from URL path
   const getCurrentPage = () => {
     const path = location.pathname.split('/')[1] || 'home';
-    return path === '' ? 'home' : path;
+
+     const pathToPageMap: { [key: string]: string } = {
+      '': 'home',
+      'home': 'home',
+      'about-us': 'about us',  // Map hyphenated URL to spaced navigation text
+      'services': 'services',
+      'packages': 'packages',
+      'blog': 'blog',
+      'contact': 'contact',
+    }
+    return pathToPageMap[path] || 'home';
   };
 
   // Handle navigation
@@ -124,6 +136,7 @@ const AppRoutes: React.FC = () => {
 
   return (
     <>
+      <ScrollToTop />
       <Layout
         currentPage={getCurrentPage()}
         onNavigate={handleNavigate}
