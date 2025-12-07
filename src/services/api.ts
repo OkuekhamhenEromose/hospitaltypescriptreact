@@ -274,6 +274,44 @@ class ApiService {
     return this.getVitalRequests();
   }
 
+   async assignStaff(data: {
+    appointment_id: number;
+    staff_id: string;
+    role: 'DOCTOR' | 'NURSE' | 'LAB';
+    notes?: string;
+  }): Promise<any> {
+    return this.request("/hospital/assignments/assign-staff/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getAppointmentAssignments(appointmentId: number): Promise<any[]> {
+    return this.cachedRequest(`/hospital/assignments/appointment/${appointmentId}/`);
+  }
+
+  async getAvailableStaff(role?: string): Promise<any[]> {
+    const url = role 
+      ? `/hospital/assignments/available-staff/?role=${role}`
+      : "/hospital/assignments/available-staff/";
+    return this.cachedRequest(url);
+  }
+
+  async getPatients(): Promise<any[]> {
+    return this.cachedRequest("/hospital/patients/");
+  }
+
+  async getAppointmentDetails(appointmentId: number): Promise<any> {
+    return this.cachedRequest(`/hospital/appointments/${appointmentId}/`);
+  }
+
+  async reassignStaff(assignmentId: number, newStaffId: string): Promise<any> {
+    return this.request(`/hospital/assignments/${assignmentId}/reassign/`, {
+      method: "PATCH",
+      body: JSON.stringify({ staff_id: newStaffId }),
+    });
+  }
+
   // ============================
   // BLOG ENDPOINTS (FIXED!)
   // ============================
