@@ -107,7 +107,7 @@ const DoctorDashboard: React.FC = () => {
       return profile.profile_pix;
     }
 
-    return `http://localhost:8000${profile.profile_pix}`;
+    return `https://dhospitalback.onrender.com${profile.profile_pix}`;
   };
 
   const navigationItems = [

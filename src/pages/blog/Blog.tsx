@@ -29,8 +29,8 @@ const Blog: React.FC = () => {
   const normalizeMediaUrl = (path: string | null) => {
     if (!path) return null;
     if (path.startsWith("http")) return path;
-    if (path.startsWith("/media")) return `http://localhost:8000${path}`;
-    return `http://localhost:8000/media/blog_images/${path}`;
+    if (path.startsWith("/media")) return `https://dhospitalback.onrender.com${path}`;
+    return `https://dhospitalback.onrender.com/media/blog_images/${path}`;
   };
 
   // Enhanced normalize entire blog post with ID fix

@@ -1,8 +1,8 @@
 // services/api.ts
 import type { LoginData, RegisterData, AuthResponse } from "./auth";
 
-const API_BASE_URL = "http://localhost:8000/api";
-const MEDIA_BASE_URL = "http://localhost:8000"; // for images
+const API_BASE_URL = "https://dhospitalback.onrender.com/api";
+const MEDIA_BASE_URL = "https://dhospitalback.onrender.com"; // for images
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 // ======================================

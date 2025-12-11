@@ -61,7 +61,7 @@ const NurseDashboard: React.FC = () => {
   const getProfileImageUrl = (profile: any) => {
     if (!profile?.profile_pix) return null;
     if (profile.profile_pix.startsWith("http")) return profile.profile_pix;
-    return `http://localhost:8000${profile.profile_pix}`;
+    return `https://dhospitalback.onrender.com${profile.profile_pix}`;
   };
 
   const getPatientName = (request: VitalRequest) => {

@@ -28,8 +28,8 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
   const getImageUrl = (path: string | null) => {
     if (!path) return null;
     if (path.startsWith("http")) return path;
-    if (path.startsWith("/")) return `http://localhost:8000${path}`;
-    return `http://localhost:8000/media/blog_images/${path}`;
+    if (path.startsWith("/")) return `https://dhospitalback.onrender.com${path}`;
+    return `https://dhospitalback.onrender.com/media/blog_images/${path}`;
   };
 
   if (loading) {

@@ -103,10 +103,10 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
     if (path.startsWith("http")) return path;
 
     // Django returns absolute media paths like "/media/blog_images/xxx.jpg"
-    if (path.startsWith("/media")) return `http://localhost:8000${path}`;
+    if (path.startsWith("/media")) return `https://dhospitalback.onrender.com${path}`;
 
     // Django returns only filename "xx.jpg"
-    return `http://localhost:8000/media/blog_images/${path}`;
+    return `https://dhospitalback.onrender.com/media/blog_images/${path}`;
   };
 
   const normalizeSubheadings = (sub: any[]) => {

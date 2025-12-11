@@ -87,7 +87,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const fetchSocialAuthUrls = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/users/social-auth-urls/');
+      const response = await fetch('https://dhospitalback.onrender.com/api/users/social-auth-urls/');
       const data = await response.json();
       setSocialUrls(data);
     } catch (error) {
