@@ -1567,49 +1567,69 @@ const CreateBlogModal: React.FC<{
   const [image2, setImage2] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // In ADMINDASHBOARD.TSX - Update the CreateBlogModal's handleSubmit function
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (
-      !formData.title.trim() ||
-      !formData.description.trim() ||
-      !formData.content.trim()
-    ) {
-      alert("Please fill in all required fields");
+  if (
+    !formData.title.trim() ||
+    !formData.description.trim() ||
+    !formData.content.trim()
+  ) {
+    alert("Please fill in all required fields");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const formDataToSend = new FormData();
+    formDataToSend.append("title", formData.title);
+    formDataToSend.append("description", formData.description);
+    formDataToSend.append("content", formData.content);
+    formDataToSend.append("published", formData.published.toString());
+    formDataToSend.append("enable_toc", formData.enable_toc.toString());
+
+    // Check if files exist before appending
+    if (featuredImage) {
+      formDataToSend.append("featured_image", featuredImage);
+    } else {
+      alert("Featured image is required");
+      setLoading(false);
       return;
     }
-
-    setLoading(true);
-
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("title", formData.title);
-      formDataToSend.append("description", formData.description);
-      formDataToSend.append("content", formData.content);
-      formDataToSend.append("published", formData.published.toString());
-      formDataToSend.append("enable_toc", formData.enable_toc.toString());
-
-      if (featuredImage) {
-        formDataToSend.append("featured_image", featuredImage);
-      }
-      if (image1) {
-        formDataToSend.append("image_1", image1);
-      }
-      if (image2) {
-        formDataToSend.append("image_2", image2);
-      }
-
-      await apiService.createBlogPost(formDataToSend);
-      onSuccess();
-    } catch (error: any) {
-      console.error("Error creating blog post:", error);
-      alert(
-        `Failed to create blog post: ${error.message || "Please try again"}`
-      );
-    } finally {
-      setLoading(false);
+    
+    if (image1) {
+      formDataToSend.append("image_1", image1);
     }
-  };
+    
+    if (image2) {
+      formDataToSend.append("image_2", image2);
+    }
+
+    console.log("Creating blog post with data:", {
+      title: formData.title,
+      description: formData.description,
+      hasFeaturedImage: !!featuredImage,
+      hasImage1: !!image1,
+      hasImage2: !!image2,
+    });
+
+    const response = await apiService.createBlogPost(formDataToSend);
+    console.log("Blog post created successfully:", response);
+    
+    onSuccess();
+    alert("Blog post created successfully!");
+    
+  } catch (error: any) {
+    console.error("Error creating blog post:", error);
+    alert(
+      `Failed to create blog post: ${error.message || "Please try again. Check console for details."}`
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

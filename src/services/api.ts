@@ -1,4 +1,4 @@
-// services/api.ts
+// services/api.ts - COMPLETE FIXED VERSION
 import type { LoginData, RegisterData, AuthResponse } from "./auth";
 
 const API_BASE_URL = "https://dhospitalback.onrender.com/api";
@@ -17,134 +17,316 @@ const normalizeMediaUrl = (url: string | null) => {
 // ======================================
 // 🔥 BLOG POST NORMALIZER (IMAGES + FIELDS)
 // ======================================
-const normalizeBlogPost = (post: any) => ({
-  id: post.id,
-  ...post,
+const normalizeBlogPost = (post: any) => {
+  // Ensure subheadings is always an array with proper structure
+  let subheadings = post.subheadings || post.sub_headings || [];
 
-  // Fix image fields
-  featured_image: normalizeMediaUrl(post.featured_image),
-  image_1: normalizeMediaUrl(post.image_1),
-  image_2: normalizeMediaUrl(post.image_2),
+  // If subheadings is an array but items don't have ids, add them
+  if (Array.isArray(subheadings)) {
+    subheadings = subheadings.map((s: any, index: number) => ({
+      id: s.id || index + 1,
+      title: s.title || `Section ${index + 1}`,
+      level: s.level || 2,
+      description: s.description || "",
+      full_content: s.full_content || s.description || "",
+    }));
+  } else {
+    subheadings = [];
+  }
 
-  // Fix description variations
-  description:
-    post.description ||
-    post.short_description ||
-    post.excerpt ||
-    post.content ||
-    "",
+  return {
+    id: post.id,
+    ...post,
 
-  // Fix subheadings field variations
-  subheadings:
-    post.subheadings ||
-    post.sub_headings ||
-    post.sections ||
-    post.subSections ||
-    [],
+    // Fix image fields
+    featured_image: normalizeMediaUrl(post.featured_image),
+    image_1: normalizeMediaUrl(post.image_1),
+    image_2: normalizeMediaUrl(post.image_2),
 
-  // Fix TOC variations
-  table_of_contents:
-    post.table_of_contents ||
-    post.toc ||
-    post.toc_items ||
-    post.contents ||
-    [],
-});
+    // Fix description variations
+    description:
+      post.description ||
+      post.short_description ||
+      post.excerpt ||
+      post.content ||
+      "",
+
+    // Ensure subheadings is properly formatted
+    subheadings: subheadings,
+
+    // Fix TOC variations
+    table_of_contents:
+      post.table_of_contents ||
+      post.toc ||
+      post.toc_items ||
+      post.contents ||
+      [],
+  };
+};
 
 class ApiService {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private requestQueue = new Map<string, Promise<any>>();
 
-  private async request(endpoint: string, options: RequestInit = {}) {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const token = localStorage.getItem("access_token");
+  // ============================
+  // PRIVATE CORE METHODS
+  // ============================
 
-    const headers: HeadersInit = {};
+  // Update the request method signature
+private async request<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const token = localStorage.getItem("access_token");
 
-    if (!(options.body instanceof FormData)) {
-      headers["Content-Type"] = "application/json";
-    }
+  const headers: HeadersInit = {};
 
-    if (token) {
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (token) {
+    // Validate token format
+    if (!token.startsWith("Bearer ")) {
       headers["Authorization"] = `Bearer ${token}`;
+    } else {
+      headers["Authorization"] = token;
     }
+  }
 
-    Object.assign(headers, options.headers);
+  Object.assign(headers, options.headers);
 
-    const requestKey = `${endpoint}-${JSON.stringify(options)}`;
-    if (this.requestQueue.has(requestKey)) {
-      return this.requestQueue.get(requestKey);
-    }
+  console.log(`API Request: ${url}`, {
+    headers: { ...headers, Authorization: "Bearer ***" },
+  });
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const requestKey = `${endpoint}-${JSON.stringify(options)}`;
+  if (this.requestQueue.has(requestKey)) {
+    return this.requestQueue.get(requestKey) as Promise<T>;
+  }
 
-    const requestPromise = (async () => {
-      try {
-        const config = {
-          ...options,
-          headers,
-          signal: controller.signal,
-        };
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-        const response = await fetch(url, config);
-        clearTimeout(timeoutId);
+  const requestPromise = (async (): Promise<T> => {
+    try {
+      const config = {
+        ...options,
+        headers,
+        signal: controller.signal,
+      };
 
-        if (!response.ok) {
-          let errorMessage = `API error: ${response.status}`;
-          try {
-            const errorData = await response.json();
-            errorMessage =
-              errorData.detail || errorData.error || JSON.stringify(errorData);
-          } catch {
-            errorMessage =
-              response.statusText || `API error: ${response.status}`;
-          }
-          throw new Error(errorMessage);
-        }
+      const response = await fetch(url, config);
+      clearTimeout(timeoutId);
 
-        if (
-          response.status === 204 ||
-          response.headers.get("content-length") === "0"
-        ) {
-          return null;
-        }
+      console.log(`API Response: ${url} - Status: ${response.status}`);
 
-        return response.json();
-      } catch (error) {
-        clearTimeout(timeoutId);
-        throw error;
-      } finally {
-        this.requestQueue.delete(requestKey);
+      // Handle 401 specifically - token expired
+      if (response.status === 401) {
+        console.log("Token expired or invalid, clearing local storage");
+        this.clearLocalStorage();
+        throw new Error("Authentication expired. Please login again.");
       }
-    })();
 
-    this.requestQueue.set(requestKey, requestPromise);
-    return requestPromise;
-  }
+      if (!response.ok) {
+        let errorMessage = `API error: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          console.error("API Error Details:", errorData);
 
-  private async cachedRequest(endpoint: string, options: RequestInit = {}) {
-    const cacheKey = `${endpoint}-${JSON.stringify(options)}`;
-    const cached = this.cache.get(cacheKey);
+          if (
+            errorData.detail === "Given token not valid for any token type"
+          ) {
+            this.clearLocalStorage();
+            errorMessage = "Session expired. Please login again.";
+          } else if (errorData.detail) {
+            errorMessage = errorData.detail;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          } else if (errorData.non_field_errors) {
+            errorMessage = errorData.non_field_errors.join(", ");
+          } else {
+            errorMessage = JSON.stringify(errorData);
+          }
+        } catch {
+          errorMessage =
+            response.statusText || `API error: ${response.status}`;
+        }
+        throw new Error(errorMessage);
+      }
 
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      return cached.data;
+      if (
+        response.status === 204 ||
+        response.headers.get("content-length") === "0"
+      ) {
+        return null as T;
+      }
+
+      return response.json() as Promise<T>;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error("API Request Failed:", error);
+      throw error;
+    } finally {
+      this.requestQueue.delete(requestKey);
     }
+  })();
 
-    const data = await this.request(endpoint, options);
-    this.cache.set(cacheKey, { data, timestamp: Date.now() });
-    return data;
+  this.requestQueue.set(requestKey, requestPromise);
+  return requestPromise;
+}
+
+  // Token refresh handler
+  // Update the requestWithRetry method with proper TypeScript return type
+private async requestWithRetry<T = any>(
+  endpoint: string, 
+  options: RequestInit = {}, 
+  retryCount = 0
+): Promise<T> {
+  try {
+    return await this.request(endpoint, options) as T;
+  } catch (error: any) {
+    // If token expired (401) and we haven't retried yet, try to refresh
+    if ((error.message.includes("Authentication expired") || 
+         error.message.includes("Session expired")) && retryCount === 0) {
+      try {
+        console.log("Attempting token refresh...");
+        await this.refreshToken();
+        // Retry the original request with new token
+        console.log("Token refreshed, retrying original request");
+        return await this.requestWithRetry<T>(endpoint, options, retryCount + 1);
+      } catch (refreshError) {
+        // Refresh failed, clear storage and throw
+        console.error("Token refresh failed:", refreshError);
+        this.clearLocalStorage();
+        throw new Error("Session expired. Please login again.");
+      }
+    }
+    throw error;
   }
+}
+
+  private async cachedRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const cacheKey = `${endpoint}-${JSON.stringify(options)}`;
+  const cached = this.cache.get(cacheKey);
+
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data as T;
+  }
+
+  const data = await this.requestWithRetry<T>(endpoint, options);
+  this.cache.set(cacheKey, { data, timestamp: Date.now() });
+  return data;
+}
 
   // ============================
   // AUTH ENDPOINTS
   // ============================
 
+  async refreshToken(): Promise<{ access: string; refresh: string }> {
+    const refreshToken = localStorage.getItem("refresh_token");
+    
+    if (!refreshToken) {
+      throw new Error("No refresh token available");
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/token/refresh/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
+
+      console.log("Token refresh response status:", response.status);
+
+      if (!response.ok) {
+        let errorMessage = "Failed to refresh token";
+        try {
+          const errorData = await response.json();
+          console.error("Token refresh error:", errorData);
+          if (errorData.detail) {
+            errorMessage = errorData.detail;
+          }
+        } catch {
+          // Ignore JSON parse error
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      console.log("Token refresh successful:", { 
+        hasAccess: !!data.access, 
+        hasRefresh: !!data.refresh 
+      });
+      
+      // Save new tokens
+      if (data.access) {
+        localStorage.setItem("access_token", data.access);
+      }
+      if (data.refresh) {
+        localStorage.setItem("refresh_token", data.refresh);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error("Token refresh failed completely:", error);
+      this.clearLocalStorage();
+      throw error;
+    }
+  }
+
   async login(loginData: LoginData): Promise<AuthResponse> {
-    return this.request("/users/login/", {
-      method: "POST",
-      body: JSON.stringify(loginData),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/login/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(loginData),
+      });
+
+      console.log("Login Response Status:", response.status);
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+          console.error("Login Error Data:", errorData);
+        } catch {
+          throw new Error(`Login failed with status: ${response.status}`);
+        }
+
+        if (errorData.detail) {
+          throw new Error(errorData.detail);
+        } else if (errorData.non_field_errors) {
+          throw new Error(errorData.non_field_errors.join(", "));
+        } else if (errorData.error) {
+          throw new Error(errorData.error);
+        } else {
+          throw new Error("Invalid credentials. Please check your username and password.");
+        }
+      }
+
+      const data = await response.json();
+      console.log("Login Success Data:", { 
+        hasAccessToken: !!data.access, 
+        hasRefreshToken: !!data.refresh,
+        user: data.user ? 'Yes' : 'No'
+      });
+
+      // Save tokens
+      if (data.access) {
+        localStorage.setItem("access_token", data.access);
+      }
+      if (data.refresh) {
+        localStorage.setItem("refresh_token", data.refresh);
+      }
+
+      return data;
+    } catch (error: any) {
+      console.error("Login Error:", error);
+      throw error;
+    }
   }
 
   async register(registerData: RegisterData): Promise<any> {
@@ -274,10 +456,10 @@ class ApiService {
     return this.getVitalRequests();
   }
 
-   async assignStaff(data: {
+  async assignStaff(data: {
     appointment_id: number;
     staff_id: string;
-    role: 'DOCTOR' | 'NURSE' | 'LAB';
+    role: "DOCTOR" | "NURSE" | "LAB";
     notes?: string;
   }): Promise<any> {
     return this.request("/hospital/assignments/assign-staff/", {
@@ -287,11 +469,13 @@ class ApiService {
   }
 
   async getAppointmentAssignments(appointmentId: number): Promise<any[]> {
-    return this.cachedRequest(`/hospital/assignments/appointment/${appointmentId}/`);
+    return this.cachedRequest(
+      `/hospital/assignments/appointment/${appointmentId}/`
+    );
   }
 
   async getAvailableStaff(role?: string): Promise<any[]> {
-    const url = role 
+    const url = role
       ? `/hospital/assignments/available-staff/?role=${role}`
       : "/hospital/assignments/available-staff/";
     return this.cachedRequest(url);
@@ -371,20 +555,20 @@ class ApiService {
     );
     return data.map(normalizeBlogPost);
   }
-  // services/api.ts - Add this method
-async registerWithImage(formData: FormData): Promise<any> {
-  const response = await fetch(`${API_BASE_URL}/users/register/`, {
-    method: "POST",
-    body: formData,
-  });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || JSON.stringify(errorData));
+  async registerWithImage(formData: FormData): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/users/register/`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || JSON.stringify(errorData));
+    }
+
+    return response.json();
   }
-
-  return response.json();
-}
 
   // ============================
   // CACHE INVALIDATION
@@ -397,7 +581,6 @@ async registerWithImage(formData: FormData): Promise<any> {
       }
     }
   }
-
 }
 
 export const apiService = new ApiService();
