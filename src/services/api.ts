@@ -579,8 +579,6 @@ private async requestWithRetry<T = any>(
     return data.map(normalizeBlogPost);
   }
 
-  // In services/api.ts - Update the getLatestBlogPosts method
-// In services/api.ts - Update getLatestBlogPosts method
 async getLatestBlogPosts(limit: number = 6): Promise<any[]> {
   try {
     console.log(`📞 Fetching latest ${limit} blog posts...`);
