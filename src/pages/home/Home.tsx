@@ -41,46 +41,39 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
     visible: {
       opacity: 1,
       scale: 1,
-      transition: { duration: 0.6, ease: "easeOut" }
-    }
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
   };
 
   // In Home.tsx - Update the loadLatestPost function
-const loadLatestPost = async () => {
-  try {
-    setLoadingBlogs(true);
-    console.log('🔄 Fetching latest blog post...');
-    const posts = await apiService.getLatestBlogPosts(1);
-    console.log('📦 API Response posts:', posts);
-    
-    if (posts && posts.length > 0) {
-      const post = posts[0];
-      console.log('🎯 First post details:', {
-        id: post.id,
-        title: post.title,
-        slug: post.slug,
-        description: post.description,
-        featured_image: post.featured_image,
-        subheadings_count: post.subheadings?.length || 0,
-        table_of_contents_count: post.table_of_contents?.length || 0
-      });
-      
-      if (post.subheadings) {
-        post.subheadings = normalizeSubheadings(post.subheadings);
+  // SIMPLE FIX: Replace getLatestBlogPosts with getBlogPosts
+  const loadLatestPost = async () => {
+    try {
+      setLoadingBlogs(true);
+
+      // Use the same endpoint that works for the blog page
+      const allPosts = await apiService.getBlogPosts();
+
+      if (allPosts && allPosts.length > 0) {
+        // Take the first post (assuming it's already sorted by latest)
+        const post = allPosts[0];
+
+        // Process subheadings
+        if (post.subheadings) {
+          post.subheadings = normalizeSubheadings(post.subheadings);
+        }
+
+        setLatestPost(post);
+      } else {
+        setLatestPost(null);
       }
-      
-      setLatestPost(post);
-    } else {
-      console.warn('⚠️ No blog posts found or empty response');
+    } catch (error) {
+      console.error("Failed to load blog posts:", error);
       setLatestPost(null);
+    } finally {
+      setLoadingBlogs(false);
     }
-  } catch (error) {
-    console.error('❌ Failed to load latest blog posts:', error);
-    setLatestPost(null);
-  } finally {
-    setLoadingBlogs(false);
-  }
-};
+  };
   const handleBlogPostClick = (slug: string) => {
     if (onSelectPost) {
       onSelectPost(slug);
@@ -150,7 +143,7 @@ const loadLatestPost = async () => {
           ) : latestPost ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
               {/* MAIN CONTENT - Enhanced blog post display with fadeInLeft */}
-              <motion.div 
+              <motion.div
                 className="lg:col-span-2"
                 variants={fadeInLeft}
                 initial="hidden"
@@ -284,7 +277,7 @@ const loadLatestPost = async () => {
               </motion.div>
 
               {/* SIDEBAR - Enhanced newsletter section with zoom out */}
-              <motion.div 
+              <motion.div
                 className="space-y-8 mt-4"
                 variants={zoomOut}
                 initial="hidden"
@@ -292,70 +285,70 @@ const loadLatestPost = async () => {
                 viewport={{ once: true, amount: 0.3 }}
               >
                 {/* Newsletter Card */}
-                <motion.div 
-  className="bg-[#1378e5] text-white p-8 shadow-xl"
-  whileHover={{ scale: 1.02 }}
-  transition={{ type: "spring", stiffness: 300 }}
->
-  <h3 className="text-3xl font-bold mb-4">
-    We Have Some Good News
-  </h3>
-  <div className="w-16 h-[3px] bg-white mb-6"></div>
+                <motion.div
+                  className="bg-[#1378e5] text-white p-8 shadow-xl"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <h3 className="text-3xl font-bold mb-4">
+                    We Have Some Good News
+                  </h3>
+                  <div className="w-16 h-[3px] bg-white mb-6"></div>
 
-  <p className="text-white/90 leading-relaxed mb-8">
-    Don't hesitate – sign up for our newsletter now to stay
-    informed about our services, gain valuable healthcare
-    insights, and access exclusive offers from Etha-Atlantic
-    Memorial Hospital in Lagos, Nigeria.
-  </p>
+                  <p className="text-white/90 leading-relaxed mb-8">
+                    Don't hesitate – sign up for our newsletter now to stay
+                    informed about our services, gain valuable healthcare
+                    insights, and access exclusive offers from Etha-Atlantic
+                    Memorial Hospital in Lagos, Nigeria.
+                  </p>
 
-  {/* Newsletter Form */}
-  <form onSubmit={handleSubscribe} className="space-y-4">
-    <motion.input
-      type="email"
-      required
-      value={email}
-      onChange={(e) => setEmail(e.target.value)}
-      placeholder="Type in your email address"
-      className="w-full bg-[#177fed] px-4 py-3 rounded-full text-white placeholder:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
-      whileFocus={{ scale: 1.02 }}
-    />
+                  {/* Newsletter Form */}
+                  <form onSubmit={handleSubscribe} className="space-y-4">
+                    <motion.input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Type in your email address"
+                      className="w-full bg-[#177fed] px-4 py-3 rounded-full text-white placeholder:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+                      whileFocus={{ scale: 1.02 }}
+                    />
 
-    {/* Center the Subscribe button */}
-    <div className="flex justify-center">
-      <motion.button
-        type="submit"
-        className="bg-blue-600 text-white font-bold py-3 px-8 rounded-full hover:bg-blue-700 transition-all uppercase tracking-wide"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        Subscribe
-      </motion.button>
-    </div>
-  </form>
+                    {/* Center the Subscribe button */}
+                    <div className="flex justify-center">
+                      <motion.button
+                        type="submit"
+                        className="bg-blue-600 text-white font-bold py-3 px-8 rounded-full hover:bg-blue-700 transition-all uppercase tracking-wide"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        Subscribe
+                      </motion.button>
+                    </div>
+                  </form>
 
-  {/* Healthcare Plans Section */}
-  <div className="mt-2 pt-2 border-t border-blue-500 border-opacity-30 ">
-    <h4 className="text-2xl font-bold mb-4 text-center">
-      We offer the Best Healthcare Plans
-    </h4>
-    <p className="text-white text-sm leading-relaxed mb-6 text-center">
-      Check out our different healthcare packages, ranging from
-      health checks, lifestyle plans, UTI checks to sexual
-      health.
-    </p>
-    <div className="flex justify-center">
-    <motion.button
-      onClick={() => navigate("/packages")}
-      className="bg-red-600 text-sm text-white py-4 px-10 rounded-full font-bold hover:bg-red-700 transition-all uppercase tracking-wide flex items-center justify-center shadow-md hover:shadow-lg mb-4 sm:mb-8 md:mb-32"
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      Our Packages <span className="ml-2">»</span>
-    </motion.button>
-    </div>
-  </div>
-</motion.div>
+                  {/* Healthcare Plans Section */}
+                  <div className="mt-2 pt-2 border-t border-blue-500 border-opacity-30 ">
+                    <h4 className="text-2xl font-bold mb-4 text-center">
+                      We offer the Best Healthcare Plans
+                    </h4>
+                    <p className="text-white text-sm leading-relaxed mb-6 text-center">
+                      Check out our different healthcare packages, ranging from
+                      health checks, lifestyle plans, UTI checks to sexual
+                      health.
+                    </p>
+                    <div className="flex justify-center">
+                      <motion.button
+                        onClick={() => navigate("/packages")}
+                        className="bg-red-600 text-sm text-white py-4 px-10 rounded-full font-bold hover:bg-red-700 transition-all uppercase tracking-wide flex items-center justify-center shadow-md hover:shadow-lg mb-4 sm:mb-8 md:mb-32"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        Our Packages <span className="ml-2">»</span>
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
               </motion.div>
             </div>
           ) : (

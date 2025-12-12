@@ -580,23 +580,44 @@ private async requestWithRetry<T = any>(
   }
 
   // In services/api.ts - Update the getLatestBlogPosts method
+// In services/api.ts - Update getLatestBlogPosts method
 async getLatestBlogPosts(limit: number = 6): Promise<any[]> {
   try {
     console.log(`📞 Fetching latest ${limit} blog posts...`);
-    const data = await this.request(`/hospital/blog/latest/?limit=${limit}`);
-    console.log('📦 Raw blog data:', data);
     
-    if (!Array.isArray(data)) {
-      console.error('❌ API response is not an array:', data);
+    // FIRST TRY: Use the main blog endpoint and get the latest
+    const allPosts = await this.getBlogPosts();
+    console.log('📦 All blog posts:', allPosts);
+    
+    if (!allPosts || allPosts.length === 0) {
       return [];
     }
     
-    const normalized = data.map(normalizeBlogPost);
-    console.log('✅ Normalized posts:', normalized);
-    return normalized;
+    // Sort by created_at date (newest first) and take the limit
+    const sortedPosts = allPosts
+      .sort((a, b) => {
+        const dateA = new Date(a.created_at || a.published_date || 0);
+        const dateB = new Date(b.created_at || b.published_date || 0);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, limit);
+    
+    console.log(`✅ Latest ${limit} posts:`, sortedPosts);
+    return sortedPosts;
+    
   } catch (error) {
     console.error('❌ Failed to fetch latest blog posts:', error);
-    return [];
+    
+    // Fallback: Try the specific endpoint
+    try {
+      const data = await this.request(`/hospital/blog/latest/?limit=${limit}`);
+      if (Array.isArray(data)) {
+        return data.map(normalizeBlogPost);
+      }
+      return [];
+    } catch {
+      return [];
+    }
   }
 }
 
