@@ -1,9 +1,10 @@
 // Header.tsx - Updated with mobile header section
-import React, { useState, useEffect } from 'react';
-import { User, LogOut, ChevronDown, Menu } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import MobileNav from './MobileNav';
-import HeaderLogo from "../assets/img/etta-replace1-removebg-preview.png"
+import React, { useState, useEffect } from "react";
+import { User, LogOut, ChevronDown, Menu } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import MobileNav from "./MobileNav";
+import HeaderLogo from "../assets/img/etta-replace1-removebg-preview.png";
+import { normalizeMediaUrl } from "../utils/mediaUrl";
 
 interface HeaderProps {
   currentPage: string;
@@ -14,13 +15,13 @@ interface HeaderProps {
   onLogout: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ 
-  currentPage, 
-  onNavigate, 
-  user, 
-  onLoginClick, 
+const Header: React.FC<HeaderProps> = ({
+  currentPage,
+  onNavigate,
+  user,
+  onLoginClick,
   onProfileClick,
-  onLogout 
+  onLogout,
 }) => {
   const [scrolled, setScrolled] = useState(false);
   const [hideTopSection, setHideTopSection] = useState(false);
@@ -28,14 +29,16 @@ const Header: React.FC<HeaderProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
+  const profileImageUrl = normalizeMediaUrl(user.profile?.profile_pix);
+
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       setScrolled(scrollPosition > 50);
       setHideTopSection(scrollPosition > 100);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleProfileClick = () => {
@@ -52,10 +55,10 @@ const Header: React.FC<HeaderProps> = ({
 
   // Function to handle logo click - navigate to homepage
   const handleLogoClick = () => {
-    navigate('/');
+    navigate("/");
     // Also call onNavigate if provided for consistency
     if (onNavigate) {
-      onNavigate('home');
+      onNavigate("home");
     }
   };
 
@@ -74,14 +77,18 @@ const Header: React.FC<HeaderProps> = ({
             >
               <Menu className="w-6 h-6 text-gray-800" />
             </button>
-            
+
             {/* Logo - Now clickable */}
-            <button 
+            <button
               onClick={handleLogoClick}
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
             >
               <div className="bg-white rounded-full flex items-center justify-center ml-8 mt-2">
-                <img src={HeaderLogo} alt="Etha-Atlantic Memorial Logo" className="w-12 h-12" />
+                <img
+                  src={HeaderLogo}
+                  alt="Etha-Atlantic Memorial Logo"
+                  className="w-12 h-12"
+                />
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-gray-900 tracking-tight leading-tight">
@@ -97,7 +104,7 @@ const Header: React.FC<HeaderProps> = ({
           {/* Mobile Sign In Button */}
           <div>
             {!user && (
-              <button 
+              <button
                 onClick={onLoginClick}
                 className="bg-blue-600 text-white px-4 py-2 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-sm hover:shadow-md text-sm"
               >
@@ -122,35 +129,39 @@ const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Desktop Header */}
-      <header 
+      <header
         className={`hidden lg:block fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled 
-            ? 'bg-white/95 backdrop-blur-md shadow-lg' 
-            : 'bg-white/80 backdrop-blur-sm'
+          scrolled
+            ? "bg-white/95 backdrop-blur-md shadow-lg"
+            : "bg-white/80 backdrop-blur-sm"
         }`}
       >
         {/* Top Section - Logo and Auth - Collapsible */}
-        <div 
+        <div
           className={`border-b border-white/20 transition-all duration-300 ${
-            hideTopSection 
-              ? 'h-0 opacity-0 overflow-hidden' 
-              : 'h-auto opacity-100'
+            hideTopSection
+              ? "h-0 opacity-0 overflow-hidden"
+              : "h-auto opacity-100"
           }`}
           style={{
-            transitionProperty: 'opacity, height',
-            transitionDuration: '300ms',
-            transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
+            transitionProperty: "opacity, height",
+            transitionDuration: "300ms",
+            transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
           <div className="container mx-auto px-12 py-3">
             <div className="flex items-center justify-between">
               {/* Logo - Now clickable */}
-              <button 
+              <button
                 onClick={handleLogoClick}
                 className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
               >
                 <div className="bg-white rounded-full flex items-center justify-center">
-                  <img src={HeaderLogo} alt="Etha-Atlantic Memorial Logo" className="w-8 h-8" />
+                  <img
+                    src={HeaderLogo}
+                    alt="Etha-Atlantic Memorial Logo"
+                    className="w-8 h-8"
+                  />
                 </div>
                 <div>
                   <h1 className="text-lg font-bold text-gray-900 tracking-tight leading-tight">
@@ -169,25 +180,67 @@ const Header: React.FC<HeaderProps> = ({
                     {/* Profile Dropdown */}
                     <div className="relative">
                       <button
-                        onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                        onClick={() =>
+                          setShowProfileDropdown(!showProfileDropdown)
+                        }
                         className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
                       >
-                        {/* Profile Image or Fallback Icon */}
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                          <span className="text-white text-xs font-medium">
-                            {user.profile?.fullname?.charAt(0) || user.username?.charAt(0) || 'U'}
+                        {/* Profile Image with fallback - USING profileImageUrl */}
+                        {profileImageUrl ? (
+                          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-blue-500 flex-shrink-0">
+                            <img
+                              src={profileImageUrl}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                console.error(
+                                  "Profile image failed to load:",
+                                  profileImageUrl
+                                );
+                                // Fallback to initials
+                                e.currentTarget.style.display = "none";
+                                // Trigger fallback display
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  const fallback =
+                                    document.createElement("div");
+                                  fallback.className =
+                                    "w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center";
+                                  fallback.innerHTML = `<span class="text-white text-sm font-medium">${
+                                    user.profile?.fullname?.charAt(0) ||
+                                    user.username?.charAt(0) ||
+                                    "U"
+                                  }</span>`;
+                                  parent.appendChild(fallback);
+                                }
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-sm font-medium">
+                              {user.profile?.fullname?.charAt(0) ||
+                                user.username?.charAt(0) ||
+                                "U"}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* User Info */}
+                        <div className="flex flex-col items-start min-w-0">
+                          <span className="text-sm font-medium text-gray-800 truncate max-w-[120px]">
+                            {user.profile?.fullname || user.username}
+                          </span>
+                          <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium">
+                            {user.profile?.role || "USER"}
                           </span>
                         </div>
-                        
-                        <span className="text-sm font-medium text-gray-800">
-                          {user.profile?.fullname || user.username}
-                        </span>
-                        <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium">
-                          {user.profile?.role}
-                        </span>
-                        <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform ${
-                          showProfileDropdown ? 'rotate-180' : ''
-                        }`} />
+
+                        <ChevronDown
+                          className={`w-4 h-4 text-gray-600 transition-transform ${
+                            showProfileDropdown ? "rotate-180" : ""
+                          }`}
+                        />
                       </button>
 
                       {/* Dropdown Menu */}
@@ -212,7 +265,7 @@ const Header: React.FC<HeaderProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <button 
+                  <button
                     onClick={onLoginClick}
                     className="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
                   >
@@ -230,14 +283,21 @@ const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center justify-between h-14">
               {/* Navigation Links */}
               <ul className="flex space-x-8">
-                {['home', 'about us', 'services', 'packages', 'blog', 'contact'].map((page) => (
+                {[
+                  "home",
+                  "about us",
+                  "services",
+                  "packages",
+                  "blog",
+                  "contact",
+                ].map((page) => (
                   <li key={page}>
                     <button
                       onClick={() => onNavigate && onNavigate(page)}
                       className={`font-semibold text-sm uppercase transition-colors relative h-14 flex items-center ${
                         currentPage === page
-                          ? 'text-gray-900'
-                          : 'text-gray-700 hover:text-blue-600'
+                          ? "text-gray-900"
+                          : "text-gray-700 hover:text-blue-600"
                       }`}
                     >
                       {page}

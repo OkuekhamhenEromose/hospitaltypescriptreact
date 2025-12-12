@@ -579,12 +579,26 @@ private async requestWithRetry<T = any>(
     return data.map(normalizeBlogPost);
   }
 
-  async getLatestBlogPosts(limit: number = 6): Promise<any[]> {
-    const data = await this.cachedRequest(
-      `/hospital/blog/latest/?limit=${limit}`
-    );
-    return data.map(normalizeBlogPost);
+  // In services/api.ts - Update the getLatestBlogPosts method
+async getLatestBlogPosts(limit: number = 6): Promise<any[]> {
+  try {
+    console.log(`📞 Fetching latest ${limit} blog posts...`);
+    const data = await this.request(`/hospital/blog/latest/?limit=${limit}`);
+    console.log('📦 Raw blog data:', data);
+    
+    if (!Array.isArray(data)) {
+      console.error('❌ API response is not an array:', data);
+      return [];
+    }
+    
+    const normalized = data.map(normalizeBlogPost);
+    console.log('✅ Normalized posts:', normalized);
+    return normalized;
+  } catch (error) {
+    console.error('❌ Failed to fetch latest blog posts:', error);
+    return [];
   }
+}
 
   async registerWithImage(formData: FormData): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/users/register/`, {

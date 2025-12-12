@@ -10,6 +10,7 @@ import type { Variants } from "framer-motion";
 import { useState, useEffect } from "react";
 import { apiService } from "../../services/api";
 import { useNavigate } from "react-router-dom";
+import { normalizeMediaUrl } from "../../utils/mediaUrl";
 
 interface HomeProps {
   onSelectPost?: (slug: string) => void;
@@ -44,42 +45,42 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
     }
   };
 
-  const loadLatestPost = async () => {
-    try {
-      setLoadingBlogs(true);
-      const posts = await apiService.getLatestBlogPosts(1);
-
-      if (posts && posts.length > 0) {
-        const post = posts[0];
-        if (post.subheadings) {
-          post.subheadings = normalizeSubheadings(post.subheadings);
-        }
-        if (post.first_two_subheadings) {
-          post.first_two_subheadings = normalizeSubheadings(
-            post.first_two_subheadings
-          );
-        }
-
-        console.log("=== BLOG POST DEBUG ===");
-        console.log("Post data:", post);
-        console.log("Subheadings:", post.subheadings);
-        console.log("First two subheadings:", post.first_two_subheadings);
-        console.log("Featured image:", post.featured_image);
-        console.log("Image 1:", post.image_1);
-        console.log("Image 2:", post.image_2);
-
-        setLatestPost(post);
-      } else {
-        setLatestPost(null);
+  // In Home.tsx - Update the loadLatestPost function
+const loadLatestPost = async () => {
+  try {
+    setLoadingBlogs(true);
+    console.log('🔄 Fetching latest blog post...');
+    const posts = await apiService.getLatestBlogPosts(1);
+    console.log('📦 API Response posts:', posts);
+    
+    if (posts && posts.length > 0) {
+      const post = posts[0];
+      console.log('🎯 First post details:', {
+        id: post.id,
+        title: post.title,
+        slug: post.slug,
+        description: post.description,
+        featured_image: post.featured_image,
+        subheadings_count: post.subheadings?.length || 0,
+        table_of_contents_count: post.table_of_contents?.length || 0
+      });
+      
+      if (post.subheadings) {
+        post.subheadings = normalizeSubheadings(post.subheadings);
       }
-    } catch (error) {
-      console.error("Failed to load latest blog posts:", error);
+      
+      setLatestPost(post);
+    } else {
+      console.warn('⚠️ No blog posts found or empty response');
       setLatestPost(null);
-    } finally {
-      setLoadingBlogs(false);
     }
-  };
-
+  } catch (error) {
+    console.error('❌ Failed to load latest blog posts:', error);
+    setLatestPost(null);
+  } finally {
+    setLoadingBlogs(false);
+  }
+};
   const handleBlogPostClick = (slug: string) => {
     if (onSelectPost) {
       onSelectPost(slug);
@@ -93,20 +94,6 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
     console.log("Subscribing email:", email);
     alert("Thank you for subscribing!");
     setEmail("");
-  };
-
-  // Universal image URL resolver
-  const getImageUrl = (path: string | null) => {
-    if (!path) return null;
-
-    // FULL url already
-    if (path.startsWith("http")) return path;
-
-    // Django returns absolute media paths like "/media/blog_images/xxx.jpg"
-    if (path.startsWith("/media")) return `https://dhospitalback.onrender.com${path}`;
-
-    // Django returns only filename "xx.jpg"
-    return `https://dhospitalback.onrender.com/media/blog_images/${path}`;
   };
 
   const normalizeSubheadings = (sub: any[]) => {
@@ -137,10 +124,10 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
     ? getFirstTwoSubheadings(latestPost)
     : null;
   const featuredImageUrl = latestPost
-    ? getImageUrl(latestPost.featured_image)
+    ? normalizeMediaUrl(latestPost.featured_image)
     : null;
-  const image1Url = latestPost ? getImageUrl(latestPost.image_1) : null;
-  const image2Url = latestPost ? getImageUrl(latestPost.image_2) : null;
+  const image1Url = latestPost ? normalizeMediaUrl(latestPost.image_1) : null;
+  const image2Url = latestPost ? normalizeMediaUrl(latestPost.image_2) : null;
 
   return (
     <>
