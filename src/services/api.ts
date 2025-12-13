@@ -10,9 +10,15 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 // ======================================
 const normalizeMediaUrl = (url: string | null) => {
   if (!url) return null;
+  
+  // Force global S3 URL
+  if (url.includes('.s3.eu-north-1.amazonaws.com')) {
+    return url.replace('.s3.eu-north-1.amazonaws.com', '.s3.amazonaws.com');
+  }
+  
   if (url.startsWith("http")) return url;
   return `${MEDIA_BASE_URL}${url}`;
-};
+}
 
 // ======================================
 // 🔥 BLOG POST NORMALIZER (IMAGES + FIELDS)
