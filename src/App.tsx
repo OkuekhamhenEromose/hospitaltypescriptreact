@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import LoadingSpinner from './components/LoadSpinner';
 import AuthCallback from './components/AuthCallback';
 import ScrollToTop from './components/ScrollToTop';
+import AuthError from './pages/AuthError';
 
 // Define component prop types
 interface BlogProps {
@@ -164,6 +165,8 @@ const AppRoutes: React.FC = () => {
               element={<BlogPostDetailWrapper />}
             />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/auth/error" element={<AuthError />} />
 
             {/* Protected Dashboard Route */}
             <Route
