@@ -104,11 +104,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const register = useCallback(async (data: RegisterData) => {
     try {
       await apiService.register(data);
-      const loginResponse: AuthResponse = await apiService.login({
+      const loginData: LoginData = {
         username: data.username,
         password: data.password1,
-      });
+      };
 
+      const loginResponse: AuthResponse = await apiService.login(loginData);
       localStorage.setItem("access_token", loginResponse.access);
       localStorage.setItem("refresh_token", loginResponse.refresh);
       setUser(loginResponse.user);

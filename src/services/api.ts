@@ -10,15 +10,15 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 // ======================================
 const normalizeMediaUrl = (url: string | null) => {
   if (!url) return null;
-  
+
   // Force global S3 URL
-  if (url.includes('.s3.eu-north-1.amazonaws.com')) {
-    return url.replace('.s3.eu-north-1.amazonaws.com', '.s3.amazonaws.com');
+  if (url.includes(".s3.eu-north-1.amazonaws.com")) {
+    return url.replace(".s3.eu-north-1.amazonaws.com", ".s3.amazonaws.com");
   }
-  
+
   if (url.startsWith("http")) return url;
   return `${MEDIA_BASE_URL}${url}`;
-}
+};
 
 // ======================================
 // 🔥 BLOG POST NORMALIZER (IMAGES + FIELDS)
@@ -79,149 +79,162 @@ class ApiService {
   // ============================
 
   // Update the request method signature
-private async request<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const token = localStorage.getItem("access_token");
+  private async request<T = any>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const token = localStorage.getItem("access_token");
 
-  const headers: HeadersInit = {};
+    const headers: HeadersInit = {};
 
-  if (!(options.body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  if (token) {
-    // Validate token format
-    if (!token.startsWith("Bearer ")) {
-      headers["Authorization"] = `Bearer ${token}`;
-    } else {
-      headers["Authorization"] = token;
+    if (!(options.body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
     }
-  }
 
-  Object.assign(headers, options.headers);
-
-  console.log(`API Request: ${url}`, {
-    headers: { ...headers, Authorization: "Bearer ***" },
-  });
-
-  const requestKey = `${endpoint}-${JSON.stringify(options)}`;
-  if (this.requestQueue.has(requestKey)) {
-    return this.requestQueue.get(requestKey) as Promise<T>;
-  }
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-  const requestPromise = (async (): Promise<T> => {
-    try {
-      const config = {
-        ...options,
-        headers,
-        signal: controller.signal,
-      };
-
-      const response = await fetch(url, config);
-      clearTimeout(timeoutId);
-
-      console.log(`API Response: ${url} - Status: ${response.status}`);
-
-      // Handle 401 specifically - token expired
-      if (response.status === 401) {
-        console.log("Token expired or invalid, clearing local storage");
-        this.clearLocalStorage();
-        throw new Error("Authentication expired. Please login again.");
+    if (token) {
+      // Validate token format
+      if (!token.startsWith("Bearer ")) {
+        headers["Authorization"] = `Bearer ${token}`;
+      } else {
+        headers["Authorization"] = token;
       }
+    }
 
-      if (!response.ok) {
-        let errorMessage = `API error: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          console.error("API Error Details:", errorData);
+    Object.assign(headers, options.headers);
 
-          if (
-            errorData.detail === "Given token not valid for any token type"
-          ) {
-            this.clearLocalStorage();
-            errorMessage = "Session expired. Please login again.";
-          } else if (errorData.detail) {
-            errorMessage = errorData.detail;
-          } else if (errorData.error) {
-            errorMessage = errorData.error;
-          } else if (errorData.non_field_errors) {
-            errorMessage = errorData.non_field_errors.join(", ");
-          } else {
-            errorMessage = JSON.stringify(errorData);
-          }
-        } catch {
-          errorMessage =
-            response.statusText || `API error: ${response.status}`;
+    console.log(`API Request: ${url}`, {
+      headers: { ...headers, Authorization: "Bearer ***" },
+    });
+
+    const requestKey = `${endpoint}-${JSON.stringify(options)}`;
+    if (this.requestQueue.has(requestKey)) {
+      return this.requestQueue.get(requestKey) as Promise<T>;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const requestPromise = (async (): Promise<T> => {
+      try {
+        const config = {
+          ...options,
+          headers,
+          signal: controller.signal,
+        };
+
+        const response = await fetch(url, config);
+        clearTimeout(timeoutId);
+
+        console.log(`API Response: ${url} - Status: ${response.status}`);
+
+        // Handle 401 specifically - token expired
+        if (response.status === 401) {
+          console.log("Token expired or invalid, clearing local storage");
+          this.clearLocalStorage();
+          throw new Error("Authentication expired. Please login again.");
         }
-        throw new Error(errorMessage);
+
+        if (!response.ok) {
+          let errorMessage = `API error: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            console.error("API Error Details:", errorData);
+
+            if (
+              errorData.detail === "Given token not valid for any token type"
+            ) {
+              this.clearLocalStorage();
+              errorMessage = "Session expired. Please login again.";
+            } else if (errorData.detail) {
+              errorMessage = errorData.detail;
+            } else if (errorData.error) {
+              errorMessage = errorData.error;
+            } else if (errorData.non_field_errors) {
+              errorMessage = errorData.non_field_errors.join(", ");
+            } else {
+              errorMessage = JSON.stringify(errorData);
+            }
+          } catch {
+            errorMessage =
+              response.statusText || `API error: ${response.status}`;
+          }
+          throw new Error(errorMessage);
+        }
+
+        if (
+          response.status === 204 ||
+          response.headers.get("content-length") === "0"
+        ) {
+          return null as T;
+        }
+
+        return response.json() as Promise<T>;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.error("API Request Failed:", error);
+        throw error;
+      } finally {
+        this.requestQueue.delete(requestKey);
       }
+    })();
 
-      if (
-        response.status === 204 ||
-        response.headers.get("content-length") === "0"
-      ) {
-        return null as T;
-      }
-
-      return response.json() as Promise<T>;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      console.error("API Request Failed:", error);
-      throw error;
-    } finally {
-      this.requestQueue.delete(requestKey);
-    }
-  })();
-
-  this.requestQueue.set(requestKey, requestPromise);
-  return requestPromise;
-}
+    this.requestQueue.set(requestKey, requestPromise);
+    return requestPromise;
+  }
 
   // Token refresh handler
   // Update the requestWithRetry method with proper TypeScript return type
-private async requestWithRetry<T = any>(
-  endpoint: string, 
-  options: RequestInit = {}, 
-  retryCount = 0
-): Promise<T> {
-  try {
-    return await this.request(endpoint, options) as T;
-  } catch (error: any) {
-    // If token expired (401) and we haven't retried yet, try to refresh
-    if ((error.message.includes("Authentication expired") || 
-         error.message.includes("Session expired")) && retryCount === 0) {
-      try {
-        console.log("Attempting token refresh...");
-        await this.refreshToken();
-        // Retry the original request with new token
-        console.log("Token refreshed, retrying original request");
-        return await this.requestWithRetry<T>(endpoint, options, retryCount + 1);
-      } catch (refreshError) {
-        // Refresh failed, clear storage and throw
-        console.error("Token refresh failed:", refreshError);
-        this.clearLocalStorage();
-        throw new Error("Session expired. Please login again.");
+  private async requestWithRetry<T = any>(
+    endpoint: string,
+    options: RequestInit = {},
+    retryCount = 0
+  ): Promise<T> {
+    try {
+      return (await this.request(endpoint, options)) as T;
+    } catch (error: any) {
+      // If token expired (401) and we haven't retried yet, try to refresh
+      if (
+        (error.message.includes("Authentication expired") ||
+          error.message.includes("Session expired")) &&
+        retryCount === 0
+      ) {
+        try {
+          console.log("Attempting token refresh...");
+          await this.refreshToken();
+          // Retry the original request with new token
+          console.log("Token refreshed, retrying original request");
+          return await this.requestWithRetry<T>(
+            endpoint,
+            options,
+            retryCount + 1
+          );
+        } catch (refreshError) {
+          // Refresh failed, clear storage and throw
+          console.error("Token refresh failed:", refreshError);
+          this.clearLocalStorage();
+          throw new Error("Session expired. Please login again.");
+        }
       }
+      throw error;
     }
-    throw error;
-  }
-}
-
-  private async cachedRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const cacheKey = `${endpoint}-${JSON.stringify(options)}`;
-  const cached = this.cache.get(cacheKey);
-
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.data as T;
   }
 
-  const data = await this.requestWithRetry<T>(endpoint, options);
-  this.cache.set(cacheKey, { data, timestamp: Date.now() });
-  return data;
-}
+  private async cachedRequest<T = any>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const cacheKey = `${endpoint}-${JSON.stringify(options)}`;
+    const cached = this.cache.get(cacheKey);
+
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return cached.data as T;
+    }
+
+    const data = await this.requestWithRetry<T>(endpoint, options);
+    this.cache.set(cacheKey, { data, timestamp: Date.now() });
+    return data;
+  }
 
   // ============================
   // AUTH ENDPOINTS
@@ -229,7 +242,7 @@ private async requestWithRetry<T = any>(
 
   async refreshToken(): Promise<{ access: string; refresh: string }> {
     const refreshToken = localStorage.getItem("refresh_token");
-    
+
     if (!refreshToken) {
       throw new Error("No refresh token available");
     }
@@ -260,11 +273,11 @@ private async requestWithRetry<T = any>(
       }
 
       const data = await response.json();
-      console.log("Token refresh successful:", { 
-        hasAccess: !!data.access, 
-        hasRefresh: !!data.refresh 
+      console.log("Token refresh successful:", {
+        hasAccess: !!data.access,
+        hasRefresh: !!data.refresh,
       });
-      
+
       // Save new tokens
       if (data.access) {
         localStorage.setItem("access_token", data.access);
@@ -272,7 +285,7 @@ private async requestWithRetry<T = any>(
       if (data.refresh) {
         localStorage.setItem("refresh_token", data.refresh);
       }
-      
+
       return data;
     } catch (error) {
       console.error("Token refresh failed completely:", error);
@@ -281,17 +294,19 @@ private async requestWithRetry<T = any>(
     }
   }
 
+  // services/api.ts - FIXED login method
   async login(loginData: LoginData): Promise<AuthResponse> {
     try {
-      // Use the JWT endpoint for regular username/password login
-      const response = await fetch(`${API_BASE_URL}/users/token/`, {
+      // Use the SAME unified login endpoint as Google OAuth
+      const response = await fetch(`${API_BASE_URL}/users/login/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           username: loginData.username,
-          password: loginData.password
+          password: loginData.password,
+          // NO google_auth_code - this will trigger regular login in UnifiedLoginView
         }),
       });
 
@@ -309,66 +324,32 @@ private async requestWithRetry<T = any>(
         if (errorData.detail) {
           throw new Error(errorData.detail);
         } else {
-          throw new Error("Invalid credentials. Please check your username and password.");
+          throw new Error(
+            "Invalid credentials. Please check your username and password."
+          );
         }
       }
 
-      const tokenData = await response.json();
-      console.log("Token Response:", tokenData);
+      const data = await response.json();
+      console.log("Login Response:", data);
 
-      // Now get user data using the dashboard endpoint
-      const accessToken = tokenData.access;
-      localStorage.setItem("access_token", accessToken);
-      
-      if (tokenData.refresh) {
-        localStorage.setItem("refresh_token", tokenData.refresh);
+      // Save tokens
+      localStorage.setItem("access_token", data.access);
+      if (data.refresh) {
+        localStorage.setItem("refresh_token", data.refresh);
       }
 
-      // Get user profile data
-      const userResponse = await fetch(`${API_BASE_URL}/users/dashboard/`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!userResponse.ok) {
-        throw new Error("Failed to load user profile");
-      }
-
-      const userData = await userResponse.json();
-      console.log("User Data:", userData);
-
-      const authResponse: AuthResponse = {
-        access: accessToken,
-        refresh: tokenData.refresh || "",
-        user: userData.user || {
-          id: 0,
-          username: loginData.username,
-          email: "",
-          profile: {
-            fullname: "",
-            phone: "",
-            gender: "",
-            profile_pix: "",
-            role: "PATIENT"
-          }
-        }
-      };
-
-      return authResponse;
-      
+      return data as AuthResponse;
     } catch (error: any) {
       console.error("Login Error:", error);
       throw error;
     }
   }
 
-  // Add a separate method for Google OAuth login
+  // Remove or update the loginWithGoogle method to use the same endpoint
   async loginWithGoogle(code: string): Promise<AuthResponse> {
     try {
-      // Use the unified login endpoint for Google OAuth
+      // Use the SAME unified login endpoint
       const response = await fetch(`${API_BASE_URL}/users/login/`, {
         method: "POST",
         headers: {
@@ -387,7 +368,9 @@ private async requestWithRetry<T = any>(
           errorData = await response.json();
           console.error("Google Login Error Data:", errorData);
         } catch {
-          throw new Error(`Google login failed with status: ${response.status}`);
+          throw new Error(
+            `Google login failed with status: ${response.status}`
+          );
         }
 
         if (errorData.detail) {
@@ -407,7 +390,6 @@ private async requestWithRetry<T = any>(
       }
 
       return data as AuthResponse;
-      
     } catch (error: any) {
       console.error("Google Login Error:", error);
       throw error;
@@ -634,45 +616,46 @@ private async requestWithRetry<T = any>(
     return data.map(normalizeBlogPost);
   }
 
-async getLatestBlogPosts(limit: number = 6): Promise<any[]> {
-  try {
-    console.log(`📞 Fetching latest ${limit} blog posts...`);
-    
-    // FIRST TRY: Use the main blog endpoint and get the latest
-    const allPosts = await this.getBlogPosts();
-    console.log('📦 All blog posts:', allPosts);
-    
-    if (!allPosts || allPosts.length === 0) {
-      return [];
-    }
-    
-    // Sort by created_at date (newest first) and take the limit
-    const sortedPosts = allPosts
-      .sort((a, b) => {
-        const dateA = new Date(a.created_at || a.published_date || 0);
-        const dateB = new Date(b.created_at || b.published_date || 0);
-        return dateB.getTime() - dateA.getTime();
-      })
-      .slice(0, limit);
-    
-    console.log(`✅ Latest ${limit} posts:`, sortedPosts);
-    return sortedPosts;
-    
-  } catch (error) {
-    console.error('❌ Failed to fetch latest blog posts:', error);
-    
-    // Fallback: Try the specific endpoint
+  async getLatestBlogPosts(limit: number = 6): Promise<any[]> {
     try {
-      const data = await this.request(`/hospital/blog/latest/?limit=${limit}`);
-      if (Array.isArray(data)) {
-        return data.map(normalizeBlogPost);
+      console.log(`📞 Fetching latest ${limit} blog posts...`);
+
+      // FIRST TRY: Use the main blog endpoint and get the latest
+      const allPosts = await this.getBlogPosts();
+      console.log("📦 All blog posts:", allPosts);
+
+      if (!allPosts || allPosts.length === 0) {
+        return [];
       }
-      return [];
-    } catch {
-      return [];
+
+      // Sort by created_at date (newest first) and take the limit
+      const sortedPosts = allPosts
+        .sort((a, b) => {
+          const dateA = new Date(a.created_at || a.published_date || 0);
+          const dateB = new Date(b.created_at || b.published_date || 0);
+          return dateB.getTime() - dateA.getTime();
+        })
+        .slice(0, limit);
+
+      console.log(`✅ Latest ${limit} posts:`, sortedPosts);
+      return sortedPosts;
+    } catch (error) {
+      console.error("❌ Failed to fetch latest blog posts:", error);
+
+      // Fallback: Try the specific endpoint
+      try {
+        const data = await this.request(
+          `/hospital/blog/latest/?limit=${limit}`
+        );
+        if (Array.isArray(data)) {
+          return data.map(normalizeBlogPost);
+        }
+        return [];
+      } catch {
+        return [];
+      }
     }
   }
-}
 
   async registerWithImage(formData: FormData): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/users/register/`, {

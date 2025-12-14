@@ -27,10 +27,22 @@ interface AuthFormData {
 const GoogleIcon = () => {
   return (
     <svg className="w-5 h-5" viewBox="0 0 24 24">
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      />
     </svg>
   );
 };
@@ -60,23 +72,32 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   // Initialize Google OAuth
   const initGoogleOAuth = () => {
-    const googleClientId = '843779765866-4h5mq8177lohu859lgifvi7bpfjn88ds.apps.googleusercontent.com';
-    const redirectUri = 'https://ettahospitalclone.vercel.app/auth/callback';   
+    const googleClientId =
+      "843779765866-4h5mq8177lohu859lgifvi7bpfjn88ds.apps.googleusercontent.com";
+    const redirectUri = "https://ettahospitalclone.vercel.app/auth/callback";
     // Store the modal state before redirect
-    localStorage.setItem('auth_modal_state', JSON.stringify({
-      isLogin,
-      formData: {
-        username: formData.username,
-        // Don't store passwords
-      }
-    }));
-    
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20openid&access_type=online&prompt=select_account`;
-  
-  console.log('🔗 Redirecting to Google OAuth with redirect URI:', redirectUri);
-  console.log('🔗 Full OAuth URL:', googleAuthUrl);
-  
-  window.location.href = googleAuthUrl;
+    localStorage.setItem(
+      "auth_modal_state",
+      JSON.stringify({
+        isLogin,
+        formData: {
+          username: formData.username,
+          // Don't store passwords
+        },
+      })
+    );
+
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&response_type=code&scope=email%20profile%20openid&access_type=online&prompt=select_account`;
+
+    console.log(
+      "🔗 Redirecting to Google OAuth with redirect URI:",
+      redirectUri
+    );
+    console.log("🔗 Full OAuth URL:", googleAuthUrl);
+
+    window.location.href = googleAuthUrl;
   };
 
   const handleGoogleLogin = () => {
@@ -86,18 +107,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
+      if (!file.type.startsWith("image/")) {
         setError("Please select a valid image file");
         return;
       }
-      
+
       if (file.size > 5 * 1024 * 1024) {
         setError("Image size should be less than 5MB");
         return;
       }
 
-      setFormData(prev => ({ ...prev, profile_pix: file }));
-      
+      setFormData((prev) => ({ ...prev, profile_pix: file }));
+
       const reader = new FileReader();
       reader.onload = (e) => {
         setPreviewImage(e.target?.result as string);
@@ -106,6 +127,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  // In AuthModal.tsx - FIXED registration section
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -122,6 +144,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           password: formData.password,
         };
         await login(loginData);
+        onClose();
       } else {
         // Validate all required fields for registration
         if (
@@ -146,20 +169,23 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         formDataToSend.append("phone", formData.phone?.trim() || "");
         formDataToSend.append("gender", formData.gender?.trim() || "M");
         formDataToSend.append("role", formData.role?.trim() || "PATIENT");
-        
+
         if (formData.profile_pix) {
           formDataToSend.append("profile_pix", formData.profile_pix);
         }
 
+        console.log("📝 Registering user...");
         await apiService.registerWithImage(formDataToSend);
-        
+
+        // Auto-login after registration using the SAME endpoint
+        console.log("✅ Registration successful, auto-login...");
         const loginData: LoginData = {
           username: formData.username,
           password: formData.password1 || "",
         };
         await login(loginData);
+        onClose();
       }
-      onClose();
     } catch (err: any) {
       console.error("Authentication error:", err);
       setError(err.message || "Authentication failed");
@@ -249,7 +275,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   title="Sign in with Google"
                 >
                   <GoogleIcon />
-                  <span className="text-sm font-medium">Continue with Google</span>
+                  <span className="text-sm font-medium">
+                    Continue with Google
+                  </span>
                 </button>
               </div>
             </div>
@@ -262,16 +290,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
             {/* Rest of your form remains the same */}
             {/* ... [Keep all your existing form fields] ... */}
-            
+
             {/* Profile Image Upload - Only for Registration */}
             {!isLogin && (
               <div className="flex flex-col items-center space-y-3">
                 <div className="relative">
                   <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50">
                     {previewImage ? (
-                      <img 
-                        src={previewImage} 
-                        alt="Profile preview" 
+                      <img
+                        src={previewImage}
+                        alt="Profile preview"
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -279,7 +307,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     )}
                   </div>
                 </div>
-                
+
                 <label className="cursor-pointer">
                   <input
                     type="file"
