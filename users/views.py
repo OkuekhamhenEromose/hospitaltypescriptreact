@@ -212,6 +212,11 @@ class UnifiedLoginView(APIView):
                 profile, 
                 context={'request': request}
             )
+            # Debug logging
+            print(f"🔍 Getting profile data for {user.username}")
+            print(f"🔍 Profile object has image: {bool(profile.profile_pix)}")
+            print(f"🔍 Serializer returns image: {profile_serializer.data.get('profile_pix')}")
+
             return {
                 'role': profile.role,
                 'fullname': profile.fullname,
@@ -240,6 +245,21 @@ class UnifiedLoginView(APIView):
             counter += 1
         
         return username
+    
+# users/views.py - Add this test view
+class TestProfileImageView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        profile = request.user.profile
+        data = {
+            'has_image': bool(profile.profile_pix),
+            'image_name': profile.profile_pix.name if profile.profile_pix else None,
+            'image_url': profile.profile_pix.url if profile.profile_pix else None,
+            'absolute_url': request.build_absolute_uri(profile.profile_pix.url) if profile.profile_pix else None,
+            'serializer_url': ProfileSerializer(profile, context={'request': request}).data.get('profile_pix'),
+        }
+        return Response(data)
 
 class RegistrationView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -273,91 +293,6 @@ class RegistrationView(APIView):
                 {'error': 'Registration failed. Please try again.'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-# class LoginView(APIView):
-#     permission_classes = [permissions.AllowAny]
-
-#     def post(self, request):
-#         identifier = request.data.get('username')  # Can be username OR email
-#         password = request.data.get('password')
-        
-#         if not identifier or not password:
-#             return Response(
-#                 {'detail': 'Username/Email and password are required'}, 
-#                 status=status.HTTP_400_BAD_REQUEST
-#             )
-        
-#         # Try to authenticate with username first
-#         user = authenticate(username=identifier, password=password)
-        
-#         if user is None:
-#             # Try with email
-#             try:
-#                 user_obj = User.objects.get(email=identifier)
-#                 user = authenticate(username=user_obj.username, password=password)
-#             except User.DoesNotExist:
-#                 user = None
-        
-#         if user is None:
-#             return Response(
-#                 {'detail': 'Invalid credentials'}, 
-#                 status=status.HTTP_400_BAD_REQUEST
-#             )
-        
-#         if not user.is_active:
-#             return Response(
-#                 {'detail': 'Account is disabled'}, 
-#                 status=status.HTTP_400_BAD_REQUEST
-#             )
-        
-#         # Generate tokens
-#         try:
-#             refresh = RefreshToken.for_user(user)
-#         except Exception as e:
-#             logger.error(f"Token generation failed: {str(e)}")
-#             return Response(
-#                 {'detail': 'Authentication failed'}, 
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
-#             )
-        
-#         # Get profile data
-#         try:
-#             profile = Profile.objects.select_related('user').get(user=user)
-#             # Use ProfileSerializer with request context
-#             profile_serializer = ProfileSerializer(
-#                 profile, 
-#                 context={'request': request}
-#             )
-#             profile_data = {
-#                 'role': profile.role,
-#                 'fullname': profile.fullname,
-#                 'profile_pix': profile_serializer.data.get('profile_pix'),
-#                 'phone': profile.phone,
-#                 'gender': profile.gender,
-#             }
-#         except Profile.DoesNotExist:
-#             logger.warning(f"Profile not found for user {user.id}")
-#             profile_data = {
-#                 'role': 'PATIENT',
-#                 'fullname': user.get_full_name() or user.username,
-#                 'profile_pix': None,
-#                 'phone': None,
-#                 'gender': None,
-#             }
-        
-#         response_data = {
-#             'access': str(refresh.access_token),
-#             'refresh': str(refresh),
-#             'user': {
-#                 'id': user.id,
-#                 'username': user.username,
-#                 'email': user.email,
-#                 'profile': profile_data
-#             }
-#         }
-        
-#         logger.info(f"User {user.username} logged in successfully")
-#         return Response(response_data, status=status.HTTP_200_OK)
 
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -397,6 +332,12 @@ class DashboardView(APIView):
                 profile, 
                 context={'request': request}
             )
+            # Debug: print the profile_pix URL
+            print(f"🔍 Profile image URL in serializer: {serializer.data.get('profile_pix')}")
+            print(f"🔍 Profile image field value: {profile.profile_pix}")
+            if profile.profile_pix:
+                print(f"🔍 Profile image URL from model: {profile.profile_pix.url}")
+
             profile_data = {
                 'role': profile.role,
                 'fullname': profile.fullname,

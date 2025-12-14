@@ -1,4 +1,4 @@
-# users/serializers.py
+# users/serializers.py - COMPLETE FIXED VERSION
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Profile, GENDER_CHOICES, ROLE_CHOICES
@@ -8,12 +8,47 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ============================================
+# UTILITY FUNCTION FOR ABSOLUTE IMAGE URL
+# ============================================
+def get_absolute_profile_image_url(profile_pix):
+    """Get absolute URL for profile image, handling both S3 and local storage"""
+    if not profile_pix:
+        return None
+    
+    try:
+        # For S3 storage - check if storage has bucket_name attribute
+        if hasattr(profile_pix.storage, 'bucket_name'):
+            return profile_pix.url
+        
+        # For local storage
+        from django.conf import settings
+        base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+        
+        # Check if name is already a URL
+        if profile_pix.name.startswith('http'):
+            return profile_pix.name
+        # Check if name starts with slash
+        elif profile_pix.name.startswith('/'):
+            return f"{base_url}{profile_pix.name}"
+        else:
+            # Default: assume it's in media directory
+            return f"{base_url}/media/{profile_pix.name}"
+    except Exception as e:
+        logger.error(f"Error getting absolute URL for profile image: {e}")
+        return None
+
+# ============================================
+# USER SERIALIZER
+# ============================================
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email']
 
-# In users/serializers.py - Update ProfileSerializer
+# ============================================
+# PROFILE SERIALIZER (FIXED!)
+# ============================================
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     profile_pix = serializers.SerializerMethodField()
@@ -23,19 +58,12 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = ['user', 'fullname', 'phone', 'gender', 'profile_pix', 'role']
 
     def get_profile_pix(self, obj):
-        request = self.context.get('request') if self.context else None
-        
-        if obj.profile_pix:
-            if request:
-                return request.build_absolute_uri(obj.profile_pix.url)
-            else:
-                # Fallback: return full URL
-                from django.conf import settings
-                if obj.profile_pix.name.startswith('http'):
-                    return obj.profile_pix.name
-                return f"{settings.BASE_URL}{obj.profile_pix.url}" if hasattr(settings, 'BASE_URL') else obj.profile_pix.url
-        return None
+        """Use the utility function to get absolute URL"""
+        return get_absolute_profile_image_url(obj.profile_pix)
 
+# ============================================
+# REGISTRATION SERIALIZER (FIXED!)
+# ============================================
 class RegistrationSerializer(serializers.Serializer):
     username = serializers.CharField()
     email = serializers.EmailField()
@@ -67,7 +95,6 @@ class RegistrationSerializer(serializers.Serializer):
         
         return data
 
-    # In users/serializers.py - Update the create method
     def create(self, validated_data):
         username = validated_data.pop('username')
         email = validated_data.pop('email')
@@ -92,34 +119,47 @@ class RegistrationSerializer(serializers.Serializer):
         profile.role = validated_data.get('role', 'PATIENT')
 
         if profile_pix:
-            profile.profile_pix = profile_pix
-        profile.save()
+            # Generate a clean filename
+            import os
+            from django.utils.text import slugify
+            
+            # Get file extension
+            ext = os.path.splitext(profile_pix.name)[1]
+            # Create a clean filename
+            clean_username = slugify(username)
+            filename = f"{clean_username}_profile{ext}"
+            
+            # Save the image
+            profile.profile_pix.save(filename, profile_pix, save=True)
+            logger.info(f"Profile image saved for {username}: {filename}")
+        else:
+            profile.save()
+            logger.info(f"Profile created without image for {username}")
 
         # Send welcome email (non-blocking)
         try:
-            # Use threading or celery for async email in production
-            # For now, we'll run it in a way that won't block
             import threading
             def send_email_async():
                 try:
                     from .utils import SendMail
                     SendMail(email)
-                except Exception:
-                    pass  # Silently fail in async thread
+                except Exception as e:
+                    logger.warning(f"Failed to send email to {email}: {e}")
             
             email_thread = threading.Thread(target=send_email_async)
             email_thread.daemon = True
             email_thread.start()
             
-            logger.info(f"User {username} registered, email sent async")
+            logger.info(f"User {username} registered successfully")
             
         except Exception as e:
             logger.warning(f"Failed to schedule email for {email}: {str(e)}")
-            # Don't fail registration because of email
 
         return profile
 
-
+# ============================================
+# UPDATE PROFILE SERIALIZER
+# ============================================
 class UpdateProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', required=False)
     email = serializers.EmailField(source='user.email', required=False)
@@ -131,6 +171,7 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user', {})
         user = instance.user
+        
         if 'username' in user_data:
             user.username = user_data['username']
         if 'email' in user_data:
@@ -140,5 +181,6 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         for attr in ('fullname', 'phone', 'gender', 'profile_pix', 'role'):
             if attr in validated_data:
                 setattr(instance, attr, validated_data[attr])
+        
         instance.save()
         return instance
