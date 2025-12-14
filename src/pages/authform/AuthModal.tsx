@@ -61,9 +61,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   // Initialize Google OAuth
   const initGoogleOAuth = () => {
     const googleClientId = '843779765866-4h5mq8177lohu859lgifvi7bpfjn88ds.apps.googleusercontent.com';
-    const redirectUri = encodeURIComponent('https://ettahospitalclone.vercel.app/auth/callback');
-    const scope = encodeURIComponent('email profile openid');
-    
+    const redirectUri = 'https://ettahospitalclone.vercel.app/auth/callback';   
     // Store the modal state before redirect
     localStorage.setItem('auth_modal_state', JSON.stringify({
       isLogin,
@@ -73,9 +71,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       }
     }));
     
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=online&prompt=select_account&state=${encodeURIComponent(window.location.pathname)}`;
-    
-    window.location.href = googleAuthUrl;
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20openid&access_type=online&prompt=select_account`;
+  
+  console.log('🔗 Redirecting to Google OAuth with redirect URI:', redirectUri);
+  console.log('🔗 Full OAuth URL:', googleAuthUrl);
+  
+  window.location.href = googleAuthUrl;
   };
 
   const handleGoogleLogin = () => {

@@ -1,4 +1,4 @@
-// pages/GoogleCallback.tsx - Updated to use AuthContext
+// In GoogleCallback.tsx - UPDATED
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,15 +13,18 @@ const GoogleCallback = () => {
       const code = searchParams.get('code');
       const error = searchParams.get('error');
 
+      console.log('🔍 Google Callback - Code received:', code ? 'Yes' : 'No');
+      console.log('🔍 Google Callback - Error:', error || 'None');
+
       if (error) {
-        console.error('Google OAuth error:', error);
-        navigate('/login?error=google_auth_failed&message=' + encodeURIComponent(error));
+        console.error('❌ Google OAuth error:', error);
+        navigate('/?authError=google_auth_failed&message=' + encodeURIComponent(error));
         return;
       }
 
       if (!code) {
-        console.error('No authorization code from Google');
-        navigate('/login?error=no_auth_code');
+        console.error('❌ No authorization code from Google');
+        navigate('/?authError=no_auth_code');
         return;
       }
 
@@ -33,14 +36,12 @@ const GoogleCallback = () => {
 
         console.log('✅ Google OAuth successful! Redirecting to dashboard...');
         
-        // Redirect to dashboard after successful login
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 500);
+        // Redirect to dashboard
+        navigate('/dashboard');
 
       } catch (err: any) {
         console.error('❌ Google OAuth failed:', err);
-        navigate(`/login?error=${encodeURIComponent(err.message || 'Authentication failed')}`);
+        navigate(`/?authError=${encodeURIComponent(err.message || 'Authentication failed')}`);
       }
     };
 
