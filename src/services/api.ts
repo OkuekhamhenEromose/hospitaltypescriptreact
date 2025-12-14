@@ -282,88 +282,137 @@ private async requestWithRetry<T = any>(
   }
 
   async login(loginData: LoginData): Promise<AuthResponse> {
-  try {
-    // Use the new JWT endpoint
-    const response = await fetch(`${API_BASE_URL}/users/token/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: loginData.username,
-        password: loginData.password
-      }),
-    });
+    try {
+      // Use the JWT endpoint for regular username/password login
+      const response = await fetch(`${API_BASE_URL}/users/token/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: loginData.username,
+          password: loginData.password
+        }),
+      });
 
-    console.log("Login Response Status:", response.status);
+      console.log("Login Response Status:", response.status);
 
-    if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-        console.error("Login Error Data:", errorData);
-      } catch {
-        throw new Error(`Login failed with status: ${response.status}`);
-      }
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+          console.error("Login Error Data:", errorData);
+        } catch {
+          throw new Error(`Login failed with status: ${response.status}`);
+        }
 
-      if (errorData.detail) {
-        throw new Error(errorData.detail);
-      } else {
-        throw new Error("Invalid credentials. Please check your username and password.");
-      }
-    }
-
-    const tokenData = await response.json();
-    console.log("Token Response:", tokenData);
-
-    // Now get user data using the dashboard endpoint
-    const accessToken = tokenData.access;
-    localStorage.setItem("access_token", accessToken);
-    
-    if (tokenData.refresh) {
-      localStorage.setItem("refresh_token", tokenData.refresh);
-    }
-
-    // Get user profile data
-    const userResponse = await fetch(`${API_BASE_URL}/users/dashboard/`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!userResponse.ok) {
-      throw new Error("Failed to load user profile");
-    }
-
-    const userData = await userResponse.json();
-    console.log("User Data:", userData);
-
-    const authResponse: AuthResponse = {
-      access: accessToken,
-      refresh: tokenData.refresh || "",
-      user: userData.user || {
-        id: 0,
-        username: loginData.username,
-        email: "",
-        profile: {
-          fullname: "",
-          phone: "",
-          gender: "",
-          profile_pix: "",
-          role: "PATIENT"
+        if (errorData.detail) {
+          throw new Error(errorData.detail);
+        } else {
+          throw new Error("Invalid credentials. Please check your username and password.");
         }
       }
-    };
 
-    return authResponse;
-    
-  } catch (error: any) {
-    console.error("Login Error:", error);
-    throw error;
+      const tokenData = await response.json();
+      console.log("Token Response:", tokenData);
+
+      // Now get user data using the dashboard endpoint
+      const accessToken = tokenData.access;
+      localStorage.setItem("access_token", accessToken);
+      
+      if (tokenData.refresh) {
+        localStorage.setItem("refresh_token", tokenData.refresh);
+      }
+
+      // Get user profile data
+      const userResponse = await fetch(`${API_BASE_URL}/users/dashboard/`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error("Failed to load user profile");
+      }
+
+      const userData = await userResponse.json();
+      console.log("User Data:", userData);
+
+      const authResponse: AuthResponse = {
+        access: accessToken,
+        refresh: tokenData.refresh || "",
+        user: userData.user || {
+          id: 0,
+          username: loginData.username,
+          email: "",
+          profile: {
+            fullname: "",
+            phone: "",
+            gender: "",
+            profile_pix: "",
+            role: "PATIENT"
+          }
+        }
+      };
+
+      return authResponse;
+      
+    } catch (error: any) {
+      console.error("Login Error:", error);
+      throw error;
+    }
   }
-}
+
+  // Add a separate method for Google OAuth login
+  async loginWithGoogle(code: string): Promise<AuthResponse> {
+    try {
+      // Use the unified login endpoint for Google OAuth
+      const response = await fetch(`${API_BASE_URL}/users/login/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          google_auth_code: code,
+        }),
+      });
+
+      console.log("Google Login Response Status:", response.status);
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+          console.error("Google Login Error Data:", errorData);
+        } catch {
+          throw new Error(`Google login failed with status: ${response.status}`);
+        }
+
+        if (errorData.detail) {
+          throw new Error(errorData.detail);
+        } else {
+          throw new Error("Google authentication failed");
+        }
+      }
+
+      const data = await response.json();
+      console.log("Google Login Response:", data);
+
+      // Save tokens
+      localStorage.setItem("access_token", data.access);
+      if (data.refresh) {
+        localStorage.setItem("refresh_token", data.refresh);
+      }
+
+      return data as AuthResponse;
+      
+    } catch (error: any) {
+      console.error("Google Login Error:", error);
+      throw error;
+    }
+  }
 
   async register(registerData: RegisterData): Promise<any> {
     return this.request("/users/register/", {

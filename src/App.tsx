@@ -1,11 +1,10 @@
-// App.tsx - Updated with admin blog editor route
+// App.tsx - Updated with Google OAuth callback
 import React, { lazy, Suspense } from 'react';
 import type { ComponentType } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import LoadingSpinner from './components/LoadSpinner';
-import AuthCallback from './components/AuthCallback';
 import ScrollToTop from './components/ScrollToTop';
 import AuthError from './pages/AuthError';
 
@@ -33,8 +32,8 @@ const BlogPostDetail = lazy(() => import('./pages/blog/BlogPostDetail')) as Comp
 const Contact = lazy(() => import('./pages/Contact'));
 const AuthModal = lazy(() => import('./pages/authform/AuthModal'));
 const DashboardRouter = lazy(() => import('./pages/DashboardRouter'));
-const BlogEditor = lazy(() => import('./pages/blog/BlogEditor')); // Add this import
-
+const BlogEditor = lazy(() => import('./pages/blog/BlogEditor'));
+const GoogleCallback = lazy(() => import('./pages/GoogleCallback')); // ADD THIS IMPORT
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -87,7 +86,7 @@ const AppRoutes: React.FC = () => {
      const pathToPageMap: { [key: string]: string } = {
       '': 'home',
       'home': 'home',
-      'about-us': 'about us',  // Map hyphenated URL to spaced navigation text
+      'about-us': 'about us',
       'services': 'services',
       'packages': 'packages',
       'blog': 'blog',
@@ -98,7 +97,6 @@ const AppRoutes: React.FC = () => {
 
   // Handle navigation
   const handleNavigate = (page: string) => {
-    // Map page names to routes
     const routeMap: { [key: string]: string } = {
       'home': '/',
       'about us': '/about-us',
@@ -165,7 +163,10 @@ const AppRoutes: React.FC = () => {
               element={<BlogPostDetailWrapper />}
             />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
+            
+            {/* Google OAuth Callback Route - UPDATE THIS */}
+            <Route path="/auth/callback" element={<GoogleCallback />} />
+            
             <Route path="/auth/error" element={<AuthError />} />
 
             {/* Protected Dashboard Route */}
@@ -208,7 +209,6 @@ const AppRoutes: React.FC = () => {
 
             {/* Catch-all redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
           </Routes>
         </Suspense>
       </Layout>

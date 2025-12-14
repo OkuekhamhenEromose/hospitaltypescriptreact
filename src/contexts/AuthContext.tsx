@@ -1,4 +1,4 @@
-// contexts/AuthContext.tsx - Fixed with proper redirect handling
+// contexts/AuthContext.tsx - Updated to use apiService for Google login
 import React, {
   createContext,
   useContext,
@@ -18,6 +18,7 @@ import { apiService } from "../services/api";
 interface AuthContextType {
   user: User | null;
   login: (data: LoginData) => Promise<void>;
+  loginWithGoogle: (code: string) => Promise<any>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   loading: boolean;
@@ -79,8 +80,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     console.log("🔍 PROFILE IMAGE:", response.user.profile?.profile_pix);
 
     setUser(response.user);
+  }, []);
 
-    // Don't redirect here - let the component handle it
+  const loginWithGoogle = useCallback(async (code: string) => {
+    try {
+      console.log("🔐 Processing Google auth code:", code.substring(0, 20) + "...");
+
+      // Use the apiService method instead of direct fetch
+      const response = await apiService.loginWithGoogle(code);
+      
+      console.log("✅ Google login successful:", response);
+      console.log("🔍 Google login user:", response.user);
+      
+      setUser(response.user);
+      
+      return response;
+    } catch (error: any) {
+      console.error("❌ Google login error:", error);
+      throw error;
+    }
   }, []);
 
   const register = useCallback(async (data: RegisterData) => {
@@ -94,8 +112,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       localStorage.setItem("access_token", loginResponse.access);
       localStorage.setItem("refresh_token", loginResponse.refresh);
       setUser(loginResponse.user);
-
-      // Don't redirect here - let the component handle it
     } catch (error: any) {
       console.error("Registration failed:", error);
       throw error;
@@ -112,12 +128,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       setLoading(false);
-      // Don't redirect here - let the component handle it
     }
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      loginWithGoogle,
+      register, 
+      logout, 
+      loading 
+    }}>
       {children}
     </AuthContext.Provider>
   );
