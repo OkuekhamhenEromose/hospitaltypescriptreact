@@ -41,6 +41,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       const response = await apiService.getDashboard();
+      console.log("🔍 FULL DASHBOARD RESPONSE:", response);
 
       if (response && typeof response === "object") {
         let userData;
@@ -49,11 +50,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         } else {
           setUser(response as any);
         }
-        console.log("🔍 DASHBOARD USER DATA:", userData);
-        console.log(
-          "🔍 DASHBOARD PROFILE IMAGE:",
-          userData.profile?.profile_pix
-        );
+
+        console.log("🔍 USER DATA:", userData);
+        console.log("🔍 PROFILE DATA:", userData?.profile);
+        console.log("🔍 PROFILE IMAGE URL:", userData?.profile?.profile_pix);
 
         setUser(userData);
       }
@@ -84,16 +84,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const loginWithGoogle = useCallback(async (code: string) => {
     try {
-      console.log("🔐 Processing Google auth code:", code.substring(0, 20) + "...");
+      console.log(
+        "🔐 Processing Google auth code:",
+        code.substring(0, 20) + "..."
+      );
 
       // Use the apiService method instead of direct fetch
       const response = await apiService.loginWithGoogle(code);
-      
+
       console.log("✅ Google login successful:", response);
       console.log("🔍 Google login user:", response.user);
-      
+
       setUser(response.user);
-      
+
       return response;
     } catch (error: any) {
       console.error("❌ Google login error:", error);
@@ -133,14 +136,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      loginWithGoogle,
-      register, 
-      logout, 
-      loading 
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        loginWithGoogle,
+        register,
+        logout,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

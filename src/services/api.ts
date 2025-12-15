@@ -2,22 +2,50 @@
 import type { LoginData, RegisterData, AuthResponse } from "./auth";
 
 const API_BASE_URL = "https://dhospitalback.onrender.com/api";
-const MEDIA_BASE_URL = "https://dhospitalback.onrender.com"; // for images
+// Remove MEDIA_BASE_URL since we are using direct s3 URLs
+// const MEDIA_BASE_URL = "https://dhospitalback.onrender.com"; // for images
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 // ======================================
 // 🔥 MEDIA URL FIX
 // ======================================
+// services/api.ts - FIXED normalizeMediaUrl
 const normalizeMediaUrl = (url: string | null) => {
   if (!url) return null;
 
-  // Force global S3 URL
-  if (url.includes(".s3.eu-north-1.amazonaws.com")) {
-    return url.replace(".s3.eu-north-1.amazonaws.com", ".s3.amazonaws.com");
+  console.log("🖼️ Original URL from backend:", url);
+
+  // If it's already a full S3 URL, return it as-is
+  if (url.includes('s3.amazonaws.com')) {
+    console.log("✅ Already S3 URL, returning as-is");
+    return url;
   }
 
-  if (url.startsWith("http")) return url;
-  return `${MEDIA_BASE_URL}${url}`;
+  // If it's a localhost URL (shouldn't happen now), convert to S3
+  if (url.includes('localhost:8000') && url.includes('/media/')) {
+    const filename = url.split('/media/')[1];
+    const s3Url = `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${filename}`;
+    console.log("🔄 Converted localhost to S3:", s3Url);
+    return s3Url;
+  }
+
+  // If it's a relative path (shouldn't happen now), prepend S3 base
+  if (url.startsWith('/media/')) {
+    const filename = url.replace('/media/', '');
+    const s3Url = `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${filename}`;
+    console.log("🔄 Converted relative path to S3:", s3Url);
+    return s3Url;
+  }
+
+  // If it's already a full URL but not S3 (shouldn't happen), return as-is
+  if (url.startsWith('http')) {
+    console.log("⚠️ Non-S3 HTTP URL:", url);
+    return url;
+  }
+
+  // Default fallback
+  console.log("❓ Unknown URL format, returning as-is:", url);
+  return url;
 };
 
 // ======================================
