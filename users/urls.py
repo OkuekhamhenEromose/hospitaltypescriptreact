@@ -15,6 +15,9 @@ urlpatterns = [
     path('register/', views.RegistrationView.as_view(), name='register'),
     path('login/', views.UnifiedLoginView.as_view(), name='login'), 
     path('test-profile-image/', views.TestProfileImageView.as_view(), name='test-profile-image'),
+    path('debug-images/', views.DebugProfileImageView.as_view(), name='debug-images'),   
+    path('test-real-urls/', views.TestRealURLsView.as_view(), name='test-real-urls'),
+
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
     path('update-profile/', views.UpdateProfileView.as_view(), name='update-profile'),

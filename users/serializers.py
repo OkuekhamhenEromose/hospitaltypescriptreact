@@ -9,33 +9,38 @@ import logging
 logger = logging.getLogger(__name__)
 
 # ============================================
-# UTILITY FUNCTION FOR ABSOLUTE IMAGE URL
+# UTILITY FUNCTION FOR ABSOLUTE IMAGE URL - SIMPLIFIED FIX
 # ============================================
 def get_absolute_profile_image_url(profile_pix):
-    """Get absolute URL for profile image, handling both S3 and local storage"""
+    """Get absolute URL for profile image"""
     if not profile_pix:
         return None
     
     try:
-        # For S3 storage - check if storage has bucket_name attribute
-        if hasattr(profile_pix.storage, 'bucket_name'):
-            return profile_pix.url
+        # ALWAYS use the .url property for FileField
+        # This will give us the correct S3 URL when using S3 storage
+        if hasattr(profile_pix, 'url'):
+            url = profile_pix.url
+            logger.info(f"📸 Generated URL via .url: {url}")
+            
+            # Ensure HTTPS for S3 URLs
+            if 's3.amazonaws.com' in url and url.startswith('http://'):
+                url = url.replace('http://', 'https://')
+            
+            return url
         
-        # For local storage
+        # Fallback: construct URL manually
         from django.conf import settings
-        base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
-        
-        # Check if name is already a URL
-        if profile_pix.name.startswith('http'):
-            return profile_pix.name
-        # Check if name starts with slash
-        elif profile_pix.name.startswith('/'):
-            return f"{base_url}{profile_pix.name}"
+        if hasattr(settings, 'AWS_S3_CUSTOM_DOMAIN') and settings.AWS_S3_CUSTOM_DOMAIN:
+            # S3 storage
+            return f"https://{settings.AWS_S3_CUSTOM_DOMAIN}/media/{profile_pix.name}"
         else:
-            # Default: assume it's in media directory
+            # Local storage
+            base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
             return f"{base_url}/media/{profile_pix.name}"
+            
     except Exception as e:
-        logger.error(f"Error getting absolute URL for profile image: {e}")
+        logger.error(f"❌ Error getting URL for {profile_pix.name if profile_pix else 'None'}: {e}")
         return None
 
 # ============================================
@@ -47,7 +52,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email']
 
 # ============================================
-# PROFILE SERIALIZER (FIXED!)
+# PROFILE SERIALIZER - UPDATED TO HANDLE EMPTY FIELDS
 # ============================================
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -58,8 +63,53 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = ['user', 'fullname', 'phone', 'gender', 'profile_pix', 'role']
 
     def get_profile_pix(self, obj):
-        """Use the utility function to get absolute URL"""
-        return get_absolute_profile_image_url(obj.profile_pix)
+        """Get absolute URL for profile image with robust error handling"""
+        try:
+            # Check if profile_pix exists and has a non-empty name
+            if not obj.profile_pix or str(obj.profile_pix) == '':
+                logger.debug(f"📸 {obj.user.username}: No profile image or empty field")
+                return None
+            
+            # Get the image name
+            image_name = obj.profile_pix.name
+            
+            # Check if it's a valid filename (not empty)
+            if not image_name or image_name.strip() == '':
+                logger.debug(f"📸 {obj.user.username}: Empty image name")
+                return None
+            
+            logger.info(f"📸 {obj.user.username}: Processing image '{image_name}'")
+            
+            # Try to get URL via .url property
+            if hasattr(obj.profile_pix, 'url'):
+                try:
+                    url = obj.profile_pix.url
+                    logger.info(f"📸 {obj.user.username}: URL from .url: {url}")
+                    
+                    # Ensure HTTPS for S3 URLs
+                    if url and 's3.amazonaws.com' in url and url.startswith('http://'):
+                        url = url.replace('http://', 'https://')
+                        logger.info(f"🔒 Forced HTTPS: {url}")
+                    
+                    return url
+                except ValueError as e:
+                    if "has no file associated with it" in str(e):
+                        logger.warning(f"📸 {obj.user.username}: Image field has no file")
+                        return None
+                    raise
+            
+            # Fallback: construct URL manually for S3
+            from django.conf import settings
+            if hasattr(settings, 'AWS_S3_CUSTOM_DOMAIN'):
+                s3_url = f"https://{settings.AWS_S3_CUSTOM_DOMAIN}/media/{image_name}"
+                logger.info(f"📸 {obj.user.username}: Constructed S3 URL: {s3_url}")
+                return s3_url
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"❌ Error getting profile_pix for {obj.user.username}: {e}", exc_info=True)
+            return None
 
 # ============================================
 # REGISTRATION SERIALIZER (FIXED!)

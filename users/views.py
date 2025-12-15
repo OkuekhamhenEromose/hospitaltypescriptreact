@@ -260,6 +260,75 @@ class TestProfileImageView(APIView):
             'serializer_url': ProfileSerializer(profile, context={'request': request}).data.get('profile_pix'),
         }
         return Response(data)
+    
+# In users/views.py - add this view for debugging
+class DebugProfileImageView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        """Debug endpoint to check image URLs"""
+        import json
+        from django.core.serializers.json import DjangoJSONEncoder
+        
+        debug_data = []
+        
+        for profile in Profile.objects.filter(profile_pix__isnull=False)[:5]:
+            data = {
+                'username': profile.user.username,
+                'image_name': profile.profile_pix.name,
+                'image_url_from_model': profile.profile_pix.url if hasattr(profile.profile_pix, 'url') else None,
+                'image_storage_class': profile.profile_pix.storage.__class__.__name__,
+                'has_bucket_name': hasattr(profile.profile_pix.storage, 'bucket_name'),
+            }
+            
+            # Try to get URL via our utility function
+            from .serializers import get_absolute_profile_image_url
+            data['utility_function_url'] = get_absolute_profile_image_url(profile.profile_pix)
+            
+            debug_data.append(data)
+        
+        return Response(debug_data)
+    
+# Add this to users/views.py
+class TestRealURLsView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        """Test what URLs are actually being returned"""
+        from users.models import Profile
+        from users.serializers import ProfileSerializer
+        
+        results = []
+        
+        # Test with a specific user
+        test_user = User.objects.filter(username='eromosecharles').first()
+        if test_user:
+            profile = Profile.objects.get(user=test_user)
+            serializer = ProfileSerializer(profile, context={'request': request})
+            
+            results.append({
+                'username': test_user.username,
+                'backend_model_url': profile.profile_pix.url if profile.profile_pix else None,
+                'backend_serializer_url': serializer.data.get('profile_pix'),
+                'request_scheme': request.scheme,
+                'request_host': request.get_host(),
+            })
+        
+        # Add test user
+        test_user2 = User.objects.filter(username='testuser_with_image').first()
+        if test_user2:
+            profile = Profile.objects.get(user=test_user2)
+            serializer = ProfileSerializer(profile, context={'request': request})
+            
+            results.append({
+                'username': test_user2.username,
+                'backend_model_url': profile.profile_pix.url if profile.profile_pix else None,
+                'backend_serializer_url': serializer.data.get('profile_pix'),
+                'request_scheme': request.scheme,
+                'request_host': request.get_host(),
+            })
+        
+        return Response(results)
 
 class RegistrationView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -328,16 +397,24 @@ class DashboardView(APIView):
     def get(self, request):        
         try:
             profile = Profile.objects.select_related('user').get(user=request.user)
+            
+            # Debug info
+            print(f"🔍 Dashboard for {request.user.username}")
+            print(f"🔍 Has profile_pix: {bool(profile.profile_pix)}")
+            if profile.profile_pix:
+                print(f"🔍 Image name: '{profile.profile_pix.name}'")
+                print(f"🔍 Image storage: {profile.profile_pix.storage.__class__.__name__}")
+                try:
+                    print(f"🔍 Image URL from model: {profile.profile_pix.url}")
+                except Exception as e:
+                    print(f"🔍 Error getting URL: {e}")
+
             serializer = ProfileSerializer(
                 profile, 
                 context={'request': request}
             )
-            # Debug: print the profile_pix URL
-            print(f"🔍 Profile image URL in serializer: {serializer.data.get('profile_pix')}")
-            print(f"🔍 Profile image field value: {profile.profile_pix}")
-            if profile.profile_pix:
-                print(f"🔍 Profile image URL from model: {profile.profile_pix.url}")
-
+            
+            # Get serialized data
             profile_data = {
                 'role': profile.role,
                 'fullname': profile.fullname,
@@ -345,6 +422,7 @@ class DashboardView(APIView):
                 'phone': profile.phone,
                 'gender': profile.gender,
             }
+            
             response_data = {
                 'user': {
                     'id': request.user.id,

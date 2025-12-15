@@ -161,18 +161,29 @@ CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='http://localhost:
 CORS_ALLOW_CREDENTIALS = True  # CRITICAL for social auth cookies
 
 # ==================== AWS S3 Configuration ==================== #
+# ==================== AWS S3 Configuration ==================== #
 AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='')
 AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='')
 AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME', default='etha-hospital')
 AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='eu-north-1')
 
-AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+# IMPORTANT: Use region-specific endpoint
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
 AWS_S3_USE_SSL = True
 AWS_S3_SECURE_URLS = True
 AWS_DEFAULT_ACL = 'public-read'
 
-# Only use S3 if credentials are provided
-if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
+# CRITICAL: Check if ALL required AWS credentials are provided
+AWS_CREDENTIALS_PROVIDED = (
+    AWS_ACCESS_KEY_ID and 
+    AWS_SECRET_ACCESS_KEY and 
+    AWS_STORAGE_BUCKET_NAME and
+    AWS_S3_REGION_NAME
+)
+
+# Only use S3 if ALL credentials are provided
+if AWS_CREDENTIALS_PROVIDED:
+    print("✅ AWS S3 credentials found, using S3 storage")
     DEFAULT_FILE_STORAGE = 'hospital.storage_backends.MediaStorage'
     AWS_QUERYSTRING_AUTH = False
     AWS_S3_FILE_OVERWRITE = False
@@ -181,7 +192,16 @@ if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
         'ACL': 'public-read'
     }
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+    
+    # Log for debugging
+    print(f"🔧 S3 Storage Configured:")
+    print(f"   - Bucket: {AWS_STORAGE_BUCKET_NAME}")
+    print(f"   - Region: {AWS_S3_REGION_NAME}")
+    print(f"   - Custom Domain: {AWS_S3_CUSTOM_DOMAIN}")
+    print(f"   - Media URL: {MEDIA_URL}")
+    print(f"   - Storage Backend: {DEFAULT_FILE_STORAGE}")
 else:
+    print("⚠️  AWS S3 credentials missing, using local filesystem storage")
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
