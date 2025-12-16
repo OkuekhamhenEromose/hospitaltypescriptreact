@@ -10,42 +10,36 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 // 🔥 MEDIA URL FIX
 // ======================================
 // services/api.ts - FIXED normalizeMediaUrl
+// services/api.ts - UPDATE normalizeMediaUrl
+
+// services/api.ts - FINAL normalizeMediaUrl fix
+
 const normalizeMediaUrl = (url: string | null) => {
-  if (!url) return null;
-
-  console.log("🖼️ Original URL from backend:", url);
-
-  // If it's already a full S3 URL, return it as-is
-  if (url.includes('s3.amazonaws.com')) {
-    console.log("✅ Already S3 URL, returning as-is");
-    return url;
+  if (!url) {
+    console.log("📸 No image URL");
+    return null;
   }
 
-  // If it's a localhost URL (shouldn't happen now), convert to S3
-  if (url.includes('localhost:8000') && url.includes('/media/')) {
-    const filename = url.split('/media/')[1];
-    const s3Url = `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${filename}`;
-    console.log("🔄 Converted localhost to S3:", s3Url);
-    return s3Url;
-  }
+  console.log("📸 Processing URL:", url);
 
-  // If it's a relative path (shouldn't happen now), prepend S3 base
-  if (url.startsWith('/media/')) {
-    const filename = url.replace('/media/', '');
-    const s3Url = `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${filename}`;
-    console.log("🔄 Converted relative path to S3:", s3Url);
-    return s3Url;
-  }
-
-  // If it's already a full URL but not S3 (shouldn't happen), return as-is
+  // If it's already a full URL
   if (url.startsWith('http')) {
-    console.log("⚠️ Non-S3 HTTP URL:", url);
+    // It's already a proper URL, return as-is
+    console.log("✅ Already full URL");
     return url;
   }
 
-  // Default fallback
-  console.log("❓ Unknown URL format, returning as-is:", url);
-  return url;
+  // If it's a relative path starting with /media/, convert to S3
+  if (url.startsWith('/media/')) {
+    const s3Url = `https://etha-hospital.s3.eu-north-1.amazonaws.com${url}`;
+    console.log("🔄 Converted to S3:", s3Url);
+    return s3Url;
+  }
+
+  // Default: assume it's in media/blog_images
+  const s3Url = `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${url}`;
+  console.log("📁 Assumed path, converted to:", s3Url);
+  return s3Url;
 };
 
 // ======================================

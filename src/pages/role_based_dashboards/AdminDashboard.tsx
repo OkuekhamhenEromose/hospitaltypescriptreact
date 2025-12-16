@@ -74,7 +74,9 @@ const AdminDashboard: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
   const [availableDoctors, setAvailableDoctors] = useState<any[]>([]);
   const [availableNurses, setAvailableNurses] = useState<any[]>([]);
-  const [availableLabScientists, setAvailableLabScientists] = useState<any[]>([]);
+  const [availableLabScientists, setAvailableLabScientists] = useState<any[]>(
+    []
+  );
   const [assignments, setAssignments] = useState<StaffAssignment[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -150,9 +152,9 @@ const AdminDashboard: React.FC = () => {
   const loadAvailableStaff = async () => {
     try {
       const [doctors, nurses, labScientists] = await Promise.all([
-        apiService.getAvailableStaff('DOCTOR'),
-        apiService.getAvailableStaff('NURSE'),
-        apiService.getAvailableStaff('LAB'),
+        apiService.getAvailableStaff("DOCTOR"),
+        apiService.getAvailableStaff("NURSE"),
+        apiService.getAvailableStaff("LAB"),
       ]);
       setAvailableDoctors(doctors);
       setAvailableNurses(nurses);
@@ -164,20 +166,23 @@ const AdminDashboard: React.FC = () => {
 
   const loadAssignments = async () => {
     try {
-      const filteredAppointments = statusFilter === 'all' 
-        ? appointments 
-        : appointments.filter(a => a.status === statusFilter);
-      
-      const assignmentsData: StaffAssignment[] = filteredAppointments.map((appt: any) => ({
-        appointmentId: appt.id,
-        patientId: appt.patient?.id,
-        patientName: appt.name,
-        assignedDoctor: appt.doctor,
-        assignedNurse: appt.vital_requests?.[0]?.assigned_to,
-        assignedLab: appt.test_requests?.[0]?.assigned_to,
-        status: appt.status,
-        bookedAt: appt.booked_at,
-      }));
+      const filteredAppointments =
+        statusFilter === "all"
+          ? appointments
+          : appointments.filter((a) => a.status === statusFilter);
+
+      const assignmentsData: StaffAssignment[] = filteredAppointments.map(
+        (appt: any) => ({
+          appointmentId: appt.id,
+          patientId: appt.patient?.id,
+          patientName: appt.name,
+          assignedDoctor: appt.doctor,
+          assignedNurse: appt.vital_requests?.[0]?.assigned_to,
+          assignedLab: appt.test_requests?.[0]?.assigned_to,
+          status: appt.status,
+          bookedAt: appt.booked_at,
+        })
+      );
       setAssignments(assignmentsData);
     } catch (error) {
       console.error("Error loading assignments:", error);
@@ -187,35 +192,40 @@ const AdminDashboard: React.FC = () => {
   const handleAssignStaff = async (data: any) => {
     try {
       const promises = [];
-      
+
       if (data.doctor_id) {
-        promises.push(apiService.assignStaff({
-          appointment_id: data.appointment_id,
-          staff_id: data.doctor_id,
-          role: 'DOCTOR'
-        }));
+        promises.push(
+          apiService.assignStaff({
+            appointment_id: data.appointment_id,
+            staff_id: data.doctor_id,
+            role: "DOCTOR",
+          })
+        );
       }
-      
+
       if (data.nurse_id) {
-        promises.push(apiService.assignStaff({
-          appointment_id: data.appointment_id,
-          staff_id: data.nurse_id,
-          role: 'NURSE'
-        }));
+        promises.push(
+          apiService.assignStaff({
+            appointment_id: data.appointment_id,
+            staff_id: data.nurse_id,
+            role: "NURSE",
+          })
+        );
       }
-      
+
       if (data.lab_id) {
-        promises.push(apiService.assignStaff({
-          appointment_id: data.appointment_id,
-          staff_id: data.lab_id,
-          role: 'LAB'
-        }));
+        promises.push(
+          apiService.assignStaff({
+            appointment_id: data.appointment_id,
+            staff_id: data.lab_id,
+            role: "LAB",
+          })
+        );
       }
-      
+
       await Promise.all(promises);
       loadDashboardData();
       loadAssignments();
-      
     } catch (error) {
       console.error("Error assigning staff:", error);
       throw error;
@@ -237,49 +247,49 @@ const AdminDashboard: React.FC = () => {
   // };
 
   const handleExportAssignments = () => {
-  const csvData = assignments.map(a => ({
-    'Appointment ID': a.appointmentId,
-    'Patient Name': a.patientName,
-    'Assigned Doctor': a.assignedDoctor?.fullname || 'Unassigned',
-    'Assigned Nurse': a.assignedNurse?.fullname || 'Unassigned',
-    'Assigned Lab Scientist': a.assignedLab?.fullname || 'Unassigned',
-    'Status': a.status,
-    'Booked Date': new Date(a.bookedAt).toLocaleDateString(),
-  }));
+    const csvData = assignments.map((a) => ({
+      "Appointment ID": a.appointmentId,
+      "Patient Name": a.patientName,
+      "Assigned Doctor": a.assignedDoctor?.fullname || "Unassigned",
+      "Assigned Nurse": a.assignedNurse?.fullname || "Unassigned",
+      "Assigned Lab Scientist": a.assignedLab?.fullname || "Unassigned",
+      Status: a.status,
+      "Booked Date": new Date(a.bookedAt).toLocaleDateString(),
+    }));
 
-  // Simple CSV generator without external library
-  const convertToCSV = (data: any[]) => {
-    const headers = Object.keys(data[0]);
-    const csvRows = [];
-    
-    // Add header row
-    csvRows.push(headers.join(','));
-    
-    // Add data rows
-    for (const row of data) {
-      const values = headers.map(header => {
-        const value = row[header];
-        // Escape quotes and wrap in quotes if contains comma or quotes
-        const escaped = String(value).replace(/"/g, '""');
-        return /[,"\n]/.test(escaped) ? `"${escaped}"` : escaped;
-      });
-      csvRows.push(values.join(','));
-    }
-    
-    return csvRows.join('\n');
+    // Simple CSV generator without external library
+    const convertToCSV = (data: any[]) => {
+      const headers = Object.keys(data[0]);
+      const csvRows = [];
+
+      // Add header row
+      csvRows.push(headers.join(","));
+
+      // Add data rows
+      for (const row of data) {
+        const values = headers.map((header) => {
+          const value = row[header];
+          // Escape quotes and wrap in quotes if contains comma or quotes
+          const escaped = String(value).replace(/"/g, '""');
+          return /[,"\n]/.test(escaped) ? `"${escaped}"` : escaped;
+        });
+        csvRows.push(values.join(","));
+      }
+
+      return csvRows.join("\n");
+    };
+
+    const csv = convertToCSV(csvData);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `assignments_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+
+    // Clean up
+    window.URL.revokeObjectURL(url);
   };
-
-  const csv = convertToCSV(csvData);
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `assignments_${new Date().toISOString().split('T')[0]}.csv`;
-  a.click();
-  
-  // Clean up
-  window.URL.revokeObjectURL(url);
-};
 
   const navigationItems = [
     {
@@ -358,9 +368,15 @@ const AdminDashboard: React.FC = () => {
             {sidebarOpen && (
               <div className="flex items-center space-x-3">
                 {/* <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg"></div> */}
-                <img src={EthaLogo} alt="Etha-Atlantic Memorial Logo" className="w-12 h-12" />
+                <img
+                  src={EthaLogo}
+                  alt="Etha-Atlantic Memorial Logo"
+                  className="w-12 h-12"
+                />
                 <div>
-                  <h1 className="text-lg font-bold text-gray-900">Etha-Atlantic</h1>
+                  <h1 className="text-lg font-bold text-gray-900">
+                    Etha-Atlantic
+                  </h1>
                   <p className="text-xs text-gray-500">Admin Panel</p>
                 </div>
               </div>
@@ -522,7 +538,9 @@ const AdminDashboard: React.FC = () => {
                 {activeTab === "assignments" && (
                   <StaffAssignmentTab
                     assignments={assignments}
-                    appointments={appointments.filter(a => statusFilter === 'all' || a.status === statusFilter)}
+                    appointments={appointments.filter(
+                      (a) => statusFilter === "all" || a.status === statusFilter
+                    )}
                     onAssign={handleOpenAssignmentModal}
                     onFilterChange={setStatusFilter}
                     onExport={handleExportAssignments}
@@ -914,7 +932,14 @@ const StaffAssignmentTab: React.FC<{
   onFilterChange: (filter: string) => void;
   onExport: () => void;
   onRefresh: () => void;
-}> = ({ assignments, appointments, onAssign, onFilterChange, onExport, onRefresh }) => {
+}> = ({
+  assignments,
+  appointments,
+  onAssign,
+  onFilterChange,
+  onExport,
+  onRefresh,
+}) => {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -928,14 +953,14 @@ const StaffAssignmentTab: React.FC<{
             </p>
           </div>
           <div className="flex items-center space-x-3">
-            <button 
+            <button
               onClick={onRefresh}
               className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               <span>Refresh</span>
             </button>
-            <button 
+            <button
               onClick={onExport}
               className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
             >
@@ -961,15 +986,23 @@ const StaffAssignmentTab: React.FC<{
                 <div>
                   <p className="font-medium text-gray-900">Doctors Assigned</p>
                   <p className="text-sm text-gray-600">
-                    {assignments.filter(a => a.assignedDoctor).length} of {assignments.length}
+                    {assignments.filter((a) => a.assignedDoctor).length} of{" "}
+                    {assignments.length}
                   </p>
                 </div>
               </div>
               <span className="text-sm font-medium text-blue-600">
-                {assignments.length > 0 ? Math.round((assignments.filter(a => a.assignedDoctor).length / assignments.length) * 100) : 0}%
+                {assignments.length > 0
+                  ? Math.round(
+                      (assignments.filter((a) => a.assignedDoctor).length /
+                        assignments.length) *
+                        100
+                    )
+                  : 0}
+                %
               </span>
             </div>
-            
+
             <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -978,29 +1011,47 @@ const StaffAssignmentTab: React.FC<{
                 <div>
                   <p className="font-medium text-gray-900">Nurses Assigned</p>
                   <p className="text-sm text-gray-600">
-                    {assignments.filter(a => a.assignedNurse).length} of {assignments.length}
+                    {assignments.filter((a) => a.assignedNurse).length} of{" "}
+                    {assignments.length}
                   </p>
                 </div>
               </div>
               <span className="text-sm font-medium text-purple-600">
-                {assignments.length > 0 ? Math.round((assignments.filter(a => a.assignedNurse).length / assignments.length) * 100) : 0}%
+                {assignments.length > 0
+                  ? Math.round(
+                      (assignments.filter((a) => a.assignedNurse).length /
+                        assignments.length) *
+                        100
+                    )
+                  : 0}
+                %
               </span>
             </div>
-            
+
             <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
                   <FlaskConical className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Lab Scientists Assigned</p>
+                  <p className="font-medium text-gray-900">
+                    Lab Scientists Assigned
+                  </p>
                   <p className="text-sm text-gray-600">
-                    {assignments.filter(a => a.assignedLab).length} of {assignments.length}
+                    {assignments.filter((a) => a.assignedLab).length} of{" "}
+                    {assignments.length}
                   </p>
                 </div>
               </div>
               <span className="text-sm font-medium text-orange-600">
-                {assignments.length > 0 ? Math.round((assignments.filter(a => a.assignedLab).length / assignments.length) * 100) : 0}%
+                {assignments.length > 0
+                  ? Math.round(
+                      (assignments.filter((a) => a.assignedLab).length /
+                        assignments.length) *
+                        100
+                    )
+                  : 0}
+                %
               </span>
             </div>
           </div>
@@ -1015,20 +1066,26 @@ const StaffAssignmentTab: React.FC<{
             <button className="w-full flex items-center justify-between p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors">
               <div className="flex items-center space-x-3">
                 <UserPlus className="w-5 h-5 text-blue-600" />
-                <span className="font-medium text-blue-700">Assign Multiple Staff</span>
+                <span className="font-medium text-blue-700">
+                  Assign Multiple Staff
+                </span>
               </div>
               <ChevronDown className="w-5 h-5 text-blue-600" />
             </button>
             <button className="w-full flex items-center justify-between p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-colors">
               <div className="flex items-center space-x-3">
                 <Calendar className="w-5 h-5 text-green-600" />
-                <span className="font-medium text-green-700">View Assignment Calendar</span>
+                <span className="font-medium text-green-700">
+                  View Assignment Calendar
+                </span>
               </div>
             </button>
             <button className="w-full flex items-center justify-between p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors">
               <div className="flex items-center space-x-3">
                 <FileText className="w-5 h-5 text-purple-600" />
-                <span className="font-medium text-purple-700">Generate Assignment Report</span>
+                <span className="font-medium text-purple-700">
+                  Generate Assignment Report
+                </span>
               </div>
             </button>
           </div>
@@ -1050,7 +1107,7 @@ const StaffAssignmentTab: React.FC<{
             <div className="flex items-center space-x-3">
               <div className="relative">
                 <Filter className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <select 
+                <select
                   onChange={(e) => onFilterChange(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 >
@@ -1064,7 +1121,7 @@ const StaffAssignmentTab: React.FC<{
             </div>
           </div>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -1090,110 +1147,121 @@ const StaffAssignmentTab: React.FC<{
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {appointments.filter(a => a.status !== 'COMPLETED').map((appointment) => (
-                <tr 
-                  key={appointment.id} 
-                  className="hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => onAssign(appointment)}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
-                        <span className="text-white text-sm font-medium">
-                          {appointment.name?.charAt(0) || "P"}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {appointment.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Age: {appointment.age} | {appointment.sex}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {appointment.doctor ? (
+              {appointments
+                .filter((a) => a.status !== "COMPLETED")
+                .map((appointment) => (
+                  <tr
+                    key={appointment.id}
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => onAssign(appointment)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-2">
-                          <span className="text-xs text-blue-600 font-medium">
-                            {appointment.doctor.fullname?.charAt(0)}
+                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
+                          <span className="text-white text-sm font-medium">
+                            {appointment.name?.charAt(0) || "P"}
                           </span>
                         </div>
-                        <span className="text-sm text-gray-900">
-                          {appointment.doctor.fullname}
-                        </span>
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {appointment.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            Age: {appointment.age} | {appointment.sex}
+                          </div>
+                        </div>
                       </div>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        <Clock className="w-3 h-3 mr-1" />
-                        Unassigned
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {appointment.vital_requests?.[0]?.assigned_to ? (
-                      <div className="flex items-center">
-                        <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center mr-2">
-                          <span className="text-xs text-purple-600 font-medium">
-                            {appointment.vital_requests[0].assigned_to.fullname?.charAt(0)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {appointment.doctor ? (
+                        <div className="flex items-center">
+                          <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-2">
+                            <span className="text-xs text-blue-600 font-medium">
+                              {appointment.doctor.fullname?.charAt(0)}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-900">
+                            {appointment.doctor.fullname}
                           </span>
                         </div>
-                        <span className="text-sm text-gray-900">
-                          {appointment.vital_requests[0].assigned_to.fullname}
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Unassigned
                         </span>
-                      </div>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        <Clock className="w-3 h-3 mr-1" />
-                        Unassigned
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {appointment.test_requests?.[0]?.assigned_to ? (
-                      <div className="flex items-center">
-                        <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center mr-2">
-                          <span className="text-xs text-orange-600 font-medium">
-                            {appointment.test_requests[0].assigned_to.fullname?.charAt(0)}
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {appointment.vital_requests?.[0]?.assigned_to ? (
+                        <div className="flex items-center">
+                          <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center mr-2">
+                            <span className="text-xs text-purple-600 font-medium">
+                              {appointment.vital_requests[0].assigned_to.fullname?.charAt(
+                                0
+                              )}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-900">
+                            {appointment.vital_requests[0].assigned_to.fullname}
                           </span>
                         </div>
-                        <span className="text-sm text-gray-900">
-                          {appointment.test_requests[0].assigned_to.fullname}
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Unassigned
                         </span>
-                      </div>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        <Clock className="w-3 h-3 mr-1" />
-                        Unassigned
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {appointment.test_requests?.[0]?.assigned_to ? (
+                        <div className="flex items-center">
+                          <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center mr-2">
+                            <span className="text-xs text-orange-600 font-medium">
+                              {appointment.test_requests[0].assigned_to.fullname?.charAt(
+                                0
+                              )}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-900">
+                            {appointment.test_requests[0].assigned_to.fullname}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Unassigned
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                          appointment.status === "PENDING"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : appointment.status === "IN_REVIEW"
+                            ? "bg-blue-100 text-blue-800"
+                            : appointment.status === "AWAITING_RESULTS"
+                            ? "bg-orange-100 text-orange-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {appointment.status.replace("_", " ")}
                       </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                      appointment.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                      appointment.status === 'IN_REVIEW' ? 'bg-blue-100 text-blue-800' :
-                      appointment.status === 'AWAITING_RESULTS' ? 'bg-orange-100 text-orange-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {appointment.status.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAssign(appointment);
-                      }}
-                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      <UserPlus className="w-3 h-3 mr-1" />
-                      Assign
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAssign(appointment);
+                        }}
+                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        <UserPlus className="w-3 h-3 mr-1" />
+                        Assign
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -1210,16 +1278,29 @@ const AssignmentModal: React.FC<{
   availableLabScientists: any[];
   onClose: () => void;
   onAssign: (data: any) => Promise<void>;
-}> = ({ appointment, availableDoctors, availableNurses, availableLabScientists, onClose, onAssign }) => {
-  const [selectedDoctor, setSelectedDoctor] = useState<string>(appointment?.doctor?.id || '');
-  const [selectedNurse, setSelectedNurse] = useState<string>(appointment?.vital_requests?.[0]?.assigned_to?.id || '');
-  const [selectedLab, setSelectedLab] = useState<string>(appointment?.test_requests?.[0]?.assigned_to?.id || '');
+}> = ({
+  appointment,
+  availableDoctors,
+  availableNurses,
+  availableLabScientists,
+  onClose,
+  onAssign,
+}) => {
+  const [selectedDoctor, setSelectedDoctor] = useState<string>(
+    appointment?.doctor?.id || ""
+  );
+  const [selectedNurse, setSelectedNurse] = useState<string>(
+    appointment?.vital_requests?.[0]?.assigned_to?.id || ""
+  );
+  const [selectedLab, setSelectedLab] = useState<string>(
+    appointment?.test_requests?.[0]?.assigned_to?.id || ""
+  );
   const [loading, setLoading] = useState(false);
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState("");
 
   const handleSubmit = async () => {
     if (!selectedDoctor && !selectedNurse && !selectedLab) {
-      alert('Please select at least one staff member to assign');
+      alert("Please select at least one staff member to assign");
       return;
     }
 
@@ -1230,12 +1311,12 @@ const AssignmentModal: React.FC<{
         doctor_id: selectedDoctor,
         nurse_id: selectedNurse,
         lab_id: selectedLab,
-        notes: notes
+        notes: notes,
       });
       onClose();
     } catch (error: any) {
-      console.error('Assignment error:', error);
-      alert(`Failed to assign staff: ${error.message || 'Please try again'}`);
+      console.error("Assignment error:", error);
+      alert(`Failed to assign staff: ${error.message || "Please try again"}`);
     } finally {
       setLoading(false);
     }
@@ -1278,13 +1359,14 @@ const AssignmentModal: React.FC<{
               <option value="">Select a doctor...</option>
               {availableDoctors.map((doctor) => (
                 <option key={doctor.id} value={doctor.id}>
-                  Dr. {doctor.fullname} 
+                  Dr. {doctor.fullname}
                 </option>
               ))}
             </select>
             {appointment.doctor && !selectedDoctor && (
               <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                Currently assigned: <strong>Dr. {appointment.doctor.fullname}</strong>
+                Currently assigned:{" "}
+                <strong>Dr. {appointment.doctor.fullname}</strong>
               </div>
             )}
           </div>
@@ -1349,7 +1431,9 @@ const AssignmentModal: React.FC<{
 
           {/* Appointment Info */}
           <div className="bg-gray-50 p-4 rounded-xl">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Appointment Details</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">
+              Appointment Details
+            </h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Patient:</span>
@@ -1357,11 +1441,15 @@ const AssignmentModal: React.FC<{
               </div>
               <div>
                 <span className="text-gray-500">Age/Sex:</span>
-                <span className="ml-2 font-medium">{appointment.age} / {appointment.sex}</span>
+                <span className="ml-2 font-medium">
+                  {appointment.age} / {appointment.sex}
+                </span>
               </div>
               <div>
                 <span className="text-gray-500">Status:</span>
-                <span className="ml-2 font-medium capitalize">{appointment.status.toLowerCase().replace('_', ' ')}</span>
+                <span className="ml-2 font-medium capitalize">
+                  {appointment.status.toLowerCase().replace("_", " ")}
+                </span>
               </div>
               <div>
                 <span className="text-gray-500">Booked:</span>
@@ -1383,7 +1471,9 @@ const AssignmentModal: React.FC<{
             </button>
             <button
               onClick={handleSubmit}
-              disabled={loading || (!selectedDoctor && !selectedNurse && !selectedLab)}
+              disabled={
+                loading || (!selectedDoctor && !selectedNurse && !selectedLab)
+              }
               className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 font-medium transition-all shadow-sm"
             >
               {loading ? (
@@ -1392,7 +1482,7 @@ const AssignmentModal: React.FC<{
                   <span>Assigning...</span>
                 </div>
               ) : (
-                'Assign Staff'
+                "Assign Staff"
               )}
             </button>
           </div>
@@ -1567,69 +1657,72 @@ const CreateBlogModal: React.FC<{
   const [image2, setImage2] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // In ADMINDASHBOARD.TSX - Update the CreateBlogModal's handleSubmit function
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (
-    !formData.title.trim() ||
-    !formData.description.trim() ||
-    !formData.content.trim()
-  ) {
-    alert("Please fill in all required fields");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const formDataToSend = new FormData();
-    formDataToSend.append("title", formData.title);
-    formDataToSend.append("description", formData.description);
-    formDataToSend.append("content", formData.content);
-    formDataToSend.append("published", formData.published.toString());
-    formDataToSend.append("enable_toc", formData.enable_toc.toString());
-
-    // Check if files exist before appending
-    if (featuredImage) {
-      formDataToSend.append("featured_image", featuredImage);
-    } else {
-      alert("Featured image is required");
-      setLoading(false);
+    if (
+      !formData.title.trim() ||
+      !formData.description.trim() ||
+      !formData.content.trim()
+    ) {
+      alert("Please fill in all required fields");
       return;
     }
-    
-    if (image1) {
-      formDataToSend.append("image_1", image1);
-    }
-    
-    if (image2) {
-      formDataToSend.append("image_2", image2);
+
+    if (!featuredImage) {
+      alert("Featured image is required");
+      return;
     }
 
-    console.log("Creating blog post with data:", {
-      title: formData.title,
-      description: formData.description,
-      hasFeaturedImage: !!featuredImage,
-      hasImage1: !!image1,
-      hasImage2: !!image2,
-    });
+    setLoading(true);
 
-    const response = await apiService.createBlogPost(formDataToSend);
-    console.log("Blog post created successfully:", response);
-    
-    onSuccess();
-    alert("Blog post created successfully!");
-    
-  } catch (error: any) {
-    console.error("Error creating blog post:", error);
-    alert(
-      `Failed to create blog post: ${error.message || "Please try again. Check console for details."}`
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append("title", formData.title);
+      formDataToSend.append("description", formData.description);
+      formDataToSend.append("content", formData.content);
+      formDataToSend.append("published", formData.published.toString());
+      formDataToSend.append("enable_toc", formData.enable_toc.toString());
+
+      // Append images
+      formDataToSend.append("featured_image", featuredImage);
+      if (image1) formDataToSend.append("image_1", image1);
+      if (image2) formDataToSend.append("image_2", image2);
+
+      console.log("Creating blog post...");
+
+      // Try the API call with error handling
+      const response = await fetch(
+        "https://dhospitalback.onrender.com/api/hospital/blog/",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+          body: formDataToSend,
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error:", response.status, errorText);
+        throw new Error(
+          `Failed to create blog post: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const data = await response.json();
+      console.log("✅ Blog post created:", data);
+
+      onSuccess();
+      alert("Blog post created successfully!");
+    } catch (error: any) {
+      console.error("❌ Error creating blog post:", error);
+      alert(`Failed to create blog post. Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
