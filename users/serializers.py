@@ -110,6 +110,8 @@ class ProfileSerializer(serializers.ModelSerializer):
         except Exception as e:
             logger.error(f"❌ Error getting profile_pix for {obj.user.username}: {e}", exc_info=True)
             return None
+        
+        
 
 # ============================================
 # REGISTRATION SERIALIZER (FIXED!)
