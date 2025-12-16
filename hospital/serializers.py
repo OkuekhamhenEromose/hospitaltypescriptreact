@@ -155,34 +155,6 @@ class AppointmentDetailSerializer(serializers.ModelSerializer):
 
 # ---------------- Enhanced Blog Serializers ---------------- #
 
-class BlogPostListSerializer(serializers.ModelSerializer):
-    subheadings = serializers.SerializerMethodField()
-    featured_image = serializers.SerializerMethodField()
-    image_1 = serializers.SerializerMethodField()
-    image_2 = serializers.SerializerMethodField()
-
-    class Meta:
-        model = BlogPost
-        fields = [
-            "title", "slug", "description", "featured_image",
-            "image_1", "image_2", "published", "created_at",
-            "table_of_contents", "subheadings"
-        ]
-
-    def get_featured_image(self, obj):
-        return obj.featured_image.url if obj.featured_image else None
-
-    def get_image_1(self, obj):
-        return obj.image_1.url if obj.image_1 else None
-
-    def get_image_2(self, obj):
-        return obj.image_2.url if obj.image_2 else None
-    
-    def get_subheadings(self, obj):
-        return [
-            {**s, "id": idx + 1} for idx, s in enumerate(obj.subheadings)
-        ]
-
 # ---------------- Blog Supporting Serializers ---------------- #
 
 class SubheadingSerializer(serializers.Serializer):
@@ -199,15 +171,71 @@ class TOCSerializer(serializers.Serializer):
     level = serializers.IntegerField()
     anchor = serializers.CharField()
 
+# In hospital/serializers.py - REPLACE these methods:
 
-class BlogPostSerializer(serializers.ModelSerializer):
-    table_of_contents = TOCSerializer(many=True, read_only=True)
-    subheadings = SubheadingSerializer(many=True, read_only=True)
-
+class BlogPostListSerializer(serializers.ModelSerializer):
+    subheadings = serializers.SerializerMethodField()
     featured_image = serializers.SerializerMethodField()
     image_1 = serializers.SerializerMethodField()
     image_2 = serializers.SerializerMethodField()
 
+    class Meta:
+        model = BlogPost
+        fields = [
+            "title", "slug", "description", "featured_image",
+            "image_1", "image_2", "published", "created_at",
+            "table_of_contents", "subheadings"
+        ]
+
+    def _get_valid_image_url(self, image_field):
+        """Return URL ONLY if file exists in S3"""
+        if not image_field:
+            return None
+        
+        try:
+            # Check if file exists in S3 storage
+            if image_field.storage.exists(image_field.name):
+                url = image_field.url
+                # Ensure HTTPS
+                if url and url.startswith('http://'):
+                    url = url.replace('http://', 'https://')
+                return url
+            else:
+                # File doesn't exist in S3 - log and return None
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"⚠️ Image missing from S3: {image_field.name}")
+                return None
+                
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"❌ Error checking image {image_field.name}: {e}")
+            return None
+
+    def get_featured_image(self, obj):
+        return self._get_valid_image_url(obj.featured_image)
+
+    def get_image_1(self, obj):
+        return self._get_valid_image_url(obj.image_1)
+
+    def get_image_2(self, obj):
+        return self._get_valid_image_url(obj.image_2)
+    
+    def get_subheadings(self, obj):
+        return [
+            {**s, "id": idx + 1} for idx, s in enumerate(obj.subheadings)
+        ]
+
+# Also update BlogPostSerializer with the same fix:
+class BlogPostSerializer(serializers.ModelSerializer):
+    table_of_contents = TOCSerializer(many=True, read_only=True)
+    subheadings = SubheadingSerializer(many=True, read_only=True)
+    
+    featured_image = serializers.SerializerMethodField()
+    image_1 = serializers.SerializerMethodField()
+    image_2 = serializers.SerializerMethodField()
+    
     author_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -217,14 +245,41 @@ class BlogPostSerializer(serializers.ModelSerializer):
     def get_author_name(self, obj):
         return obj.author.fullname
 
+    def _get_valid_image_url(self, image_field):
+        """Return URL ONLY if file exists in S3"""
+        if not image_field:
+            return None
+        
+        try:
+            # Check if file exists in S3 storage
+            if image_field.storage.exists(image_field.name):
+                url = image_field.url
+                # Ensure HTTPS
+                if url and url.startswith('http://'):
+                    url = url.replace('http://', 'https://')
+                return url
+            else:
+                # File doesn't exist in S3
+                import logging
+                logger = logging.getLogger.getLogger(__name__)
+                logger.warning(f"⚠️ Image missing from S3: {image_field.name}")
+                return None
+                
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"❌ Error checking image {image_field.name}: {e}")
+            return None
+
     def get_featured_image(self, obj):
-        return obj.featured_image.url if obj.featured_image else None
+        return self._get_valid_image_url(obj.featured_image)
 
     def get_image_1(self, obj):
-        return obj.image_1.url if obj.image_1 else None
+        return self._get_valid_image_url(obj.image_1)
 
     def get_image_2(self, obj):
-        return obj.image_2.url if obj.image_2 else None
+        return self._get_valid_image_url(obj.image_2)
+
 
 class BlogPostCreateSerializer(serializers.ModelSerializer):
     class Meta:

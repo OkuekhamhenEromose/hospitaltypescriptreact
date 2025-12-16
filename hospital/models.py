@@ -1,10 +1,21 @@
-# hospital/models.py
+# hospital/models.py - COMPLETE UPDATED VERSION
 from django.db import models
 from django.utils import timezone
 from users.models import Profile
 import random
 import json
 from django.utils.text import slugify
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.conf import settings
+import boto3
+from PIL import Image
+import io
+import hashlib
+import threading
+import logging
+
+logger = logging.getLogger(__name__)
 
 SEX_CHOICES = (('M', 'Male'), ('F', 'Female'), ('O', 'Other'))
 
@@ -22,6 +33,103 @@ REQUEST_STATUS = (
     ('DONE', 'Done'),
     ('CANCELLED', 'Cancelled'),
 )
+
+# ==================== HELPER FUNCTIONS FOR AUTO-IMAGE CREATION ====================
+
+def create_s3_placeholder_image(text, width=800, height=400, img_format='JPEG'):
+    """
+    Create a colored placeholder image for S3
+    """
+    # Generate consistent color from text
+    color_hash = hashlib.md5(text.encode()).hexdigest()[:6]
+    img = Image.new('RGB', (width, height), color=f'#{color_hash}')
+    
+    buffer = io.BytesIO()
+    
+    if img_format.upper() == 'WEBP':
+        img.save(buffer, format='WEBP', quality=85)
+        content_type = 'image/webp'
+    elif img_format.upper() == 'PNG':
+        img.save(buffer, format='PNG')
+        content_type = 'image/png'
+    else:
+        img.save(buffer, format='JPEG', quality=85)
+        content_type = 'image/jpeg'
+    
+    buffer.seek(0)
+    return buffer.getvalue(), content_type
+
+def ensure_image_in_s3(image_field, instance, field_name):
+    """
+    Check if image exists in S3, create placeholder if missing
+    Runs in background thread
+    """
+    if not image_field or not image_field.name:
+        return
+    
+    try:
+        # Setup S3 client
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION_NAME
+        )
+        bucket_name = settings.AWS_STORAGE_BUCKET_NAME
+        
+        s3_key = f"media/{image_field.name}"
+        
+        # Check if file exists in S3
+        try:
+            s3.head_object(Bucket=bucket_name, Key=s3_key)
+            logger.info(f"✅ Image already exists in S3: {image_field.name}")
+            return
+        except:
+            logger.info(f"⚠️  Creating placeholder for missing image: {image_field.name}")
+            
+            # Determine image size based on field
+            if field_name == 'featured_image':
+                width, height = 800, 400
+            else:  # image_1 or image_2
+                width, height = 400, 300
+            
+            # Determine format from filename
+            filename = image_field.name
+            if filename.lower().endswith('.webp'):
+                img_format = 'WEBP'
+            elif filename.lower().endswith('.png'):
+                img_format = 'PNG'
+            else:
+                img_format = 'JPEG'
+            
+            # Create unique identifier for color
+            unique_id = f"blog_{instance.id}_{field_name}_{instance.title[:50]}"
+            image_data, content_type = create_s3_placeholder_image(
+                unique_id, width, height, img_format
+            )
+            
+            # Upload to S3
+            s3.put_object(
+                Bucket=bucket_name,
+                Key=s3_key,
+                Body=image_data,
+                ContentType=content_type,
+                ACL='public-read',
+                Metadata={
+                    'blog_id': str(instance.id),
+                    'blog_title': instance.title[:100],
+                    'field': field_name,
+                    'placeholder': 'true',
+                    'auto_created': 'yes'
+                }
+            )
+            
+            logger.info(f"✅ Created placeholder in S3: {image_field.name} ({len(image_data)} bytes)")
+            
+    except Exception as e:
+        logger.error(f"❌ Error ensuring image {image_field.name}: {e}")
+
+# ==================== MAIN MODELS ====================
 
 class Appointment(models.Model):
     patient = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='appointments')
@@ -201,8 +309,8 @@ class MedicalReport(models.Model):
         appt.status = 'COMPLETED'
         appt.save()
 
-# ---------------- Blog Section ---------------- #
-# hospital/models.py - Update BlogPost model
+# ==================== BLOG POST MODEL WITH AUTO-IMAGE FIX ====================
+
 class BlogPost(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
@@ -232,7 +340,6 @@ class BlogPost(models.Model):
         return self.title
 
     def save(self, *args, **kwargs):
-
         # Set published date
         if self.published and not self.published_date:
             self.published_date = timezone.now()
@@ -306,3 +413,28 @@ class BlogPost(models.Model):
                     })
 
         self.subheadings = structured[:6]
+
+# ==================== SIGNAL HANDLER FOR AUTO-IMAGE CREATION ====================
+
+@receiver(post_save, sender=BlogPost)
+def ensure_blog_images_exist_in_s3(sender, instance, created, **kwargs):
+    """
+    Automatically create missing blog images in S3
+    Runs in background thread to avoid slowing down requests
+    """
+    def background_image_check():
+        try:
+            # Check each image field
+            for field_name in ['featured_image', 'image_1', 'image_2']:
+                image_field = getattr(instance, field_name)
+                if image_field and image_field.name:
+                    ensure_image_in_s3(image_field, instance, field_name)
+                    
+        except Exception as e:
+            logger.error(f"❌ Error in background image check for blog {instance.id}: {e}")
+    
+    # Run in background thread (non-blocking)
+    thread = threading.Thread(target=background_image_check)
+    thread.daemon = True
+    thread.start()
+    logger.info(f"✅ Started background image check for blog: {instance.title}")
