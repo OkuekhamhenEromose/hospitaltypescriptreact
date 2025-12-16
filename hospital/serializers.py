@@ -171,7 +171,7 @@ class TOCSerializer(serializers.Serializer):
     level = serializers.IntegerField()
     anchor = serializers.CharField()
 
-# In hospital/serializers.py - REPLACE these methods:
+# hospital/serializers.py - FIXED VERSION (update the two methods)
 
 class BlogPostListSerializer(serializers.ModelSerializer):
     subheadings = serializers.SerializerMethodField()
@@ -188,29 +188,21 @@ class BlogPostListSerializer(serializers.ModelSerializer):
         ]
 
     def _get_valid_image_url(self, image_field):
-        """Return URL ONLY if file exists in S3"""
+        """Return URL - DO NOT CHECK S3 EXISTENCE"""
         if not image_field:
             return None
         
         try:
-            # Check if file exists in S3 storage
-            if image_field.storage.exists(image_field.name):
-                url = image_field.url
-                # Ensure HTTPS
-                if url and url.startswith('http://'):
-                    url = url.replace('http://', 'https://')
-                return url
-            else:
-                # File doesn't exist in S3 - log and return None
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"⚠️ Image missing from S3: {image_field.name}")
-                return None
-                
+            # Simply return the URL - this was the fix!
+            url = image_field.url
+            # Ensure HTTPS
+            if url and url.startswith('http://'):
+                url = url.replace('http://', 'https://')
+            return url
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
-            logger.error(f"❌ Error checking image {image_field.name}: {e}")
+            logger.error(f"ERROR getting image URL: {e}")
             return None
 
     def get_featured_image(self, obj):
@@ -246,29 +238,21 @@ class BlogPostSerializer(serializers.ModelSerializer):
         return obj.author.fullname
 
     def _get_valid_image_url(self, image_field):
-        """Return URL ONLY if file exists in S3"""
+        """Return URL - DO NOT CHECK S3 EXISTENCE"""
         if not image_field:
             return None
         
         try:
-            # Check if file exists in S3 storage
-            if image_field.storage.exists(image_field.name):
-                url = image_field.url
-                # Ensure HTTPS
-                if url and url.startswith('http://'):
-                    url = url.replace('http://', 'https://')
-                return url
-            else:
-                # File doesn't exist in S3
-                import logging
-                logger = logging.getLogger.getLogger(__name__)
-                logger.warning(f"⚠️ Image missing from S3: {image_field.name}")
-                return None
-                
+            # Simply return the URL - this was the fix!
+            url = image_field.url
+            # Ensure HTTPS
+            if url and url.startswith('http://'):
+                url = url.replace('http://', 'https://')
+            return url
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
-            logger.error(f"❌ Error checking image {image_field.name}: {e}")
+            logger.error(f"ERROR getting image URL: {e}")
             return None
 
     def get_featured_image(self, obj):

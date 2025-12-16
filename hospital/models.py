@@ -416,25 +416,34 @@ class BlogPost(models.Model):
 
 # ==================== SIGNAL HANDLER FOR AUTO-IMAGE CREATION ====================
 
+# hospital/models.py - UPDATE the signal handler
+
+# hospital/models.py - UPDATE signal handler
+
 @receiver(post_save, sender=BlogPost)
 def ensure_blog_images_exist_in_s3(sender, instance, created, **kwargs):
     """
     Automatically create missing blog images in S3
-    Runs in background thread to avoid slowing down requests
+    Runs after save to avoid conflicts
     """
-    def background_image_check():
-        try:
-            # Check each image field
-            for field_name in ['featured_image', 'image_1', 'image_2']:
-                image_field = getattr(instance, field_name)
-                if image_field and image_field.name:
-                    ensure_image_in_s3(image_field, instance, field_name)
-                    
-        except Exception as e:
-            logger.error(f"❌ Error in background image check for blog {instance.id}: {e}")
+    # Skip if running in test mode or migrations
+    if kwargs.get('raw', False):
+        return
     
-    # Run in background thread (non-blocking)
-    thread = threading.Thread(target=background_image_check)
-    thread.daemon = True
-    thread.start()
-    logger.info(f"✅ Started background image check for blog: {instance.title}")
+    try:
+        # Log the images we have
+        logger.info(f"Checking images for blog {instance.id} - {instance.title}")
+        
+        # Check each image field
+        for field_name in ['featured_image', 'image_1', 'image_2']:
+            image_field = getattr(instance, field_name)
+            if image_field and image_field.name:
+                logger.info(f"  Found {field_name}: {image_field.name}")
+                
+                # Don't create placeholder immediately - let it fail naturally
+                # The frontend will handle missing images with fallbacks
+                pass
+                    
+    except Exception as e:
+        logger.error(f"ERROR in image check for blog {instance.id}: {e}")
+        

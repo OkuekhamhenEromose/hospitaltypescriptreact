@@ -368,6 +368,8 @@ class AvailableStaffView(generics.ListAPIView):
         )
 
 # ---------------- Enhanced Blog Views with TOC ---------------- #
+# hospital/views.py - UPDATE BlogPostListCreateView
+
 class BlogPostListCreateView(generics.ListCreateAPIView):
     serializer_class = BlogPostListSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -393,8 +395,24 @@ class BlogPostListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         if self.request.user.profile.role != "ADMIN":
             raise PermissionDenied("Only admins can create blog posts.")
-        serializer.save(author=self.request.user.profile)
-
+        
+        try:
+            print(f"📝 Creating blog post with data: {self.request.data}")
+            print(f"📁 Files received: {self.request.FILES}")
+            
+            # Save the blog post
+            blog_post = serializer.save(author=self.request.user.profile)
+            
+            print(f"✅ Blog post created: {blog_post.id}")
+            print(f"📸 Images: featured={blog_post.featured_image}, image1={blog_post.image_1}, image2={blog_post.image_2}")
+            
+            return blog_post
+            
+        except Exception as e:
+            print(f"❌ Error creating blog post: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
 
 class BlogPostDetailView(generics.RetrieveUpdateDestroyAPIView):
     """

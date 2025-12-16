@@ -1,63 +1,114 @@
-# test_profile_images.py
+#!/usr/bin/env python
 import os
+import sys
 import django
+from io import BytesIO
+from PIL import Image
+
+# Setup Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'api.settings')
-django.setup()
 
+try:
+    django.setup()
+    print("✅ Django setup successful")
+except Exception as e:
+    print(f"❌ Django setup failed: {e}")
+    sys.exit(1)
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from hospital.models import BlogPost
 from users.models import Profile
-from users.serializers import ProfileSerializer
 
-print("=" * 70)
-print("PROFILE IMAGES DIAGNOSTIC")
-print("=" * 70)
-
-# Check all profiles
-profiles = Profile.objects.all().select_related('user')
-
-for profile in profiles:
-    print(f"\n👤 {profile.user.username} ({profile.user.email}):")
-    print(f"   Role: {profile.role}")
-    print(f"   Has profile_pix field: {bool(profile.profile_pix)}")
+def test_image_upload():
+    print("🧪 Testing Image Upload to Blog Post...")
     
-    if profile.profile_pix:
-        print(f"   Image name: '{profile.profile_pix.name}'")
-        print(f"   Image storage: {profile.profile_pix.storage.__class__.__name__}")
-        
-        # Try to get URL
-        try:
-            url = profile.profile_pix.url
-            print(f"   ✅ Model URL: {url}")
-        except ValueError as e:
-            print(f"   ❌ Model URL Error: {e}")
-        except Exception as e:
-            print(f"   ❌ Other Error: {e}")
-        
-        # Try serializer
-        try:
-            serializer = ProfileSerializer(profile)
-            serialized_url = serializer.data.get('profile_pix')
-            print(f"   📋 Serializer URL: {serialized_url}")
-        except Exception as e:
-            print(f"   ❌ Serializer Error: {e}")
-    else:
-        print(f"   No profile image set")
+    # Get admin user
+    try:
+        admin = Profile.objects.filter(role='ADMIN').first()
+        if not admin:
+            print("❌ No admin user found")
+            return
+        print(f"✅ Admin user: {admin.fullname}")
+    except Exception as e:
+        print(f"❌ Error getting admin: {e}")
+        return
     
-    print("-" * 50)
+    # Create a simple test image
+    try:
+        print("📸 Creating test image...")
+        img = Image.new('RGB', (100, 100), color='red')
+        img_byte_arr = BytesIO()
+        img.save(img_byte_arr, format='JPEG')
+        img_byte_arr.seek(0)
+        
+        test_image = SimpleUploadedFile(
+            name='test_image.jpg',
+            content=img_byte_arr.read(),
+            content_type='image/jpeg'
+        )
+        print(f"✅ Test image created: {test_image.name} ({test_image.size} bytes)")
+    except Exception as e:
+        print(f"❌ Error creating test image: {e}")
+        # Try without PIL
+        print("🔄 Trying alternative method...")
+        test_image = SimpleUploadedFile(
+            name='test.txt',
+            content=b'Test content',
+            content_type='text/plain'
+        )
+    
+    # Try to create blog post with image
+    try:
+        print("\n📝 Creating blog post with image...")
+        post = BlogPost.objects.create(
+            title="Test Post With Image",
+            description="Testing image upload functionality",
+            content="<h1>Image Test</h1><p>Testing if images upload correctly</p><h2>Section 1</h2><p>More content</p>",
+            author=admin,
+            published=False,
+            featured_image=test_image
+        )
+        
+        print(f"✅ Blog post created! ID: {post.id}")
+        print(f"📝 Title: {post.title}")
+        print(f"📸 Featured image: {post.featured_image}")
+        print(f"📸 Image name: {post.featured_image.name if post.featured_image else 'None'}")
+        
+        if post.featured_image:
+            try:
+                print(f"📸 Image URL: {post.featured_image.url}")
+                
+                # Check if file exists in storage
+                import time
+                print("⏳ Waiting for S3 upload...")
+                time.sleep(3)  # Wait for async upload
+                
+                if hasattr(post.featured_image, 'storage') and post.featured_image.storage.exists(post.featured_image.name):
+                    print("✅ Image successfully uploaded to S3!")
+                else:
+                    print("⚠️  Image may not be in S3 yet (could be async)")
+                    
+            except Exception as e:
+                print(f"⚠️  Could not get image URL: {e}")
+        
+    except Exception as e:
+        print(f"❌ Error creating blog post: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Try without image first
+        print("\n🔄 Trying without image...")
+        try:
+            post_no_image = BlogPost.objects.create(
+                title="Test Post No Image",
+                description="Testing without image",
+                content="<h1>No Image Test</h1><p>Testing</p>",
+                author=admin,
+                published=False
+            )
+            print(f"✅ Created without image: {post_no_image.id}")
+        except Exception as e2:
+            print(f"❌ Also failed without image: {e2}")
 
-print("\n" + "=" * 70)
-print("SUMMARY")
-print("=" * 70)
-
-profiles_with_images = [p for p in profiles if p.profile_pix and str(p.profile_pix.name).strip()]
-profiles_with_empty_images = [p for p in profiles if p.profile_pix and not str(p.profile_pix.name).strip()]
-profiles_without_images = [p for p in profiles if not p.profile_pix]
-
-print(f"Total profiles: {profiles.count()}")
-print(f"Profiles with valid images: {len(profiles_with_images)}")
-print(f"Profiles with empty image fields: {len(profiles_with_empty_images)}")
-print(f"Profiles without images: {len(profiles_without_images)}")
-
-if profiles_with_empty_images:
-    print("\n⚠️  Profiles with empty image fields (need fixing):")
-    for p in profiles_with_empty_images:
-        print(f"   - {p.user.username}")
+if __name__ == '__main__':
+    test_image_upload()
