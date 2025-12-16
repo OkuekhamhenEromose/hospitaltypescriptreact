@@ -187,7 +187,7 @@ const Header: React.FC<HeaderProps> = ({
                       >
                         {/* Profile Image - Use safeUser */}
                         {profileImageUrl ? (
-                          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-blue-500 flex-shrink-0">
+                          <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                             <img
                               src={profileImageUrl}
                               alt="Profile"
