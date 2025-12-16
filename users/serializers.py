@@ -168,6 +168,7 @@ class RegistrationSerializer(serializers.Serializer):
         profile.gender = validated_data.get('gender', None)
         profile.role = validated_data.get('role', 'PATIENT')
 
+        # In RegistrationSerializer.create() method - UPDATE THIS PART:
         if profile_pix:
             # Generate a clean filename
             import os
@@ -179,9 +180,37 @@ class RegistrationSerializer(serializers.Serializer):
             clean_username = slugify(username)
             filename = f"{clean_username}_profile{ext}"
             
-            # Save the image
-            profile.profile_pix.save(filename, profile_pix, save=True)
-            logger.info(f"Profile image saved for {username}: {filename}")
+            # DEBUG: Log file info
+            logger.info(f"📸 Uploading profile image for {username}:")
+            logger.info(f"   Original name: {profile_pix.name}")
+            logger.info(f"   Target name: {filename}")
+            logger.info(f"   Size: {profile_pix.size} bytes")
+            logger.info(f"   Content type: {profile_pix.content_type}")
+            
+            # Save the image - force S3 upload
+            try:
+                # Save with the storage backend
+                profile.profile_pix.save(filename, profile_pix, save=True)
+                
+                # Force a save to ensure database is updated
+                profile.save()
+                
+                # Verify the upload
+                if hasattr(profile.profile_pix, 'storage'):
+                    try:
+                        # Check if file exists in storage
+                        exists = profile.profile_pix.storage.exists(profile.profile_pix.name)
+                        logger.info(f"✅ Profile image upload verified: {exists}")
+                        logger.info(f"✅ Image URL: {profile.profile_pix.url}")
+                    except Exception as e:
+                        logger.error(f"❌ Could not verify upload: {e}")
+                
+                logger.info(f"✅ Profile image saved for {username}: {filename}")
+                
+            except Exception as e:
+                logger.error(f"❌ Failed to save profile image for {username}: {e}")
+                # Save profile without image
+                profile.save()
         else:
             profile.save()
             logger.info(f"Profile created without image for {username}")
