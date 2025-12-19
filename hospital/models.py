@@ -416,9 +416,58 @@ class BlogPost(models.Model):
 
 # ==================== SIGNAL HANDLER FOR AUTO-IMAGE CREATION ====================
 
-# hospital/models.py - UPDATE the signal handler
-
-# hospital/models.py - UPDATE signal handler
+def _ensure_single_image_in_s3(image_field, instance, field_name):
+    """Background task to create placeholder if image doesn't exist"""
+    try:
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION_NAME
+        )
+        
+        bucket_name = settings.AWS_STORAGE_BUCKET_NAME
+        s3_key = f"media/{image_field.name}"
+        
+        # Check if file exists
+        try:
+            s3.head_object(Bucket=bucket_name, Key=s3_key)
+            logger.info(f"✅ Image exists: {image_field.name}")
+            return True
+        except:
+            logger.info(f"⚠️ Creating placeholder for: {image_field.name}")
+            
+            # Create placeholder image
+            if field_name == 'featured_image':
+                width, height = 800, 400
+            else:
+                width, height = 600, 400
+            
+            # Create unique placeholder
+            unique_id = f"blog_{instance.id}_{field_name}"
+            image_data, content_type = create_s3_placeholder_image(
+                unique_id, width, height
+            )
+            
+            # Upload to S3
+            s3.put_object(
+                Bucket=bucket_name,
+                Key=s3_key,
+                Body=image_data,
+                ContentType=content_type,
+                ACL='public-read',
+                Metadata={
+                    'blog_id': str(instance.id),
+                    'placeholder': 'true'
+                }
+            )
+            
+            logger.info(f"✅ Created placeholder: {image_field.name}")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Error ensuring image {image_field.name}: {e}")
+        return False
 
 @receiver(post_save, sender=BlogPost)
 def ensure_blog_images_exist_in_s3(sender, instance, created, **kwargs):
@@ -433,17 +482,75 @@ def ensure_blog_images_exist_in_s3(sender, instance, created, **kwargs):
     try:
         # Log the images we have
         logger.info(f"Checking images for blog {instance.id} - {instance.title}")
-        
         # Check each image field
-        for field_name in ['featured_image', 'image_1', 'image_2']:
-            image_field = getattr(instance, field_name)
+        image_fields = {
+            'featured_image': instance.featured_image,
+            'image_1': instance.image_1,
+            'image_2': instance.image_2
+        }
+        
+        for field_name, image_field in image_fields.items():
             if image_field and image_field.name:
                 logger.info(f"  Found {field_name}: {image_field.name}")
                 
-                # Don't create placeholder immediately - let it fail naturally
-                # The frontend will handle missing images with fallbacks
-                pass
-                    
+                # Schedule background task to ensure image exists
+                threading.Thread(
+                    target=_ensure_single_image_in_s3,
+                    args=(image_field, instance, field_name),
+                    daemon=True
+                ).start()
+                
     except Exception as e:
         logger.error(f"ERROR in image check for blog {instance.id}: {e}")
+    """Background task to create placeholder if image doesn't exist"""
+    try:
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION_NAME
+        )
+        
+        bucket_name = settings.AWS_STORAGE_BUCKET_NAME
+        s3_key = f"media/{image_field.name}"
+        
+        # Check if file exists
+        try:
+            s3.head_object(Bucket=bucket_name, Key=s3_key)
+            logger.info(f"✅ Image exists: {image_field.name}")
+            return True
+        except:
+            logger.info(f"⚠️ Creating placeholder for: {image_field.name}")
+            
+            # Create placeholder image
+            if field_name == 'featured_image':
+                width, height = 800, 400
+            else:
+                width, height = 600, 400
+            
+            # Create unique placeholder
+            unique_id = f"blog_{instance.id}_{field_name}"
+            image_data, content_type = create_s3_placeholder_image(
+                unique_id, width, height
+            )
+            
+            # Upload to S3
+            s3.put_object(
+                Bucket=bucket_name,
+                Key=s3_key,
+                Body=image_data,
+                ContentType=content_type,
+                ACL='public-read',
+                Metadata={
+                    'blog_id': str(instance.id),
+                    'placeholder': 'true'
+                }
+            )
+            
+            logger.info(f"✅ Created placeholder: {image_field.name}")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Error ensuring image {image_field.name}: {e}")
+        return False
         

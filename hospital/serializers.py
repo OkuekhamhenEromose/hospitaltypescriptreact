@@ -173,46 +173,72 @@ class TOCSerializer(serializers.Serializer):
 
 # hospital/serializers.py - FIXED VERSION (update the two methods)
 
+# hospital/serializers.py - Update BlogPostListSerializer
+
 class BlogPostListSerializer(serializers.ModelSerializer):
     subheadings = serializers.SerializerMethodField()
     featured_image = serializers.SerializerMethodField()
     image_1 = serializers.SerializerMethodField()
     image_2 = serializers.SerializerMethodField()
+    
+    # Add default image fields
+    featured_image_url = serializers.SerializerMethodField()
+    image_1_url = serializers.SerializerMethodField()
+    image_2_url = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogPost
         fields = [
             "title", "slug", "description", "featured_image",
             "image_1", "image_2", "published", "created_at",
-            "table_of_contents", "subheadings"
+            "table_of_contents", "subheadings", "featured_image_url",
+            "image_1_url", "image_2_url"
         ]
 
-    def _get_valid_image_url(self, image_field):
-        """Return URL - DO NOT CHECK S3 EXISTENCE"""
-        if not image_field:
-            return None
-        
-        try:
-            # Simply return the URL - this was the fix!
-            url = image_field.url
-            # Ensure HTTPS
-            if url and url.startswith('http://'):
-                url = url.replace('http://', 'https://')
-            return url
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"ERROR getting image URL: {e}")
-            return None
-
     def get_featured_image(self, obj):
-        return self._get_valid_image_url(obj.featured_image)
+        return self._get_image_url_or_default(obj.featured_image, obj.title, True)
 
     def get_image_1(self, obj):
-        return self._get_valid_image_url(obj.image_1)
+        return self._get_image_url_or_default(obj.image_1, obj.title, False)
 
     def get_image_2(self, obj):
-        return self._get_valid_image_url(obj.image_2)
+        return self._get_image_url_or_default(obj.image_2, obj.title, False)
+    
+    def get_featured_image_url(self, obj):
+        url = self._get_valid_image_url(obj.featured_image)
+        return url or self._get_placeholder_url(obj.title, True)
+    
+    def get_image_1_url(self, obj):
+        url = self._get_valid_image_url(obj.image_1)
+        return url or self._get_placeholder_url(obj.title, False)
+    
+    def get_image_2_url(self, obj):
+        url = self._get_valid_image_url(obj.image_2)
+        return url or self._get_placeholder_url(obj.title, False)
+
+    def _get_image_url_or_default(self, image_field, title, is_featured):
+        """Get image URL or return placeholder URL if missing"""
+        url = self._get_valid_image_url(image_field)
+        if url:
+            return url
+        
+        # Return placeholder URL
+        if is_featured:
+            return self._get_placeholder_url(title, is_featured)
+        return None
+
+    def _get_placeholder_url(self, title, is_featured):
+        """Generate a deterministic placeholder image URL"""
+        import hashlib
+        import urllib.parse
+        
+        # Create consistent color based on title
+        title_hash = hashlib.md5(title.encode()).hexdigest()[:6]
+        width = 800 if is_featured else 600
+        height = 400
+        
+        # Return a placeholder image service URL
+        return f"https://via.placeholder.com/{width}x{height}/{title_hash}/FFFFFF?text={urllib.parse.quote(title[:30])}"
     
     def get_subheadings(self, obj):
         return [
