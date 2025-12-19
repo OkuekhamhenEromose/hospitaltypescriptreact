@@ -25,12 +25,52 @@ const Blog: React.FC = () => {
     return post.slug || `post-${slugify(post.title)}-${index}`;
   };
 
-  // Normalize media URLs
   const normalizeMediaUrl = (path: string | null) => {
-    if (!path) return null;
-    if (path.startsWith("http")) return path;
-    if (path.startsWith("/media")) return `https://dhospitalback.onrender.com${path}`;
-    return `https://dhospitalback.onrender.com/media/blog_images/${path}`;
+    if (!path) {
+      console.log("❌ No image URL");
+      return null;
+    }
+
+    console.log("🖼️ Raw URL from API:", path);
+
+    // If it's already a full HTTP URL
+    if (path.startsWith("http")) {
+      console.log("✅ Already HTTP URL");
+      // Ensure HTTPS for S3 URLs
+      if (path.includes("s3.amazonaws.com") && path.startsWith("http://")) {
+        const httpsUrl = path.replace("http://", "https://");
+        console.log("🔗 Converted to HTTPS:", httpsUrl);
+        return httpsUrl;
+      }
+      return path;
+    }
+
+    // Check if it's an S3 path without protocol
+    if (path.includes("s3.amazonaws.com")) {
+      const fullUrl = `https://${path}`;
+      console.log("🔗 Added https:// to S3 URL:", fullUrl);
+      return fullUrl;
+    }
+
+    // If it's a relative path starting with /media/
+    if (path.startsWith("/media/")) {
+      const s3Url = `https://etha-hospital.s3.eu-north-1.amazonaws.com${path}`;
+      console.log("🔄 Converted /media/ to S3:", s3Url);
+      return s3Url;
+    }
+
+    // If it's just a filename like "blog_images/apple1.jpg"
+    if (path.includes("/")) {
+      // It already has a path like "blog_images/apple1.jpg"
+      const s3Url = `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${path}`;
+      console.log("📁 Added /media/ prefix to path:", s3Url);
+      return s3Url;
+    }
+
+    // Default fallback: assume it's just a filename
+    const s3Url = `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/blog_images/${path}`;
+    console.log("🏷️  Assumed blog_images path:", s3Url);
+    return s3Url;
   };
 
   // Enhanced normalize entire blog post with ID fix
@@ -76,6 +116,7 @@ const Blog: React.FC = () => {
     const normalized = {
       ...post,
       id: postId, // Use our generated ID instead of null
+      // ✅ UPDATED: Use the corrected normalizeMediaUrl function
       featured_image: normalizeMediaUrl(post.featured_image),
       image_1: normalizeMediaUrl(post.image_1),
       image_2: normalizeMediaUrl(post.image_2),
@@ -183,23 +224,23 @@ const Blog: React.FC = () => {
   };
 
   const handleShare = (platform: string, post: any) => {
-  const url = `${window.location.origin}/blog/${post.slug}`;
-  const text = post.title;
-  const shareUrls: { [key: string]: string } = {
-    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-      url
-    )}`,
-    twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(
-      url
-    )}&text=${encodeURIComponent(text)}`,
-    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-      url
-    )}`,
-    google: `https://plus.google.com/share?url=${encodeURIComponent(url)}`,
+    const url = `${window.location.origin}/blog/${post.slug}`;
+    const text = post.title;
+    const shareUrls: { [key: string]: string } = {
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+        url
+      )}`,
+      twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(
+        url
+      )}&text=${encodeURIComponent(text)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+        url
+      )}`,
+      google: `https://plus.google.com/share?url=${encodeURIComponent(url)}`,
+    };
+    if (shareUrls[platform])
+      window.open(shareUrls[platform], "_blank", "width=600,height=400");
   };
-  if (shareUrls[platform])
-    window.open(shareUrls[platform], "_blank", "width=600,height=400");
-};
 
   if (isLoading) {
     return (
