@@ -1,4 +1,4 @@
-# hospital/views.py
+# hospital/views.py - COMPLETE UPDATED VERSION
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -367,33 +367,31 @@ class AvailableStaffView(generics.ListAPIView):
             user__is_active=True
         )
 
-# ---------------- Enhanced Blog Views with TOC ---------------- #
-# hospital/views.py - UPDATE BlogPostListCreateView
+# ==================== UPDATED BLOG VIEWS WITH PROPER SERIALIZERS ====================
 
 class BlogPostListCreateView(generics.ListCreateAPIView):
-    serializer_class = BlogPostListSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
-        user = self.request.user
-        if user.is_authenticated and hasattr(user, "profile") and user.profile.role == "ADMIN":
-            return BlogPost.objects.all()
-        return BlogPost.objects.filter(published=True)
-
-    def get_permissions(self):
-        if self.request.method == "POST":
-            return [permissions.IsAuthenticated(), IsRole()]
-        return [permissions.AllowAny()]
-
-    allowed_roles = ["ADMIN"]
+        # For GET requests, show published posts to everyone
+        if self.request.method == "GET":
+            return BlogPost.objects.filter(published=True)
+        # For POST requests, check authentication
+        return BlogPost.objects.all()
 
     def get_serializer_class(self):
         if self.request.method == "POST":
             return BlogPostCreateSerializer
         return BlogPostListSerializer
 
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [permissions.IsAuthenticated(), IsRole()]
+        return [permissions.AllowAny()]  # Allow anyone to view
+
     def perform_create(self, serializer):
-        if self.request.user.profile.role != "ADMIN":
+        profile = self.request.user.profile
+        if profile.role != "ADMIN":
             raise PermissionDenied("Only admins can create blog posts.")
         
         try:
@@ -408,7 +406,7 @@ class BlogPostListCreateView(generics.ListCreateAPIView):
                     print(f"⚠️  {field} not found in files")
             
             # Save the blog post
-            blog_post = serializer.save(author=self.request.user.profile)
+            blog_post = serializer.save(author=profile)
             
             print(f"✅ Blog post created: {blog_post.id}")
             print(f"📸 Images saved to model:")
@@ -416,10 +414,8 @@ class BlogPostListCreateView(generics.ListCreateAPIView):
             print(f"  - image_1: {blog_post.image_1}")
             print(f"  - image_2: {blog_post.image_2}")
 
-             # Force immediate S3 upload (optional)
-            # if blog_post.featured_image:
-            #     logger.info(f"Force uploading featured image: {blog_post.featured_image.name}")
-            #     _upload_image_to_s3(blog_post.featured_image, blog_post, 'featured_image')
+            # The signal handler will automatically upload images to S3
+            print(f"📤 Signal handler will upload images to S3 automatically")
             
             return blog_post
             
@@ -429,64 +425,34 @@ class BlogPostListCreateView(generics.ListCreateAPIView):
             traceback.print_exc()
             raise
 
-class BlogPostDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    - Anyone can view a blog post
-    - Only admins can update or delete
-    """
+class BlogPostRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = BlogPost.objects.all()
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     lookup_field = 'slug'
-    parser_classes = [MultiPartParser, FormParser, JSONParser]  # Add support for FormData
-
-    def get_permissions(self):
-        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
-            return [permissions.IsAuthenticated(), IsRole()]
-        return [permissions.AllowAny()]
-
-    allowed_roles = ['ADMIN']
 
     def get_serializer_class(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return BlogPostCreateSerializer
-        return BlogPostSerializer
+        if self.request.method == "GET":
+            return BlogPostSerializer
+        return BlogPostCreateSerializer
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated(), IsRole()]
 
     def perform_update(self, serializer):
         profile = self.request.user.profile
-        if profile.role != 'ADMIN':
+        if profile.role != "ADMIN":
             raise PermissionDenied("Only admins can update blog posts.")
         serializer.save()
 
     def perform_destroy(self, instance):
         profile = self.request.user.profile
-        if profile.role != 'ADMIN':
+        if profile.role != "ADMIN":
             raise PermissionDenied("Only admins can delete blog posts.")
         instance.delete()
 
-    def update(self, request, *args, **kwargs):
-        try:
-            # Handle FormData properly for updates
-            if request.content_type == 'multipart/form-data':
-                partial = kwargs.pop('partial', False)
-                instance = self.get_object()
-                serializer = self.get_serializer(instance, data=request.data, partial=partial)
-                serializer.is_valid(raise_exception=True)
-                self.perform_update(serializer)
-                return Response(serializer.data)
-            else:
-                # For JSON data, use the normal flow
-                return super().update(request, *args, **kwargs)
-        except Exception as e:
-            print(f"Error updating blog post: {str(e)}")
-            return Response(
-                {"error": "Failed to update blog post", "details": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-
 class BlogPostSearchView(generics.ListAPIView):
-    """
-    Public search for blog posts
-    """
     serializer_class = BlogPostListSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -501,11 +467,7 @@ class BlogPostSearchView(generics.ListAPIView):
             )
         return queryset.order_by('-created_at')
 
-
 class AdminBlogPostListView(generics.ListAPIView):
-    """
-    Admin-only view to see all posts (including unpublished)
-    """
     serializer_class = BlogPostListSerializer
     permission_classes = [permissions.IsAuthenticated, IsRole]
     allowed_roles = ['ADMIN']
@@ -513,9 +475,8 @@ class AdminBlogPostListView(generics.ListAPIView):
     def get_queryset(self):
         return BlogPost.objects.all().order_by('-created_at')
 
-# In hospital/views.py - Add debugging to BlogPostLatestView and Make sure we include unpublished posts for admins
 class BlogPostLatestView(generics.ListAPIView):
-    serializer_class = BlogPostSerializer
+    serializer_class = BlogPostListSerializer  # Changed from BlogPostSerializer to BlogPostListSerializer
     permission_classes = [permissions.AllowAny]
     
     def get_queryset(self):
@@ -541,10 +502,8 @@ class BlogPostLatestView(generics.ListAPIView):
             queryset = queryset.order_by('-created_at')
             
         return queryset[:limit]
+
 class BlogPostByAuthorView(generics.ListAPIView):
-    """
-    Get blog posts by specific author
-    """
     serializer_class = BlogPostListSerializer
     permission_classes = [permissions.AllowAny]
     
@@ -555,11 +514,7 @@ class BlogPostByAuthorView(generics.ListAPIView):
             published=True
         ).order_by('-published_date', '-created_at')
 
-
 class BlogStatsView(APIView):
-    """
-    Get blog statistics (admin only)
-    """
     permission_classes = [permissions.IsAuthenticated, IsRole]
     allowed_roles = ['ADMIN']
     

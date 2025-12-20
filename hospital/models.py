@@ -591,3 +591,135 @@ def ensure_blog_images_exist_in_s3(sender, instance, created, **kwargs):
                 
     except Exception as e:
         logger.error(f"ERROR in image check for blog {instance.id}: {e}")
+
+
+# Add this robust upload function to your models.py
+
+def upload_blog_image_to_s3(image_field, blog_post, field_name):
+    """Robust function to upload blog images to S3"""
+    import boto3
+    from django.conf import settings
+    import logging
+    from PIL import Image
+    import io
+    
+    logger = logging.getLogger(__name__)
+    
+    if not image_field or not image_field.name:
+        logger.warning(f"No image field for {field_name}")
+        return False
+    
+    try:
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION_NAME
+        )
+        
+        filename = image_field.name.split('/')[-1]
+        s3_key = f"media/{image_field.name}"
+        
+        # Check if already exists
+        try:
+            existing = s3.head_object(
+                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                Key=s3_key
+            )
+            metadata = existing.get('Metadata', {})
+            
+            # If it's an actual image (not placeholder), don't overwrite
+            if metadata.get('placeholder') != 'true':
+                logger.info(f"✅ Image already uploaded: {filename}")
+                return True
+        except:
+            pass  # File doesn't exist, continue with upload
+        
+        # Try to upload actual file
+        try:
+            if hasattr(image_field, 'file') and image_field.file:
+                image_field.open('rb')
+                image_data = image_field.read()
+                image_field.close()
+                
+                # Determine content type
+                if filename.lower().endswith('.png'):
+                    content_type = 'image/png'
+                elif filename.lower().endswith('.webp'):
+                    content_type = 'image/webp'
+                elif filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
+                    content_type = 'image/jpeg'
+                else:
+                    content_type = 'application/octet-stream'
+                
+                # Upload to S3
+                s3.put_object(
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                    Key=s3_key,
+                    Body=image_data,
+                    ContentType=content_type,
+                    ACL='public-read',
+                    Metadata={
+                        'blog_id': str(blog_post.id),
+                        'blog_title': blog_post.title[:100],
+                        'field': field_name,
+                        'actual_image': 'true',
+                        'uploaded_at': 'auto'
+                    }
+                )
+                
+                logger.info(f"✅ Uploaded actual image: {filename} ({len(image_data)} bytes)")
+                return True
+                
+        except Exception as upload_error:
+            logger.warning(f"⚠️ Could not upload actual image {filename}: {upload_error}")
+        
+        # Fallback: Create placeholder
+        logger.info(f"🔄 Creating placeholder for {filename}")
+        
+        # Create colored placeholder
+        colors = {
+            'featured_image': (73, 109, 137),  # Blue
+            'image_1': (109, 137, 73),         # Green
+            'image_2': (137, 73, 109),         # Purple
+        }
+        color = colors.get(field_name, (100, 100, 100))
+        
+        img = Image.new('RGB', (800, 600), color=color)
+        
+        # Save to bytes
+        buffer = io.BytesIO()
+        if filename.lower().endswith('.png'):
+            img.save(buffer, format='PNG')
+            content_type = 'image/png'
+        elif filename.lower().endswith('.webp'):
+            img.save(buffer, format='WEBP')
+            content_type = 'image/webp'
+        else:
+            img.save(buffer, format='JPEG')
+            content_type = 'image/jpeg'
+        
+        buffer.seek(0)
+        
+        # Upload placeholder
+        s3.put_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=s3_key,
+            Body=buffer.getvalue(),
+            ContentType=content_type,
+            ACL='public-read',
+            Metadata={
+                'blog_id': str(blog_post.id),
+                'blog_title': blog_post.title[:100],
+                'field': field_name,
+                'placeholder': 'true',
+                'auto_created': 'yes'
+            }
+        )
+        
+        logger.info(f"✅ Created placeholder: {filename}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to upload image {filename}: {e}")
+        return False

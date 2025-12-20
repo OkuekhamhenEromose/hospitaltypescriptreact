@@ -1,4 +1,4 @@
-# hospital/serializers.py
+# hospital/serializers.py - COMPLETE UPDATED VERSION
 from rest_framework import serializers
 from .models import (
     Appointment, Vitals, LabResult, MedicalReport, BlogPost,
@@ -6,6 +6,7 @@ from .models import (
 )
 from users.models import Profile
 from users.serializers import ProfileSerializer
+from django.conf import settings
 
 class TestRequestSerializer(serializers.ModelSerializer):
     assigned_to = serializers.PrimaryKeyRelatedField(
@@ -155,8 +156,6 @@ class AppointmentDetailSerializer(serializers.ModelSerializer):
 
 # ---------------- Enhanced Blog Serializers ---------------- #
 
-# ---------------- Blog Supporting Serializers ---------------- #
-
 class SubheadingSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     title = serializers.CharField()
@@ -164,106 +163,96 @@ class SubheadingSerializer(serializers.Serializer):
     description = serializers.CharField()
     full_content = serializers.CharField()
 
-
 class TOCSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     title = serializers.CharField()
     level = serializers.IntegerField()
     anchor = serializers.CharField()
 
-# hospital/serializers.py - UPDATED BlogPostListSerializer
+# ==================== UPDATED BLOG SERIALIZERS WITH PROPER S3 URLS ====================
 
 class BlogPostListSerializer(serializers.ModelSerializer):
     subheadings = serializers.SerializerMethodField()
-    featured_image = serializers.SerializerMethodField()
-    image_1 = serializers.SerializerMethodField()
-    image_2 = serializers.SerializerMethodField()
+    featured_image_url = serializers.SerializerMethodField()
+    image_1_url = serializers.SerializerMethodField()
+    image_2_url = serializers.SerializerMethodField()
+    author_name = serializers.CharField(source='author.fullname', read_only=True)
+    author_role = serializers.CharField(source='author.role', read_only=True)
     
     class Meta:
         model = BlogPost
         fields = [
-            "title", "slug", "description", "featured_image",
-            "image_1", "image_2", "published", "created_at",
-            "table_of_contents", "subheadings", "id"
+            "id", "title", "slug", "description", 
+            "featured_image_url", "image_1_url", "image_2_url",
+            "published", "created_at", "table_of_contents", 
+            "subheadings", "author_name", "author_role"
         ]
 
-    def _get_valid_image_url(self, image_field):
-        """Return URL - DO NOT CHECK S3 EXISTENCE"""
-        if not image_field:
-            return None
-        
-        try:
-            # Simply return the URL
-            url = image_field.url
-            # Ensure HTTPS
-            if url and url.startswith('http://'):
-                url = url.replace('http://', 'https://')
-            return url
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"ERROR getting image URL: {e}")
-            return None
-
-    def get_featured_image(self, obj):
-        return self._get_valid_image_url(obj.featured_image)
-
-    def get_image_1(self, obj):
-        return self._get_valid_image_url(obj.image_1)
-
-    def get_image_2(self, obj):
-        return self._get_valid_image_url(obj.image_2)
-    
     def get_subheadings(self, obj):
         return [
             {**s, "id": idx + 1} for idx, s in enumerate(obj.subheadings)
         ]
+    
+    def get_featured_image_url(self, obj):
+        if obj.featured_image:
+            # Return full S3 URL
+            return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.featured_image.name}"
+        return None
+    
+    def get_image_1_url(self, obj):
+        if obj.image_1:
+            return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.image_1.name}"
+        return None
+    
+    def get_image_2_url(self, obj):
+        if obj.image_2:
+            return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.image_2.name}"
+        return None
 
-# Also simplify BlogPostSerializer - REMOVE the complex image handling
 class BlogPostSerializer(serializers.ModelSerializer):
     table_of_contents = TOCSerializer(many=True, read_only=True)
     subheadings = SubheadingSerializer(many=True, read_only=True)
+    featured_image_url = serializers.SerializerMethodField()
+    image_1_url = serializers.SerializerMethodField()
+    image_2_url = serializers.SerializerMethodField()
+    author_name = serializers.CharField(source='author.fullname', read_only=True)
+    author_role = serializers.CharField(source='author.role', read_only=True)
     
-    featured_image = serializers.SerializerMethodField()
-    image_1 = serializers.SerializerMethodField()
-    image_2 = serializers.SerializerMethodField()
-    
-    author_name = serializers.SerializerMethodField()
-
     class Meta:
         model = BlogPost
-        fields = "__all__"
-        extra_fields = ['author_name']
+        fields = [
+            "id", "title", "description", "content", 
+            "author", "author_name", "author_role",
+            "featured_image", "image_1", "image_2",
+            "featured_image_url", "image_1_url", "image_2_url",
+            "published", "published_date", "created_at", "updated_at", 
+            "slug", "table_of_contents", "enable_toc", "subheadings"
+        ]
+        read_only_fields = ['slug', 'table_of_contents', 'subheadings', 'author']
 
-    def get_author_name(self, obj):
-        return obj.author.fullname
-
-    def _get_valid_image_url(self, image_field):
-        """Return URL - DO NOT CHECK S3 EXISTENCE"""
-        if not image_field:
-            return None
-        
-        try:
-            # Simply return the URL
-            url = image_field.url
-            # Ensure HTTPS
-            if url and url.startswith('http://'):
-                url = url.replace('http://', 'https://')
-            return url
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"ERROR getting image URL: {e}")
-            return None
-
-    def get_featured_image(self, obj):
-        return self._get_valid_image_url(obj.featured_image)
-
-    def get_image_1(self, obj):
-        return self._get_valid_image_url(obj.image_1)
-
-    def get_image_2(self, obj):
-        return self._get_valid_image_url(obj.image_2)
+    def get_featured_image_url(self, obj):
+        if obj.featured_image:
+            return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.featured_image.name}"
+        return None
+    
+    def get_image_1_url(self, obj):
+        if obj.image_1:
+            return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.image_1.name}"
+        return None
+    
+    def get_image_2_url(self, obj):
+        if obj.image_2:
+            return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.image_2.name}"
+        return None
+    
+    
+    def create(self, validated_data):
+        # Set the author to the current user
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            profile = request.user.profile
+            validated_data['author'] = profile
+        return super().create(validated_data)
 
 class BlogPostCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -282,7 +271,7 @@ class StaffProfileSerializer(serializers.ModelSerializer):
     
     def get_profile_pix(self, obj):
         if obj.profile_pix:
-            return obj.profile_pix.url
+            return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.profile_pix.name}"
         return None
 
 # Appointment assignment serializer
