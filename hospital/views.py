@@ -399,12 +399,27 @@ class BlogPostListCreateView(generics.ListCreateAPIView):
         try:
             print(f"📝 Creating blog post with data: {self.request.data}")
             print(f"📁 Files received: {self.request.FILES}")
+
+            # Check if images are present
+            for field in ['featured_image', 'image_1', 'image_2']:
+                if field in self.request.FILES:
+                    print(f"✅ {field} file found: {self.request.FILES[field].name} ({self.request.FILES[field].size} bytes)")
+                else:
+                    print(f"⚠️  {field} not found in files")
             
             # Save the blog post
             blog_post = serializer.save(author=self.request.user.profile)
             
             print(f"✅ Blog post created: {blog_post.id}")
-            print(f"📸 Images: featured={blog_post.featured_image}, image1={blog_post.image_1}, image2={blog_post.image_2}")
+            print(f"📸 Images saved to model:")
+            print(f"  - featured_image: {blog_post.featured_image}")
+            print(f"  - image_1: {blog_post.image_1}")
+            print(f"  - image_2: {blog_post.image_2}")
+
+             # Force immediate S3 upload (optional)
+            # if blog_post.featured_image:
+            #     logger.info(f"Force uploading featured image: {blog_post.featured_image.name}")
+            #     _upload_image_to_s3(blog_post.featured_image, blog_post, 'featured_image')
             
             return blog_post
             

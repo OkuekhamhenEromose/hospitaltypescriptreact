@@ -14,6 +14,7 @@ import io
 import hashlib
 import threading
 import logging
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -469,40 +470,12 @@ def _ensure_single_image_in_s3(image_field, instance, field_name):
         logger.error(f"❌ Error ensuring image {image_field.name}: {e}")
         return False
 
-@receiver(post_save, sender=BlogPost)
-def ensure_blog_images_exist_in_s3(sender, instance, created, **kwargs):
-    """
-    Automatically create missing blog images in S3
-    Runs after save to avoid conflicts
-    """
-    # Skip if running in test mode or migrations
-    if kwargs.get('raw', False):
-        return
-    
-    try:
-        # Log the images we have
-        logger.info(f"Checking images for blog {instance.id} - {instance.title}")
-        # Check each image field
-        image_fields = {
-            'featured_image': instance.featured_image,
-            'image_1': instance.image_1,
-            'image_2': instance.image_2
-        }
-        
-        for field_name, image_field in image_fields.items():
-            if image_field and image_field.name:
-                logger.info(f"  Found {field_name}: {image_field.name}")
-                
-                # Schedule background task to ensure image exists
-                threading.Thread(
-                    target=_ensure_single_image_in_s3,
-                    args=(image_field, instance, field_name),
-                    daemon=True
-                ).start()
-                
-    except Exception as e:
-        logger.error(f"ERROR in image check for blog {instance.id}: {e}")
-    """Background task to create placeholder if image doesn't exist"""
+# hospital/models.py - UPDATE the signal handler section
+
+# Replace the _upload_image_to_s3 function with this:
+
+def _upload_actual_image_to_s3(image_field, instance, field_name):
+    """Upload the actual image file to S3"""
     try:
         s3 = boto3.client(
             's3',
@@ -514,27 +487,39 @@ def ensure_blog_images_exist_in_s3(sender, instance, created, **kwargs):
         bucket_name = settings.AWS_STORAGE_BUCKET_NAME
         s3_key = f"media/{image_field.name}"
         
-        # Check if file exists
+        # First check if it's already uploaded (not a placeholder)
         try:
-            s3.head_object(Bucket=bucket_name, Key=s3_key)
-            logger.info(f"✅ Image exists: {image_field.name}")
-            return True
+            existing = s3.head_object(Bucket=bucket_name, Key=s3_key)
+            metadata = existing.get('Metadata', {})
+            
+            # If it's already an actual image (not placeholder), skip
+            if metadata.get('actual_image') == 'true' or metadata.get('placeholder') != 'true':
+                logger.info(f"✅ Actual image already exists: {image_field.name}")
+                return True
         except:
-            logger.info(f"⚠️ Creating placeholder for: {image_field.name}")
+            pass  # File doesn't exist, proceed with upload
+        
+        # Check if image_field has actual file data
+        if hasattr(image_field, 'file') and image_field.file:
+            logger.info(f"📤 Uploading actual image: {image_field.name}")
             
-            # Create placeholder image
-            if field_name == 'featured_image':
-                width, height = 800, 400
+            # Read the file
+            image_field.open('rb')
+            image_data = image_field.read()
+            image_field.close()
+            
+            # Determine content type
+            filename = image_field.name.lower()
+            if filename.endswith('.webp'):
+                content_type = 'image/webp'
+            elif filename.endswith('.png'):
+                content_type = 'image/png'
+            elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
+                content_type = 'image/jpeg'
             else:
-                width, height = 600, 400
+                content_type = 'application/octet-stream'
             
-            # Create unique placeholder
-            unique_id = f"blog_{instance.id}_{field_name}"
-            image_data, content_type = create_s3_placeholder_image(
-                unique_id, width, height
-            )
-            
-            # Upload to S3
+            # Upload actual image
             s3.put_object(
                 Bucket=bucket_name,
                 Key=s3_key,
@@ -543,14 +528,66 @@ def ensure_blog_images_exist_in_s3(sender, instance, created, **kwargs):
                 ACL='public-read',
                 Metadata={
                     'blog_id': str(instance.id),
-                    'placeholder': 'true'
+                    'blog_title': instance.title[:100],
+                    'field': field_name,
+                    'actual_image': 'true',
+                    'uploaded_at': datetime.now().isoformat()
                 }
             )
             
-            logger.info(f"✅ Created placeholder: {image_field.name}")
+            logger.info(f"✅ Uploaded actual image: {image_field.name} ({len(image_data)} bytes)")
             return True
+        else:
+            logger.warning(f"⚠️ No file data for {image_field.name}, creating placeholder")
+            # Fall back to placeholder if no actual file
+            return _ensure_single_image_in_s3(image_field, instance, field_name)
             
     except Exception as e:
-        logger.error(f"❌ Error ensuring image {image_field.name}: {e}")
+        logger.error(f"❌ Error uploading actual image {image_field.name}: {e}")
         return False
+
+@receiver(post_save, sender=BlogPost)
+def ensure_blog_images_exist_in_s3(sender, instance, created, **kwargs):
+    """
+    Automatically upload missing blog images to S3
+    Runs after save to avoid conflicts
+    """
+    # Skip if running in test mode or migrations
+    if kwargs.get('raw', False):
+        return
+    
+    try:
+        # Log the images we have
+        logger.info(f"Checking images for blog {instance.id} - {instance.title}")
         
+        # Check each image field
+        image_fields = {
+            'featured_image': instance.featured_image,
+            'image_1': instance.image_1,
+            'image_2': instance.image_2
+        }
+        
+        for field_name, image_field in image_fields.items():
+            if image_field and image_field.name:
+                logger.info(f"  Found {field_name}: {image_field.name}")
+                
+                # Check if the image has a file associated
+                if hasattr(image_field, 'file') and image_field.file:
+                    logger.info(f"  Image has file: {image_field.name}")
+                    # Schedule background task to upload image to S3
+                    threading.Thread(
+                        target=_upload_actual_image_to_s3,
+                        args=(image_field, instance, field_name),
+                        daemon=True
+                    ).start()
+                else:
+                    logger.info(f"  Image doesn't have file data: {image_field.name}")
+                    # Fall back to placeholder
+                    threading.Thread(
+                        target=_ensure_single_image_in_s3,
+                        args=(image_field, instance, field_name),
+                        daemon=True
+                    ).start()
+                
+    except Exception as e:
+        logger.error(f"ERROR in image check for blog {instance.id}: {e}")
