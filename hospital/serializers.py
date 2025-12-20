@@ -171,7 +171,7 @@ class TOCSerializer(serializers.Serializer):
     level = serializers.IntegerField()
     anchor = serializers.CharField()
 
-# hospital/serializers.py - FIXED BlogPostListSerializer
+# hospital/serializers.py - UPDATED BlogPostListSerializer
 
 class BlogPostListSerializer(serializers.ModelSerializer):
     subheadings = serializers.SerializerMethodField()
@@ -264,7 +264,6 @@ class BlogPostSerializer(serializers.ModelSerializer):
 
     def get_image_2(self, obj):
         return self._get_valid_image_url(obj.image_2)
-
 
 class BlogPostCreateSerializer(serializers.ModelSerializer):
     class Meta:
