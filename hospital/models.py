@@ -14,7 +14,7 @@ import io
 import hashlib
 import threading
 import logging
-import datetime
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -531,7 +531,7 @@ def _upload_actual_image_to_s3(image_field, instance, field_name):
                     'blog_title': instance.title[:100],
                     'field': field_name,
                     'actual_image': 'true',
-                    'uploaded_at': datetime.now().isoformat()
+                    'uploaded_at': datetime.now().isoformat()  # FIXED
                 }
             )
             
@@ -723,3 +723,97 @@ def upload_blog_image_to_s3(image_field, blog_post, field_name):
     except Exception as e:
         logger.error(f"❌ Failed to upload image {filename}: {e}")
         return False
+    
+# hospital/models.py - Add this simple upload function
+
+def upload_image_to_s3_simple(image_field, blog_post, field_name):
+    """Simple, reliable image upload to S3"""
+    import boto3
+    from django.conf import settings
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    if not image_field or not image_field.name:
+        return False
+    
+    try:
+        # Setup S3 client
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION_NAME
+        )
+        
+        bucket_name = settings.AWS_STORAGE_BUCKET_NAME
+        s3_key = f"media/{image_field.name}"
+        
+        # Read file content
+        image_field.open('rb')
+        file_content = image_field.read()
+        image_field.close()
+        
+        # Get file size and type
+        file_size = len(file_content)
+        
+        # Determine content type from filename
+        filename = image_field.name.lower()
+        if filename.endswith('.png'):
+            content_type = 'image/png'
+        elif filename.endswith('.webp'):
+            content_type = 'image/webp'
+        elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
+            content_type = 'image/jpeg'
+        else:
+            content_type = 'application/octet-stream'
+        
+        # Upload to S3
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=s3_key,
+            Body=file_content,
+            ContentType=content_type,
+            ACL='public-read',
+            Metadata={
+                'blog_id': str(blog_post.id),
+                'blog_title': blog_post.title[:100],
+                'field': field_name,
+                'actual_image': 'true',
+                'uploaded_at': datetime.now().isoformat()
+            }
+        )
+        
+        logger.info(f"✅ Successfully uploaded {image_field.name} ({file_size} bytes)")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to upload {image_field.name}: {str(e)}")
+        return False
+    
+@receiver(post_save, sender=BlogPost)
+def handle_blog_post_save(sender, instance, created, **kwargs):
+    """Handle blog post save and upload images to S3"""
+    if kwargs.get('raw', False) or kwargs.get('update_fields'):
+        return
+    
+    logger.info(f"📝 Processing images for blog post: {instance.id} - {instance.title}")
+    
+    # List of image fields to process
+    image_fields = [
+        ('featured_image', instance.featured_image),
+        ('image_1', instance.image_1),
+        ('image_2', instance.image_2)
+    ]
+    
+    for field_name, image_field in image_fields:
+        if image_field and image_field.name:
+            logger.info(f"  Processing {field_name}: {image_field.name}")
+            
+            # Upload image to S3 in a background thread
+            import threading
+            threading.Thread(
+                target=upload_image_to_s3_simple,
+                args=(image_field, instance, field_name),
+                daemon=True
+            ).start()

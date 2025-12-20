@@ -232,17 +232,26 @@ class BlogPostSerializer(serializers.ModelSerializer):
 
     def get_featured_image_url(self, obj):
         if obj.featured_image:
-            return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.featured_image.name}"
+            try:
+                return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.featured_image.name}"
+            except:
+                return None
         return None
     
     def get_image_1_url(self, obj):
         if obj.image_1:
-            return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.image_1.name}"
+            try:
+                return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.image_1.name}"
+            except:
+                return None
         return None
     
     def get_image_2_url(self, obj):
         if obj.image_2:
-            return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.image_2.name}"
+            try:
+                return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.image_2.name}"
+            except:
+                return None
         return None
     
     
