@@ -1,58 +1,53 @@
-# hospital/urls.py
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+# hospital/urls.py - COMPLETE WORKING VERSION
+from django.urls import path
 from . import views
 
-router = DefaultRouter()
-router.register(r'assignments', views.AssignmentViewSet, basename='assignment')
+app_name = 'hospital'
 
 urlpatterns = [
-    # Appointments
+    # Appointment URLs
     path('appointments/', views.AppointmentListView.as_view(), name='appointment-list'),
     path('appointments/create/', views.AppointmentCreateView.as_view(), name='appointment-create'),
     path('appointments/<int:pk>/', views.AppointmentDetailView.as_view(), name='appointment-detail'),
     
-    # Patients
-    path('patients/', views.PatientListView.as_view(), name='patients-list'),
-
-    # Test Requests
-    path('test-requests/', views.TestRequestListView.as_view(), name='testrequest-list'),
-    path('test-requests/create/', views.TestRequestCreateView.as_view(), name='testrequest-create'),
-
-    # Vital Requests
-    path('vital-requests/', views.VitalRequestListView.as_view(), name='vitalrequest-list'),
-    path('vital-requests/create/', views.VitalRequestCreateView.as_view(), name='vitalrequest-create'),
-
-    # Nurse posts vitals
-    path('vitals/create/', views.VitalsCreateView.as_view(), name='vitals-create'),
-
-    # Lab posts results
-    path('lab-results/create/', views.LabResultCreateView.as_view(), name='labresult-create'),
-
-    # Doctor posts final report
-    path('medical-reports/create/', views.MedicalReportCreateView.as_view(), name='medicalreport-create'),
+    # Assignment URLs
+    path('assignments/', views.AssignmentViewSet.as_view({'get': 'list', 'post': 'create'}), name='assignment-list'),
+    path('assignments/<int:pk>/', views.AssignmentViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='assignment-detail'),
+    path('assignments/appointment/<int:appointment_id>/', views.AppointmentAssignmentsView.as_view(), name='appointment-assignments'),
+    path('assignments/available-staff/', views.AvailableStaffView.as_view(), name='available-staff'),
+    path('assignments/assign-staff/', views.AssignStaffView.as_view(), name='assign-staff'),
     
-    # Staff
+    # Patient URLs
+    path('patients/', views.PatientListView.as_view(), name='patient-list'),
+    
+    # Test Request URLs
+    path('test-requests/', views.TestRequestListView.as_view(), name='test-request-list'),
+    path('test-requests/create/', views.TestRequestCreateView.as_view(), name='test-request-create'),
+    
+    # Vital Request URLs
+    path('vital-requests/', views.VitalRequestListView.as_view(), name='vital-request-list'),
+    path('vital-requests/create/', views.VitalRequestCreateView.as_view(), name='vital-request-create'),
+    
+    # Vitals URLs
+    path('vitals/create/', views.VitalsCreateView.as_view(), name='vitals-create'),
+    
+    # Lab Result URLs
+    path('lab-results/create/', views.LabResultCreateView.as_view(), name='lab-result-create'),
+    
+    # Medical Report URLs
+    path('medical-reports/create/', views.MedicalReportCreateView.as_view(), name='medical-report-create'),
+    
+    # Staff URLs
     path('staff/', views.StaffListView.as_view(), name='staff-list'),
     
-    # Staff Availability - ADD THESE LINES
-    path('assignments/available-staff/', views.AvailableStaffView.as_view(), name='available-staff'),
-    path('assignments/appointment/<int:appointment_id>/', 
-         views.AppointmentAssignmentsView.as_view(),
-         name='appointment-assignments'),
-    path('assignments/assign-staff/', views.AssignStaffView.as_view(), name='assign-staff'),
-
-    # Blog
+    # Blog URLs - UPDATED WITH CORRECT VIEW NAMES
     path('blog/', views.BlogPostListCreateView.as_view(), name='blog-list-create'),
+    path('blog/<slug:slug>/', views.BlogPostRetrieveUpdateDestroyView.as_view(), name='blog-detail'),
     path('blog/search/', views.BlogPostSearchView.as_view(), name='blog-search'),
     path('blog/latest/', views.BlogPostLatestView.as_view(), name='blog-latest'),
     path('blog/author/<int:author_id>/', views.BlogPostByAuthorView.as_view(), name='blog-by-author'),
-    path('blog/<slug:slug>/', views.BlogPostDetailView.as_view(), name='blog-detail'),
     
     # Admin blog endpoints
-    path('blog/admin/all/', views.AdminBlogPostListView.as_view(), name='blog-admin-all'),
+    path('blog/admin/all/', views.AdminBlogPostListView.as_view(), name='admin-blog-all'),
     path('blog/admin/stats/', views.BlogStatsView.as_view(), name='blog-stats'),
-    
-    # Include router URLs at the end
-    path('', include(router.urls)),
 ]
