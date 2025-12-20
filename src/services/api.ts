@@ -10,32 +10,35 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 // 🔥 MEDIA URL FIX
 // ======================================
 
-const normalizeMediaUrl = (url: string | null) => {
-  if (!url) return null;
-  
-  console.log("📸 Processing image URL:", url);
-
-  // If it's already a full URL
-  if (url.startsWith('http')) {
-    // Ensure HTTPS for S3 URLs
-    if (url.includes('s3.amazonaws.com') && url.startsWith('http://')) {
-      return url.replace('http://', 'https://');
+const normalizeMediaUrl = (path: string | null) => {
+    if (!path) {
+        console.log("⚠️ No image path provided");
+        return "https://etha-hospital.s3.eu-north-1.amazonaws.com/media/placeholder.jpg";
     }
-    return url;
-  }
 
-  // If it's a relative path starting with /media/
-  if (url.startsWith('/media/')) {
-    return `https://etha-hospital.s3.eu-north-1.amazonaws.com${url}`;
-  }
+    console.log("🖼️ Raw URL from API:", path);
 
-  // If it's a path like "blog_images/apple1.jpg"
-  if (url.includes('/')) {
-    return `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${url}`;
-  }
+    // If it's already a full URL
+    if (path.startsWith("http")) {
+        console.log("✅ Already HTTP URL");
+        return path;
+    }
 
-  // Default
-  return `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/blog_images/${url}`;
+    // For S3 paths, ensure they have the full URL
+    if (path.includes("s3.amazonaws.com") && !path.startsWith("http")) {
+        return `https://${path}`;
+    }
+
+    // For relative paths
+    if (path.startsWith("blog_images/") || path.includes("/")) {
+        // Remove any leading slashes
+        const cleanPath = path.replace(/^\//, '');
+        return `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${cleanPath}`;
+    }
+
+    // Default fallback to placeholder
+    console.log("⚠️ Using default placeholder for:", path);
+    return "https://etha-hospital.s3.eu-north-1.amazonaws.com/media/placeholder.jpg";
 };
 
 // ======================================
