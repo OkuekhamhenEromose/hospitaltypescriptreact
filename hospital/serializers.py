@@ -183,6 +183,9 @@ class BlogPostListSerializer(serializers.ModelSerializer):
         model = BlogPost
         fields = [
             "id", "title", "slug", "description", 
+            # ✅ ADD THESE RAW IMAGE FIELDS
+            "featured_image", "image_1", "image_2",
+            # ✅ KEEP THE URL FIELDS
             "featured_image_url", "image_1_url", "image_2_url",
             "published", "created_at", "table_of_contents", 
             "subheadings", "author_name", "author_role"
@@ -210,7 +213,6 @@ class BlogPostListSerializer(serializers.ModelSerializer):
             try:
                 return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.image_1.name}"
             except:
-                # Fallback if settings not available
                 if hasattr(obj.image_1, 'url'):
                     return obj.image_1.url
                 return None
@@ -221,7 +223,6 @@ class BlogPostListSerializer(serializers.ModelSerializer):
             try:
                 return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/media/{obj.image_2.name}"
             except:
-                # Fallback if settings not available
                 if hasattr(obj.image_2, 'url'):
                     return obj.image_2.url
                 return None
