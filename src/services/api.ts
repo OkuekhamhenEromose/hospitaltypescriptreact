@@ -10,35 +10,20 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 // 🔥 MEDIA URL FIX
 // ======================================
 
-const normalizeMediaUrl = (path: string | null) => {
-    if (!path) {
-        console.log("⚠️ No image path provided");
-        return "https://etha-hospital.s3.eu-north-1.amazonaws.com/media/placeholder.jpg";
-    }
-
-    console.log("🖼️ Raw URL from API:", path);
-
-    // If it's already a full URL
-    if (path.startsWith("http")) {
-        console.log("✅ Already HTTP URL");
-        return path;
-    }
-
-    // For S3 paths, ensure they have the full URL
-    if (path.includes("s3.amazonaws.com") && !path.startsWith("http")) {
-        return `https://${path}`;
-    }
-
-    // For relative paths
-    if (path.startsWith("blog_images/") || path.includes("/")) {
-        // Remove any leading slashes
-        const cleanPath = path.replace(/^\//, '');
-        return `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${cleanPath}`;
-    }
-
-    // Default fallback to placeholder
-    console.log("⚠️ Using default placeholder for:", path);
-    return "https://etha-hospital.s3.eu-north-1.amazonaws.com/media/placeholder.jpg";
+// In api.ts - FIX THE normalizeMediaUrl function:
+const normalizeMediaUrl = (url: string | null) => {
+  if (!url) return null;
+  
+  // If it's already a full URL, return as-is
+  if (url.startsWith('http')) return url;
+  
+  // For paths like "blog_images/filename.jpg"
+  if (url.startsWith('blog_images/')) {
+    return `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${url}`;
+  }
+  
+  // Default fallback
+  return `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/blog_images/${url}`;
 };
 
 // ======================================

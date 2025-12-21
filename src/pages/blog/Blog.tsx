@@ -27,51 +27,34 @@ const Blog: React.FC = () => {
 
   const normalizeMediaUrl = (path: string | null) => {
     if (!path) {
-      console.log("❌ No image URL");
-      return null;
+        console.log("⚠️ No image path provided");
+        return null; // Return null, not placeholder
     }
 
     console.log("🖼️ Raw URL from API:", path);
 
-    // If it's already a full HTTP URL
+    // If it's already a full URL
     if (path.startsWith("http")) {
-      console.log("✅ Already HTTP URL");
-      // Ensure HTTPS for S3 URLs
-      if (path.includes("s3.amazonaws.com") && path.startsWith("http://")) {
-        const httpsUrl = path.replace("http://", "https://");
-        console.log("🔗 Converted to HTTPS:", httpsUrl);
-        return httpsUrl;
-      }
-      return path;
+        console.log("✅ Already HTTP URL");
+        return path;
     }
 
-    // Check if it's an S3 path without protocol
-    if (path.includes("s3.amazonaws.com")) {
-      const fullUrl = `https://${path}`;
-      console.log("🔗 Added https:// to S3 URL:", fullUrl);
-      return fullUrl;
+    // For S3 paths, ensure they have the full URL
+    if (path.includes("s3.amazonaws.com") && !path.startsWith("http")) {
+        return `https://${path}`;
     }
 
-    // If it's a relative path starting with /media/
-    if (path.startsWith("/media/")) {
-      const s3Url = `https://etha-hospital.s3.eu-north-1.amazonaws.com${path}`;
-      console.log("🔄 Converted /media/ to S3:", s3Url);
-      return s3Url;
+    // For relative paths
+    if (path.startsWith("blog_images/") || path.includes("/")) {
+        // Remove any leading slashes
+        const cleanPath = path.replace(/^\//, '');
+        return `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${cleanPath}`;
     }
 
-    // If it's just a filename like "blog_images/apple1.jpg"
-    if (path.includes("/")) {
-      // It already has a path like "blog_images/apple1.jpg"
-      const s3Url = `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${path}`;
-      console.log("📁 Added /media/ prefix to path:", s3Url);
-      return s3Url;
-    }
-
-    // Default fallback: assume it's just a filename
-    const s3Url = `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/blog_images/${path}`;
-    console.log("🏷️  Assumed blog_images path:", s3Url);
-    return s3Url;
-  };
+    // Default fallback
+    console.log("⚠️ Using default placeholder for:", path);
+    return null; // Return null, not placeholder
+};
 
   // Enhanced normalize entire blog post with ID fix
   const normalizeBlogPost = (post: any, index: number) => {
