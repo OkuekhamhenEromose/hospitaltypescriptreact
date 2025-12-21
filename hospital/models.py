@@ -1,4 +1,4 @@
-# hospital/models.py - COMPLETE UPDATED VERSION
+# hospital/models.py - CLEANED VERSION (Remove duplicates)
 from django.db import models
 from django.utils import timezone
 from users.models import Profile
@@ -35,13 +35,12 @@ REQUEST_STATUS = (
     ('CANCELLED', 'Cancelled'),
 )
 
-# ==================== HELPER FUNCTIONS FOR AUTO-IMAGE CREATION ====================
+# ==================== HELPER FUNCTIONS ====================
 
 def create_s3_placeholder_image(text, width=800, height=400, img_format='JPEG'):
     """
     Create a colored placeholder image for S3
     """
-    # Generate consistent color from text
     color_hash = hashlib.md5(text.encode()).hexdigest()[:6]
     img = Image.new('RGB', (width, height), color=f'#{color_hash}')
     
@@ -60,76 +59,6 @@ def create_s3_placeholder_image(text, width=800, height=400, img_format='JPEG'):
     buffer.seek(0)
     return buffer.getvalue(), content_type
 
-def ensure_image_in_s3(image_field, instance, field_name):
-    """
-    Check if image exists in S3, create placeholder if missing
-    Runs in background thread
-    """
-    if not image_field or not image_field.name:
-        return
-    
-    try:
-        # Setup S3 client
-        s3 = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_S3_REGION_NAME
-        )
-        bucket_name = settings.AWS_STORAGE_BUCKET_NAME
-        
-        s3_key = f"media/{image_field.name}"
-        
-        # Check if file exists in S3
-        try:
-            s3.head_object(Bucket=bucket_name, Key=s3_key)
-            logger.info(f"✅ Image already exists in S3: {image_field.name}")
-            return
-        except:
-            logger.info(f"⚠️  Creating placeholder for missing image: {image_field.name}")
-            
-            # Determine image size based on field
-            if field_name == 'featured_image':
-                width, height = 800, 400
-            else:  # image_1 or image_2
-                width, height = 400, 300
-            
-            # Determine format from filename
-            filename = image_field.name
-            if filename.lower().endswith('.webp'):
-                img_format = 'WEBP'
-            elif filename.lower().endswith('.png'):
-                img_format = 'PNG'
-            else:
-                img_format = 'JPEG'
-            
-            # Create unique identifier for color
-            unique_id = f"blog_{instance.id}_{field_name}_{instance.title[:50]}"
-            image_data, content_type = create_s3_placeholder_image(
-                unique_id, width, height, img_format
-            )
-            
-            # Upload to S3
-            s3.put_object(
-                Bucket=bucket_name,
-                Key=s3_key,
-                Body=image_data,
-                ContentType=content_type,
-                ACL='public-read',
-                Metadata={
-                    'blog_id': str(instance.id),
-                    'blog_title': instance.title[:100],
-                    'field': field_name,
-                    'placeholder': 'true',
-                    'auto_created': 'yes'
-                }
-            )
-            
-            logger.info(f"✅ Created placeholder in S3: {image_field.name} ({len(image_data)} bytes)")
-            
-    except Exception as e:
-        logger.error(f"❌ Error ensuring image {image_field.name}: {e}")
-
 # ==================== MAIN MODELS ====================
 
 class Appointment(models.Model):
@@ -147,22 +76,18 @@ class Appointment(models.Model):
         return f"Appointment {self.id} - {self.name}"
 
     def assign_doctor(self):
-        """Automatically assign an available doctor to this appointment"""
         if self.doctor:
-            return  # Already assigned
+            return
             
-        # Get all available doctors
         available_doctors = Profile.objects.filter(role='DOCTOR', user__is_active=True)
         
         if available_doctors.exists():
-            # Assign a random doctor (you can modify this logic for load balancing)
             assigned_doctor = random.choice(list(available_doctors))
             self.doctor = assigned_doctor
             self.save()
             print(f"Assigned doctor {assigned_doctor.fullname} to appointment {self.id}")
 
     def save(self, *args, **kwargs):
-        # Call assign_doctor after saving if no doctor is assigned
         is_new = self.pk is None
         super().save(*args, **kwargs)
         
@@ -181,26 +106,22 @@ class Assignment(models.Model):
         unique_together = ['appointment', 'staff', 'role']
           
 class TestRequest(models.Model):
-    """Created by doctor, assigned to a lab scientist (or left unassigned)."""
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='test_requests')
-    requested_by = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name='test_requests_made')  # doctor
-    assigned_to = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name='test_requests_assigned')  # lab scientist
-    tests = models.TextField(help_text="Comma-separated test list or JSON")  # e.g. "glucose,blood count,urinalysis"
+    requested_by = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name='test_requests_made')
+    assigned_to = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name='test_requests_assigned')
+    tests = models.TextField(help_text="Comma-separated test list or JSON")
     note = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=REQUEST_STATUS, default='PENDING')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def assign_lab_scientist(self):
-        """Automatically assign an available lab scientist to this test request"""
         if self.assigned_to:
-            return  # Already assigned
+            return
             
-        # Get all available lab scientists
         available_lab_scientists = Profile.objects.filter(role='LAB', user__is_active=True)
         
         if available_lab_scientists.exists():
-            # Assign a random lab scientist
             assigned_scientist = random.choice(list(available_lab_scientists))
             self.assigned_to = assigned_scientist
             self.save()
@@ -212,40 +133,32 @@ class TestRequest(models.Model):
         
         if is_new and not self.assigned_to:
             self.assign_lab_scientist()
-
-         # Update appointment status when test request is completed
+            
         if not is_new and self.status == 'DONE':
-            # Check if we have both vitals and test results
             appointment = self.appointment
             has_vitals = appointment.vital_requests.filter(status='DONE').exists()
             has_all_tests = appointment.test_requests.filter(status='PENDING').exists()
             
             if has_vitals and not has_all_tests:
-                # Both vitals and tests are done, ready for doctor review
                 appointment.status = 'IN_REVIEW'
                 appointment.save()
 
-
 class VitalRequest(models.Model):
-    """Created by doctor, assigned to a nurse (or left unassigned)."""
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='vital_requests')
-    requested_by = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name='vital_requests_made')  # doctor
-    assigned_to = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name='vital_requests_assigned')  # nurse
+    requested_by = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name='vital_requests_made')
+    assigned_to = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name='vital_requests_assigned')
     note = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=REQUEST_STATUS, default='PENDING')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def assign_nurse(self):
-        """Automatically assign an available nurse to this vital request"""
         if self.assigned_to:
-            return  # Already assigned
+            return
             
-        # Get all available nurses
         available_nurses = Profile.objects.filter(role='NURSE', user__is_active=True)
         
         if available_nurses.exists():
-            # Assign a random nurse
             assigned_nurse = random.choice(list(available_nurses))
             self.assigned_to = assigned_nurse
             self.save()
@@ -257,11 +170,9 @@ class VitalRequest(models.Model):
         
         if is_new and not self.assigned_to:
             self.assign_nurse()
-
-         # Update appointment status when vital request is completed
+            
         if not is_new and self.status == 'DONE':
             appointment = self.appointment
-            # If tests are also done, mark as in review
             pending_tests = appointment.test_requests.filter(status='PENDING').exists()
             if not pending_tests:
                 appointment.status = 'IN_REVIEW'
@@ -272,7 +183,7 @@ class Vitals(models.Model):
         VitalRequest,
         on_delete=models.CASCADE,
         related_name='vitals_entries',
-        null=True,  # allow null for existing rows
+        null=True,
         blank=True
     )
     nurse = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name='vitals_recorded')
@@ -285,10 +196,9 @@ class Vitals(models.Model):
     recorded_at = models.DateTimeField(auto_now_add=True)
 
 class LabResult(models.Model):
-    # Link lab result to a TestRequest
     test_request = models.ForeignKey(TestRequest, on_delete=models.CASCADE, related_name='lab_results', null=True, blank=True)
     lab_scientist = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name='lab_results_posted')
-    test_name = models.CharField(max_length=255)  # e.g. "glucose"
+    test_name = models.CharField(max_length=255)
     result = models.TextField(blank=True, null=True)
     units = models.CharField(max_length=50, blank=True, null=True)
     reference_range = models.CharField(max_length=100, blank=True, null=True)
@@ -305,12 +215,11 @@ class MedicalReport(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # mark appointment completed when report is created
         appt = self.appointment
         appt.status = 'COMPLETED'
         appt.save()
 
-# ==================== BLOG POST MODEL WITH AUTO-IMAGE FIX ====================
+# ==================== BLOG POST MODEL ====================
 
 class BlogPost(models.Model):
     title = models.CharField(max_length=200)
@@ -329,7 +238,6 @@ class BlogPost(models.Model):
 
     slug = models.SlugField(max_length=200, unique=True, blank=True)
 
-    # Table of Contents + auto extracted subheadings
     table_of_contents = models.JSONField(default=list, blank=True)
     enable_toc = models.BooleanField(default=True)
     subheadings = models.JSONField(default=list, blank=True)
@@ -341,15 +249,12 @@ class BlogPost(models.Model):
         return self.title
 
     def save(self, *args, **kwargs):
-        # Set published date
         if self.published and not self.published_date:
             self.published_date = timezone.now()
 
-        # Auto slug
         if not self.slug:
             self.slug = slugify(self.title)
 
-        # Generate TOC + subheadings
         if self.content:
             if self.enable_toc:
                 self.generate_table_of_contents()
@@ -357,9 +262,6 @@ class BlogPost(models.Model):
 
         super().save(*args, **kwargs)
 
-    # ------------------------------
-    # TABLE OF CONTENTS GENERATOR
-    # ------------------------------
     def generate_table_of_contents(self):
         import re
 
@@ -379,9 +281,6 @@ class BlogPost(models.Model):
 
         self.table_of_contents = toc_items
 
-    # ------------------------------
-    # SUBHEADINGS EXTRACTOR
-    # ------------------------------
     def extract_subheadings(self):
         import re
 
@@ -402,7 +301,6 @@ class BlogPost(models.Model):
                     "full_content": section_body.strip()
                 })
         else:
-            # fallback using description
             if self.description:
                 lines = self.description.split(". ")[:2]
                 for i, line in enumerate(lines):
@@ -415,326 +313,19 @@ class BlogPost(models.Model):
 
         self.subheadings = structured[:6]
 
-# ==================== SIGNAL HANDLER FOR AUTO-IMAGE CREATION ====================
-
-def _ensure_single_image_in_s3(image_field, instance, field_name):
-    """Background task to create placeholder if image doesn't exist"""
-    try:
-        s3 = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_S3_REGION_NAME
-        )
-        
-        bucket_name = settings.AWS_STORAGE_BUCKET_NAME
-        s3_key = f"media/{image_field.name}"
-        
-        # Check if file exists
-        try:
-            s3.head_object(Bucket=bucket_name, Key=s3_key)
-            logger.info(f"✅ Image exists: {image_field.name}")
-            return True
-        except:
-            logger.info(f"⚠️ Creating placeholder for: {image_field.name}")
-            
-            # Create placeholder image
-            if field_name == 'featured_image':
-                width, height = 800, 400
-            else:
-                width, height = 600, 400
-            
-            # Create unique placeholder
-            unique_id = f"blog_{instance.id}_{field_name}"
-            image_data, content_type = create_s3_placeholder_image(
-                unique_id, width, height
-            )
-            
-            # Upload to S3
-            s3.put_object(
-                Bucket=bucket_name,
-                Key=s3_key,
-                Body=image_data,
-                ContentType=content_type,
-                ACL='public-read',
-                Metadata={
-                    'blog_id': str(instance.id),
-                    'placeholder': 'true'
-                }
-            )
-            
-            logger.info(f"✅ Created placeholder: {image_field.name}")
-            return True
-            
-    except Exception as e:
-        logger.error(f"❌ Error ensuring image {image_field.name}: {e}")
-        return False
-
-# hospital/models.py - UPDATE the signal handler section
-
-# Replace the _upload_image_to_s3 function with this:
-
-def _upload_actual_image_to_s3(image_field, instance, field_name):
-    """Upload the actual image file to S3"""
-    try:
-        s3 = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_S3_REGION_NAME
-        )
-        
-        bucket_name = settings.AWS_STORAGE_BUCKET_NAME
-        s3_key = f"media/{image_field.name}"
-        
-        # First check if it's already uploaded (not a placeholder)
-        try:
-            existing = s3.head_object(Bucket=bucket_name, Key=s3_key)
-            metadata = existing.get('Metadata', {})
-            
-            # If it's already an actual image (not placeholder), skip
-            if metadata.get('actual_image') == 'true' or metadata.get('placeholder') != 'true':
-                logger.info(f"✅ Actual image already exists: {image_field.name}")
-                return True
-        except:
-            pass  # File doesn't exist, proceed with upload
-        
-        # Check if image_field has actual file data
-        if hasattr(image_field, 'file') and image_field.file:
-            logger.info(f"📤 Uploading actual image: {image_field.name}")
-            
-            # Read the file
-            image_field.open('rb')
-            image_data = image_field.read()
-            image_field.close()
-            
-            # Determine content type
-            filename = image_field.name.lower()
-            if filename.endswith('.webp'):
-                content_type = 'image/webp'
-            elif filename.endswith('.png'):
-                content_type = 'image/png'
-            elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
-                content_type = 'image/jpeg'
-            else:
-                content_type = 'application/octet-stream'
-            
-            # Upload actual image
-            s3.put_object(
-                Bucket=bucket_name,
-                Key=s3_key,
-                Body=image_data,
-                ContentType=content_type,
-                ACL='public-read',
-                Metadata={
-                    'blog_id': str(instance.id),
-                    'blog_title': instance.title[:100],
-                    'field': field_name,
-                    'actual_image': 'true',
-                    'uploaded_at': datetime.now().isoformat()  # FIXED
-                }
-            )
-            
-            logger.info(f"✅ Uploaded actual image: {image_field.name} ({len(image_data)} bytes)")
-            return True
-        else:
-            logger.warning(f"⚠️ No file data for {image_field.name}, creating placeholder")
-            # Fall back to placeholder if no actual file
-            return _ensure_single_image_in_s3(image_field, instance, field_name)
-            
-    except Exception as e:
-        logger.error(f"❌ Error uploading actual image {image_field.name}: {e}")
-        return False
-
-@receiver(post_save, sender=BlogPost)
-def ensure_blog_images_exist_in_s3(sender, instance, created, **kwargs):
-    """
-    Automatically upload missing blog images to S3
-    Runs after save to avoid conflicts
-    """
-    # Skip if running in test mode or migrations
-    if kwargs.get('raw', False):
-        return
-    
-    try:
-        # Log the images we have
-        logger.info(f"Checking images for blog {instance.id} - {instance.title}")
-        
-        # Check each image field
-        image_fields = {
-            'featured_image': instance.featured_image,
-            'image_1': instance.image_1,
-            'image_2': instance.image_2
-        }
-        
-        for field_name, image_field in image_fields.items():
-            if image_field and image_field.name:
-                logger.info(f"  Found {field_name}: {image_field.name}")
-                
-                # Check if the image has a file associated
-                if hasattr(image_field, 'file') and image_field.file:
-                    logger.info(f"  Image has file: {image_field.name}")
-                    # Schedule background task to upload image to S3
-                    threading.Thread(
-                        target=_upload_actual_image_to_s3,
-                        args=(image_field, instance, field_name),
-                        daemon=True
-                    ).start()
-                else:
-                    logger.info(f"  Image doesn't have file data: {image_field.name}")
-                    # Fall back to placeholder
-                    threading.Thread(
-                        target=_ensure_single_image_in_s3,
-                        args=(image_field, instance, field_name),
-                        daemon=True
-                    ).start()
-                
-    except Exception as e:
-        logger.error(f"ERROR in image check for blog {instance.id}: {e}")
-
-
-# Add this robust upload function to your models.py
-
-def upload_blog_image_to_s3(image_field, blog_post, field_name):
-    """Robust function to upload blog images to S3"""
-    import boto3
-    from django.conf import settings
-    import logging
-    from PIL import Image
-    import io
-    
-    logger = logging.getLogger(__name__)
-    
-    if not image_field or not image_field.name:
-        logger.warning(f"No image field for {field_name}")
-        return False
-    
-    try:
-        s3 = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_S3_REGION_NAME
-        )
-        
-        filename = image_field.name.split('/')[-1]
-        s3_key = f"media/{image_field.name}"
-        
-        # Check if already exists
-        try:
-            existing = s3.head_object(
-                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                Key=s3_key
-            )
-            metadata = existing.get('Metadata', {})
-            
-            # If it's an actual image (not placeholder), don't overwrite
-            if metadata.get('placeholder') != 'true':
-                logger.info(f"✅ Image already uploaded: {filename}")
-                return True
-        except:
-            pass  # File doesn't exist, continue with upload
-        
-        # Try to upload actual file
-        try:
-            if hasattr(image_field, 'file') and image_field.file:
-                image_field.open('rb')
-                image_data = image_field.read()
-                image_field.close()
-                
-                # Determine content type
-                if filename.lower().endswith('.png'):
-                    content_type = 'image/png'
-                elif filename.lower().endswith('.webp'):
-                    content_type = 'image/webp'
-                elif filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
-                    content_type = 'image/jpeg'
-                else:
-                    content_type = 'application/octet-stream'
-                
-                # Upload to S3
-                s3.put_object(
-                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                    Key=s3_key,
-                    Body=image_data,
-                    ContentType=content_type,
-                    ACL='public-read',
-                    Metadata={
-                        'blog_id': str(blog_post.id),
-                        'blog_title': blog_post.title[:100],
-                        'field': field_name,
-                        'actual_image': 'true',
-                        'uploaded_at': 'auto'
-                    }
-                )
-                
-                logger.info(f"✅ Uploaded actual image: {filename} ({len(image_data)} bytes)")
-                return True
-                
-        except Exception as upload_error:
-            logger.warning(f"⚠️ Could not upload actual image {filename}: {upload_error}")
-        
-        # Fallback: Create placeholder
-        logger.info(f"🔄 Creating placeholder for {filename}")
-        
-        # Create colored placeholder
-        colors = {
-            'featured_image': (73, 109, 137),  # Blue
-            'image_1': (109, 137, 73),         # Green
-            'image_2': (137, 73, 109),         # Purple
-        }
-        color = colors.get(field_name, (100, 100, 100))
-        
-        img = Image.new('RGB', (800, 600), color=color)
-        
-        # Save to bytes
-        buffer = io.BytesIO()
-        if filename.lower().endswith('.png'):
-            img.save(buffer, format='PNG')
-            content_type = 'image/png'
-        elif filename.lower().endswith('.webp'):
-            img.save(buffer, format='WEBP')
-            content_type = 'image/webp'
-        else:
-            img.save(buffer, format='JPEG')
-            content_type = 'image/jpeg'
-        
-        buffer.seek(0)
-        
-        # Upload placeholder
-        s3.put_object(
-            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-            Key=s3_key,
-            Body=buffer.getvalue(),
-            ContentType=content_type,
-            ACL='public-read',
-            Metadata={
-                'blog_id': str(blog_post.id),
-                'blog_title': blog_post.title[:100],
-                'field': field_name,
-                'placeholder': 'true',
-                'auto_created': 'yes'
-            }
-        )
-        
-        logger.info(f"✅ Created placeholder: {filename}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"❌ Failed to upload image {filename}: {e}")
-        return False
-    
-# hospital/models.py - Add this simple upload function
+# ==================== SIMPLE IMAGE UPLOAD FUNCTION ====================
 
 def upload_image_to_s3_simple(image_field, blog_post, field_name):
-    """Simple, reliable image upload to S3"""
+    """Simple, reliable image upload to S3 - FIXED VERSION"""
     import boto3
     from django.conf import settings
     import logging
+    import os
     
     logger = logging.getLogger(__name__)
     
-    if not image_field or not image_field.name:
+    if not image_field or not hasattr(image_field, 'name') or not image_field.name:
+        logger.warning(f"[SKIP] No image field for {field_name}")
         return False
     
     try:
@@ -747,73 +338,195 @@ def upload_image_to_s3_simple(image_field, blog_post, field_name):
         )
         
         bucket_name = settings.AWS_STORAGE_BUCKET_NAME
-        s3_key = f"media/{image_field.name}"
         
-        # Read file content
-        image_field.open('rb')
-        file_content = image_field.read()
-        image_field.close()
+        # IMPORTANT: Get the actual file path from Django storage
+        # For default_storage, get the file path relative to media root
+        from django.core.files.storage import default_storage
         
-        # Get file size and type
-        file_size = len(file_content)
-        
-        # Determine content type from filename
-        filename = image_field.name.lower()
-        if filename.endswith('.png'):
-            content_type = 'image/png'
-        elif filename.endswith('.webp'):
-            content_type = 'image/webp'
-        elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
-            content_type = 'image/jpeg'
+        # Extract the path relative to media/ directory
+        if image_field.name.startswith('blog_images/'):
+            s3_key = f"media/{image_field.name}"
         else:
-            content_type = 'application/octet-stream'
+            s3_key = f"media/blog_images/{os.path.basename(image_field.name)}"
         
-        # Upload to S3
-        s3.put_object(
-            Bucket=bucket_name,
-            Key=s3_key,
-            Body=file_content,
-            ContentType=content_type,
-            ACL='public-read',
-            Metadata={
-                'blog_id': str(blog_post.id),
-                'blog_title': blog_post.title[:100],
-                'field': field_name,
-                'actual_image': 'true',
-                'uploaded_at': datetime.now().isoformat()
-            }
-        )
+        logger.info(f"[UPLOAD] Processing {field_name}: {image_field.name} -> S3 Key: {s3_key}")
         
-        logger.info(f"✅ Successfully uploaded {image_field.name} ({file_size} bytes)")
-        return True
+        # Check if already exists in S3 (skip if it's an actual image)
+        try:
+            existing = s3.head_object(Bucket=bucket_name, Key=s3_key)
+            metadata = existing.get('Metadata', {})
+            if metadata.get('actual_image') == 'true':
+                logger.info(f"[SKIP] Already exists in S3 with actual_image=true: {s3_key}")
+                return True
+        except:
+            pass  # File doesn't exist, continue upload
         
+        # Get the actual file from Django storage
+        if default_storage.exists(image_field.name):
+            logger.info(f"[FOUND] File exists in default storage: {image_field.name}")
+            
+            # Open file from Django storage
+            with default_storage.open(image_field.name, 'rb') as f:
+                file_content = f.read()
+                file_size = len(file_content)
+                
+                # Determine content type from filename
+                filename = image_field.name.lower()
+                if filename.endswith('.png'):
+                    content_type = 'image/png'
+                elif filename.endswith('.webp'):
+                    content_type = 'image/webp'
+                elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
+                    content_type = 'image/jpeg'
+                else:
+                    content_type = 'application/octet-stream'
+                
+                # Upload to S3
+                logger.info(f"[UPLOADING] {s3_key} ({file_size} bytes)...")
+                
+                s3.put_object(
+                    Bucket=bucket_name,
+                    Key=s3_key,
+                    Body=file_content,
+                    ContentType=content_type,
+                    ACL='public-read',
+                    Metadata={
+                        'blog_id': str(blog_post.id),
+                        'blog_title': blog_post.title[:100],
+                        'field': field_name,
+                        'actual_image': 'true',
+                        'uploaded_at': datetime.now().isoformat(),
+                        'upload_method': 'django_signal'
+                    }
+                )
+                
+                logger.info(f"[SUCCESS] Uploaded to S3: {s3_key}")
+                return True
+        else:
+            logger.warning(f"[MISSING] File not in default storage: {image_field.name}")
+            
+            # Try to get file from the ImageField directly
+            try:
+                logger.info(f"[ATTEMPT] Trying to read from ImageField directly...")
+                
+                # Reset file pointer to beginning
+                if hasattr(image_field, 'file') and image_field.file:
+                    image_field.file.seek(0)
+                    file_content = image_field.file.read()
+                    
+                    # Determine content type
+                    filename = image_field.name.lower()
+                    if filename.endswith('.png'):
+                        content_type = 'image/png'
+                    elif filename.endswith('.webp'):
+                        content_type = 'image/webp'
+                    elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
+                        content_type = 'image/jpeg'
+                    else:
+                        content_type = 'application/octet-stream'
+                    
+                    # Upload to S3
+                    logger.info(f"[UPLOADING-DIRECT] {s3_key} ({len(file_content)} bytes)...")
+                    
+                    s3.put_object(
+                        Bucket=bucket_name,
+                        Key=s3_key,
+                        Body=file_content,
+                        ContentType=content_type,
+                        ACL='public-read',
+                        Metadata={
+                            'blog_id': str(blog_post.id),
+                            'blog_title': blog_post.title[:100],
+                            'field': field_name,
+                            'actual_image': 'true',
+                            'uploaded_at': datetime.now().isoformat(),
+                            'upload_method': 'direct_imagefield'
+                        }
+                    )
+                    
+                    logger.info(f"[SUCCESS] Uploaded from ImageField: {s3_key}")
+                    return True
+                    
+            except Exception as e:
+                logger.error(f"[ERROR] Cannot read from ImageField: {str(e)}")
+                return False
+                
     except Exception as e:
-        logger.error(f"❌ Failed to upload {image_field.name}: {str(e)}")
+        logger.error(f"[ERROR] Failed to upload {image_field.name if image_field else 'unknown'}: {str(e)}")
+        import traceback
+        logger.error(f"[TRACEBACK] {traceback.format_exc()}")
         return False
-    
+
+# ==================== SINGLE SIGNAL HANDLER ====================
+
 @receiver(post_save, sender=BlogPost)
 def handle_blog_post_save(sender, instance, created, **kwargs):
-    """Handle blog post save and upload images to S3"""
+    """SINGLE signal handler for uploading images to S3 - FIXED VERSION"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     if kwargs.get('raw', False) or kwargs.get('update_fields'):
         return
     
     logger.info(f"📝 Processing images for blog post: {instance.id} - {instance.title}")
+    logger.info(f"   Created: {created}, Update fields: {kwargs.get('update_fields')}")
     
-    # List of image fields to process
-    image_fields = [
-        ('featured_image', instance.featured_image),
-        ('image_1', instance.image_1),
-        ('image_2', instance.image_2)
-    ]
+    # Check which image fields need processing
+    image_fields_to_process = []
     
-    for field_name, image_field in image_fields:
-        if image_field and image_field.name:
-            logger.info(f"  Processing {field_name}: {image_field.name}")
+    # For new posts, process all images
+    if created:
+        logger.info(f"📸 New post - will process all images")
+        image_fields_to_process = [
+            ('featured_image', instance.featured_image),
+            ('image_1', instance.image_1),
+            ('image_2', instance.image_2)
+        ]
+    else:
+        # For updates, check which fields were updated
+        update_fields = kwargs.get('update_fields', set())
+        logger.info(f"🔄 Update fields detected: {update_fields}")
+        
+        if update_fields:
+            # Convert to lowercase for comparison
+            update_fields_lower = {f.lower() for f in update_fields}
             
-            # Upload image to S3 in a background thread
+            if 'featured_image' in update_fields_lower and instance.featured_image:
+                image_fields_to_process.append(('featured_image', instance.featured_image))
+            if 'image_1' in update_fields_lower and instance.image_1:
+                image_fields_to_process.append(('image_1', instance.image_1))
+            if 'image_2' in update_fields_lower and instance.image_2:
+                image_fields_to_process.append(('image_2', instance.image_2))
+        else:
+            # If no specific update fields, check all images
+            logger.info(f"🔍 No specific update fields - checking all images")
+            for field_name, image_field in [
+                ('featured_image', instance.featured_image),
+                ('image_1', instance.image_1),
+                ('image_2', instance.image_2)
+            ]:
+                if image_field and image_field.name:
+                    logger.info(f"   Will process {field_name}: {image_field.name}")
+                    image_fields_to_process.append((field_name, image_field))
+    
+    logger.info(f"📊 Total images to process: {len(image_fields_to_process)}")
+    
+    # Process each image
+    for field_name, image_field in image_fields_to_process:
+        if image_field and image_field.name:
+            logger.info(f"  ⬆️ Uploading {field_name}: {image_field.name}")
+            
+            # Use threading for async upload
             import threading
-            threading.Thread(
+            thread = threading.Thread(
                 target=upload_image_to_s3_simple,
                 args=(image_field, instance, field_name),
                 daemon=True
-            ).start()
+            )
+            thread.start()
+            
+            logger.info(f"  🚀 Started upload thread for {field_name}")
+        else:
+            logger.warning(f"  ⚠️ Skipping {field_name}: no image or image name")
+    
+    logger.info(f"✅ Signal handler completed for blog post {instance.id}")
