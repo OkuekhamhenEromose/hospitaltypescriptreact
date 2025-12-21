@@ -11,19 +11,45 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 // ======================================
 
 // In api.ts - FIX THE normalizeMediaUrl function:
+// In api.ts - REPLACE the current normalizeMediaUrl function:
 const normalizeMediaUrl = (url: string | null) => {
-  if (!url) return null;
-  
-  // If it's already a full URL, return as-is
-  if (url.startsWith('http')) return url;
-  
-  // For paths like "blog_images/filename.jpg"
-  if (url.startsWith('blog_images/')) {
-    return `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${url}`;
+  if (!url || url.trim() === "") {
+    console.log("[DEBUG] normalizeMediaUrl: Empty URL provided");
+    return null;
   }
   
-  // Default fallback
-  return `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/blog_images/${url}`;
+  // Already a full URL? Return as-is
+  if (url.startsWith('http')) {
+    // Ensure HTTPS for S3
+    if (url.includes('s3.amazonaws.com') && url.startsWith('http://')) {
+      return url.replace('http://', 'https://');
+    }
+    return url;
+  }
+  
+  console.log(`[DEBUG] Building S3 URL from: "${url}"`);
+  
+  // Handle different possible formats from Django
+  let cleanPath = url;
+  
+  // Remove leading slash if present
+  if (cleanPath.startsWith('/')) {
+    cleanPath = cleanPath.substring(1);
+  }
+  
+  // If it's just a filename without path, add blog_images/
+  if (!cleanPath.includes('/') && !cleanPath.startsWith('blog_images/')) {
+    cleanPath = `blog_images/${cleanPath}`;
+  }
+  
+  // Ensure it has the media/ prefix for S3
+  if (!cleanPath.startsWith('media/')) {
+    cleanPath = `media/${cleanPath}`;
+  }
+  
+  const finalUrl = `https://etha-hospital.s3.eu-north-1.amazonaws.com/${cleanPath}`;
+  console.log(`[DEBUG] Final URL: ${finalUrl}`);
+  return finalUrl;
 };
 
 // ======================================
