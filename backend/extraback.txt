@@ -1,0 +1,246 @@
+SERIALIZERS.PY 
+
+class BlogPostListSerializer(serializers.ModelSerializer):
+    author = ProfileSerializer(read_only=True)
+    has_toc = serializers.SerializerMethodField()
+    toc_items_count = serializers.SerializerMethodField()
+    subheadings_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = BlogPost
+        fields = [
+            'id', 'title', 'description', 'author', 'featured_image',
+            'image_1', 'image_2', 'published', 'published_date', 'created_at', 'slug', 
+            'enable_toc', 'has_toc', 'toc_items_count', 'subheadings_count'
+        ]
+        read_only_fields = ['author', 'published_date', 'created_at', 'updated_at', 'slug']
+
+    def get_has_toc(self, obj):
+        return obj.enable_toc and bool(obj.table_of_contents)
+
+    def get_toc_items_count(self, obj):
+        return len(obj.table_of_contents) if obj.table_of_contents else 0
+
+    def get_subheadings_count(self, obj):
+        return len(obj.subheadings) if obj.subheadings else 0
+
+
+class BlogPostSerializer(serializers.ModelSerializer):
+    author = ProfileSerializer(read_only=True)
+    table_of_contents = serializers.SerializerMethodField()
+    toc_display = serializers.SerializerMethodField()
+    subheadings = serializers.SerializerMethodField()
+    first_two_subheadings = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BlogPost
+        fields = [
+            'id', 'title', 'description', 'content', 'author',
+            'featured_image', 'image_1', 'image_2', 'published', 'published_date',
+            'created_at', 'updated_at', 'slug', 'enable_toc',
+            'table_of_contents', 'toc_display', 'subheadings', 'first_two_subheadings'
+        ]
+        read_only_fields = ['author', 'published_date', 'created_at', 'updated_at', 'slug', 'table_of_contents', 'subheadings']
+
+    def get_table_of_contents(self, obj):
+        return obj.table_of_contents
+
+    def get_toc_display(self, obj):
+        return obj.get_toc_display()
+
+    def get_subheadings(self, obj):
+        return obj.subheadings
+
+    def get_first_two_subheadings(self, obj):
+        return obj.get_first_two_subheadings()
+
+
+class BlogPostCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlogPost
+        fields = [
+            'id', 'title', 'description', 'content', 'featured_image',
+            'image_1', 'image_2', 'published', 'enable_toc'
+        ]
+
+    def create(self, validated_data):
+        # TOC and subheadings will be auto-generated in the model's save method
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # TOC and subheadings will be auto-generated in the model's save method
+        return super().update(instance, validated_data)
+
+MODELS.PY
+
+class BlogPost(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField()  # short intro
+    content = models.TextField()      # full article
+    author = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='blog_posts')
+    featured_image = models.ImageField(upload_to='blog_images/', null=True, blank=True)
+    # Add additional images
+    image_1 = models.ImageField(upload_to='blog_images/', null=True, blank=True, help_text="Second image for the post")
+    image_2 = models.ImageField(upload_to='blog_images/', null=True, blank=True, help_text="Third image for the post")
+    published = models.BooleanField(default=False)
+    published_date = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    slug = models.SlugField(max_length=200, unique=True, blank=True)
+    
+    # Enhanced TOC fields
+    table_of_contents = models.JSONField(default=list, blank=True, help_text="Auto-generated table of contents")
+    enable_toc = models.BooleanField(default=True, help_text="Enable table of contents for this post")
+    
+    # New fields for structured content
+    subheadings = models.JSONField(default=list, blank=True, help_text="Structured subheadings with descriptions")
+    
+    class Meta:
+        ordering = ['-published_date', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if self.published and not self.published_date:
+            self.published_date = timezone.now()
+        if not self.slug:
+            self.slug = slugify(self.title)
+        
+        # Auto-generate TOC if enabled
+        if self.enable_toc and self.content:
+            self.generate_table_of_contents()
+        
+        # Auto-extract subheadings if content exists
+        if self.content:
+            self.extract_subheadings()
+        
+        super().save(*args, **kwargs)
+
+    def generate_table_of_contents(self):
+        """Auto-generate TOC from heading tags in content"""
+        import re
+        
+        # Find headings (h1-h6) in content
+        heading_pattern = r'<h([1-6])[^>]*>(.*?)</h\1>'
+        headings = re.findall(heading_pattern, self.content)
+        
+        toc_items = []
+        for level, title_html in headings:
+            # Clean HTML tags from title
+            clean_title = re.sub(r'<[^>]+>', '', title_html).strip()
+            if clean_title:
+                anchor = slugify(clean_title)
+                toc_items.append({
+                    'title': clean_title,
+                    'level': int(level),
+                    'anchor': anchor,
+                    'id': len(toc_items) + 1
+                })
+        
+        self.table_of_contents = toc_items
+
+    def extract_subheadings(self):
+        """Extract subheadings and their following content for structured display"""
+        import re
+        
+        # Pattern to find headings and their following content until next heading
+        pattern = r'<h([1-6])[^>]*>(.*?)</h\1>(.*?)(?=<h[1-6]|$)'
+        matches = re.findall(pattern, self.content, re.DOTALL)
+        
+        subheadings = []
+        for level, title_html, content in matches:
+            clean_title = re.sub(r'<[^>]+>', '', title_html).strip()
+            # Clean content - remove HTML tags for description
+            clean_content = re.sub(r'<[^>]+>', '', content).strip()
+            # Take first 200 characters as description
+            description = clean_content[:200] + '...' if len(clean_content) > 200 else clean_content
+            
+            if clean_title:
+                subheadings.append({
+                    'title': clean_title,
+                    'level': int(level),
+                    'description': description,
+                    'full_content': content.strip()
+                })
+        
+        # Limit to 6 subheadings as per requirement
+        self.subheadings = subheadings[:6]
+
+    def get_toc_display(self):
+        """Format TOC for display with proper indentation"""
+        if not self.table_of_contents:
+            return []
+        
+        formatted_toc = []
+        for item in self.table_of_contents:
+            level = item['level']
+            indent = "  " * (level - 1)  # Indentation based on heading level
+            formatted_toc.append({
+                **item,
+                'display_title': f"{indent}{item['id']}. {item['title']}"
+            })
+        
+        return formatted_toc
+
+    def get_first_two_subheadings(self):
+        """Get first two subheadings for homepage display"""
+        return self.subheadings[:2] if self.subheadings else []
+
+VIEWS.PY
+
+class BlogPostListCreateView(generics.ListCreateAPIView):
+    """
+    - Anyone can view published blog posts
+    - Only ADMIN role can create blog posts
+    """
+    serializer_class = BlogPostListSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]  # Add support for FormData
+
+    def get_queryset(self):
+        user = self.request.user
+        # If user is authenticated admin, show all posts
+        if user.is_authenticated and hasattr(user, 'profile') and user.profile.role == 'ADMIN':
+            return BlogPost.objects.all().order_by('-created_at')
+        # Public users can only see published posts
+        return BlogPost.objects.filter(published=True).order_by('-created_at')
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [permissions.IsAuthenticated(), IsRole()]
+        return [permissions.AllowAny()]
+
+    allowed_roles = ['ADMIN']
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return BlogPostCreateSerializer
+        return BlogPostListSerializer
+
+    def perform_create(self, serializer):
+        profile = self.request.user.profile
+        if profile.role != 'ADMIN':
+            raise PermissionDenied("Only admins can create blog posts.")
+        serializer.save(author=profile)
+
+    def create(self, request, *args, **kwargs):
+        try:
+            # Handle FormData properly
+            if request.content_type == 'multipart/form-data':
+                # For FormData, use the appropriate serializer
+                serializer = self.get_serializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+                headers = self.get_success_headers(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            else:
+                # For JSON data, use the normal flow
+                return super().create(request, *args, **kwargs)
+        except Exception as e:
+            print(f"Error creating blog post: {str(e)}")
+            return Response(
+                {"error": "Failed to create blog post", "details": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    
