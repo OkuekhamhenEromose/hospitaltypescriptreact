@@ -10,27 +10,28 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 // 🔥 MEDIA URL FIX
 // ======================================
 
-// In api.ts - FIX THE normalizeMediaUrl function:
-// In api.ts - REPLACE the current normalizeMediaUrl function:
-const normalizeMediaUrl = (url: string | null) => {
-  if (!url || url.trim() === "") {
-    console.log("[DEBUG] normalizeMediaUrl: Empty URL provided");
+const normalizeMediaUrl = (path: string | null) => {
+  if (!path || path.trim() === "") {
+    console.log("⚠️ No image path provided");
     return null;
   }
-  
+
+  console.log("🖼️ Raw URL from API:", path);
+
   // Already a full URL? Return as-is
-  if (url.startsWith('http')) {
+  if (path.startsWith('http')) {
     // Ensure HTTPS for S3
-    if (url.includes('s3.amazonaws.com') && url.startsWith('http://')) {
-      return url.replace('http://', 'https://');
+    if (path.includes('s3.amazonaws.com') && path.startsWith('http://')) {
+      return path.replace('http://', 'https://');
     }
-    return url;
+    return path;
   }
+
+  // If it's not a URL, it might be a path that needs conversion
+  console.log(`[DEBUG] Building S3 URL from path: "${path}"`);
   
-  console.log(`[DEBUG] Building S3 URL from: "${url}"`);
-  
-  // Handle different possible formats from Django
-  let cleanPath = url;
+  // Handle different possible formats
+  let cleanPath = path;
   
   // Remove leading slash if present
   if (cleanPath.startsWith('/')) {
@@ -53,7 +54,8 @@ const normalizeMediaUrl = (url: string | null) => {
 };
 
 // ======================================
-// 🔥 BLOG POST NORMALIZER (IMAGES + FIELDS)
+// ======================================
+// 🔥 BLOG POST NORMALIZER (IMAGES + FIELDS) - UPDATED
 // ======================================
 const normalizeBlogPost = (post: any) => {
   // Ensure subheadings is always an array with proper structure
@@ -76,10 +78,10 @@ const normalizeBlogPost = (post: any) => {
     id: post.id,
     ...post,
 
-    // Fix image fields
-    featured_image: normalizeMediaUrl(post.featured_image),
-    image_1: normalizeMediaUrl(post.image_1),
-    image_2: normalizeMediaUrl(post.image_2),
+    // ✅ FIX: Use the _url fields from API, not the raw fields
+    featured_image: post.featured_image_url || normalizeMediaUrl(post.featured_image),
+    image_1: post.image_1_url || normalizeMediaUrl(post.image_1),
+    image_2: post.image_2_url || normalizeMediaUrl(post.image_2),
 
     // Fix description variations
     description:

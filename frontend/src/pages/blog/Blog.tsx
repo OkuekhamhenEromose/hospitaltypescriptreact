@@ -19,118 +19,84 @@ const Blog: React.FC = () => {
     loadBlogPosts();
   }, []);
 
-  // Generate a unique ID for posts that don't have proper IDs
-  const generatePostId = (post: any, index: number) => {
-    // Use slug as ID if available, otherwise use title + index
-    return post.slug || `post-${slugify(post.title)}-${index}`;
-  };
-
-  const normalizeMediaUrl = (path: string | null) => {
-    if (!path) {
-        console.log("⚠️ No image path provided");
-        return null; // Return null, not placeholder
-    }
-
-    console.log("🖼️ Raw URL from API:", path);
-
-    // If it's already a full URL
-    if (path.startsWith("http")) {
-        console.log("✅ Already HTTP URL");
-        return path;
-    }
-
-    // For S3 paths, ensure they have the full URL
-    if (path.includes("s3.amazonaws.com") && !path.startsWith("http")) {
-        return `https://${path}`;
-    }
-
-    // For relative paths
-    if (path.startsWith("blog_images/") || path.includes("/")) {
-        // Remove any leading slashes
-        const cleanPath = path.replace(/^\//, '');
-        return `https://etha-hospital.s3.eu-north-1.amazonaws.com/media/${cleanPath}`;
-    }
-
-    // Default fallback
-    console.log("⚠️ Using default placeholder for:", path);
-    return null; // Return null, not placeholder
-};
-
   // Enhanced normalize entire blog post with ID fix
-  const normalizeBlogPost = (post: any, index: number) => {
-    console.log("🔍 Raw post from API:", post);
+ const normalizeBlogPost = (post: any, index: number) => {
+  console.log("🔍 Raw post from API:", post);
 
-    // Handle table_of_contents from various possible field names
-    const rawTOC =
-      post.table_of_contents ||
-      post.toc ||
-      post.toc_items ||
-      post.contents ||
-      [];
+  // Handle table_of_contents from various possible field names
+  const rawTOC =
+    post.table_of_contents ||
+    post.toc ||
+    post.toc_items ||
+    post.contents ||
+    [];
 
-    // Normalize TOC items - ensure they have proper structure
-    const normalizedTOC = Array.isArray(rawTOC)
-      ? rawTOC
-          .map((item: any, index: number) => {
-            // Handle different TOC item structures
-            const title =
-              item.title || item.name || item.heading || `Section ${index + 1}`;
-            const level = item.level || item.depth || 2;
-            const id = item.id || index + 1;
+  // Normalize TOC items - ensure they have proper structure
+  const normalizedTOC = Array.isArray(rawTOC)
+    ? rawTOC
+        .map((item: any, index: number) => {
+          // Handle different TOC item structures
+          const title =
+            item.title || item.name || item.heading || `Section ${index + 1}`;
+          const level = item.level || item.depth || 2;
+          const id = item.id || index + 1;
 
-            return {
-              id: id,
-              title: title,
-              level: level,
-              anchor: slugify(title, {
-                lower: true,
-                strict: true,
-              }),
-            };
-          })
-          .filter((item) => item.title) // Remove items without titles
-      : [];
+          return {
+            id: id,
+            title: title,
+            level: level,
+            anchor: slugify(title, {
+              lower: true,
+              strict: true,
+            }),
+          };
+        })
+        .filter((item) => item.title) // Remove items without titles
+    : [];
 
-    console.log("📋 Normalized TOC:", normalizedTOC);
+  console.log("📋 Normalized TOC:", normalizedTOC);
 
-    // Generate a reliable ID for the post
-    const postId = generatePostId(post, index);
+  // Generate a reliable ID for the post
+  const postId = post.id || `post-${slugify(post.title)}-${index}`;
 
-    const normalized = {
-      ...post,
-      id: postId, // Use our generated ID instead of null
-      // ✅ UPDATED: Use the corrected normalizeMediaUrl function
-      featured_image: normalizeMediaUrl(post.featured_image),
-      image_1: normalizeMediaUrl(post.image_1),
-      image_2: normalizeMediaUrl(post.image_2),
-      description:
-        post.description ||
-        post.short_description ||
-        post.excerpt ||
-        post.content ||
-        "",
-      subheadings:
-        post.subheadings && post.subheadings.length > 0 ? post.subheadings : [],
-      table_of_contents: normalizedTOC,
-      // Ensure enable_toc is properly handled - default to true if TOC items exist
-      enable_toc:
-        post.enable_toc !== undefined
-          ? post.enable_toc
-          : post.enable_table_of_contents !== undefined
-          ? post.enable_table_of_contents
-          : normalizedTOC.length > 0, // Auto-enable if TOC items exist
-    };
-
-    console.log("✅ Final normalized post:", {
-      id: normalized.id,
-      title: normalized.title,
-      enable_toc: normalized.enable_toc,
-      toc_length: normalized.table_of_contents.length,
-      toc_items: normalized.table_of_contents,
-    });
-
-    return normalized;
+  // ✅ FIXED: Use the _url fields from the API
+  const normalized = {
+    ...post,
+    id: postId,
+    // ✅ Use the URL fields directly (they already contain full S3 URLs)
+    featured_image: post.featured_image_url,  // Changed from post.featured_image
+    image_1: post.image_1_url,                // Changed from post.image_1
+    image_2: post.image_2_url,                // Changed from post.image_2
+    description:
+      post.description ||
+      post.short_description ||
+      post.excerpt ||
+      post.content ||
+      "",
+    subheadings:
+      post.subheadings && post.subheadings.length > 0 ? post.subheadings : [],
+    table_of_contents: normalizedTOC,
+    // Ensure enable_toc is properly handled
+    enable_toc:
+      post.enable_toc !== undefined
+        ? post.enable_toc
+        : post.enable_table_of_contents !== undefined
+        ? post.enable_table_of_contents
+        : normalizedTOC.length > 0,
   };
+
+  console.log("✅ Final normalized post:", {
+    id: normalized.id,
+    title: normalized.title,
+    featured_image: normalized.featured_image,
+    image_1: normalized.image_1,
+    image_2: normalized.image_2,
+    enable_toc: normalized.enable_toc,
+    toc_length: normalized.table_of_contents.length,
+  });
+
+  return normalized;
+};
 
   const loadBlogPosts = async () => {
     try {
