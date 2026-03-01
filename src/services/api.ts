@@ -1,123 +1,119 @@
 // services/api.ts
 import type { LoginData, RegisterData, AuthResponse } from "./auth";
 
-const API_BASE_URL = "http://127.0.0.1:8000/api";
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// ── Production URL ────────────────────────────────────────────────────────────
+// FIX: was hardcoded to http://127.0.0.1:8000/api — every production request
+// was failing. Reads from VITE_API_URL env var, falls back to deployed backend.
+const API_BASE_URL =
+  (import.meta as any).env?.VITE_API_URL ??
+  "https://hospitalback-clean.onrender.com/api";
 
-// const API_BASE_URL = "https://dhospitalback.onrender.com/api";
+// ── Cache TTLs (ms) ────────────────────────────────────────────────────────────
+const TTL_BLOG     = 5 * 60 * 1000; // 5 min — blog rarely changes, Redis-backed
+const TTL_PERSONAL = 2 * 60 * 1000; // 2 min — personal data, should feel fresh
+const TTL_LIST     = 3 * 60 * 1000; // 3 min — staff/appointment lists
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 🔑  PAGINATION UNWRAPPER
-//
-// Django REST Framework with LimitOffsetPagination (settings.py) wraps every
-// list endpoint response as:
-//   { "count": 12, "next": null, "previous": null, "results": [...] }
-//
-// unwrapList() extracts the plain array so callers never crash on .filter()
-// or .map(). It is safe whether the endpoint is paginated or not.
-// ─────────────────────────────────────────────────────────────────────────────
-const unwrapList = (data: any): any[] => {
+// ── List unwrapper ────────────────────────────────────────────────────────────
+const unwrapList = (data: unknown): unknown[] => {
   if (Array.isArray(data)) return data;
-  if (data && Array.isArray(data.results)) return data.results;
-  console.warn("⚠️ unwrapList: unexpected shape", data);
-  return []; 
+  if (data && typeof data === "object" && Array.isArray((data as any).results))
+    return (data as any).results;
+  return [];
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MEDIA URL NORMALIZER
-// ─────────────────────────────────────────────────────────────────────────────
-const normalizeMediaUrl = (path: string | null): string | null => {
-  if (!path || path.trim() === "") return null;
-
-  if (path.startsWith("http")) {
-    if (path.includes("s3.amazonaws.com") && path.startsWith("http://")) {
-      return path.replace("http://", "https://");
-    }
-    return path;
-  }
-
-  let cleanPath = path.startsWith("/") ? path.substring(1) : path;
-  if (!cleanPath.includes("/") && !cleanPath.startsWith("blog_images/")) {
-    cleanPath = `blog_images/${cleanPath}`;
-  }
-  if (!cleanPath.startsWith("media/")) {
-    cleanPath = `media/${cleanPath}`;
-  }
-  return `https://etha-hospital.s3.eu-north-1.amazonaws.com/${cleanPath}`;
+// ── Media URL normalizer ──────────────────────────────────────────────────────
+// FIX: Backend now returns full storage-backend URLs from field.url.
+// The old path that assembled s3.amazonaws.com f-strings is removed.
+// Only job remaining: ensure http→https for S3 URLs.
+export const normalizeMediaUrl = (url: string | null | undefined): string | null => {
+  if (!url || url.trim() === "") return null;
+  if (url.includes("s3.amazonaws.com") && url.startsWith("http://"))
+    return url.replace("http://", "https://");
+  return url;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BLOG POST NORMALIZER
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Blog post normalizer ──────────────────────────────────────────────────────
 const normalizeBlogPost = (post: any) => {
-  let subheadings = post.subheadings || post.sub_headings || [];
-  if (Array.isArray(subheadings)) {
-    subheadings = subheadings.map((s: any, index: number) => ({
-      id: s.id || index + 1,
-      title: s.title || `Section ${index + 1}`,
-      level: s.level || 2,
-      description: s.description || "",
-      full_content: s.full_content || s.description || "",
-    }));
-  } else {
-    subheadings = [];
-  }
+  const rawSubs = post.subheadings ?? post.sub_headings;
+  const subheadings = Array.isArray(rawSubs)
+    ? rawSubs.map((s: any, i: number) => ({
+        id:           s.id          ?? i + 1,
+        title:        s.title       ?? `Section ${i + 1}`,
+        level:        s.level       ?? 2,
+        description:  s.description ?? "",
+        full_content: s.full_content ?? s.description ?? "",
+      }))
+    : [];
 
   return {
-    id: post.id,
     ...post,
-    featured_image: post.featured_image_url || normalizeMediaUrl(post.featured_image),
-    image_1: post.image_1_url || normalizeMediaUrl(post.image_1),
-    image_2: post.image_2_url || normalizeMediaUrl(post.image_2),
+    // Prefer *_url fields returned by the serializer over raw field paths
+    featured_image: normalizeMediaUrl(post.featured_image_url ?? post.featured_image),
+    image_1:        normalizeMediaUrl(post.image_1_url        ?? post.image_1),
+    image_2:        normalizeMediaUrl(post.image_2_url        ?? post.image_2),
     description:
-      post.description || post.short_description || post.excerpt || post.content || "",
+      post.description ?? post.short_description ?? post.excerpt ?? post.content ?? "",
     subheadings,
     table_of_contents:
-      post.table_of_contents || post.toc || post.toc_items || post.contents || [],
+      post.table_of_contents ?? post.toc ?? post.toc_items ?? post.contents ?? [],
   };
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// API SERVICE
-// ─────────────────────────────────────────────────────────────────────────────
-class ApiService {
-  private cache = new Map<string, { data: any; timestamp: number }>();
-  private requestQueue = new Map<string, Promise<any>>();
+// ── Token expiry pre-check ────────────────────────────────────────────────────
+// Decodes the JWT payload client-side (not for security — backend validates).
+// Saves a round-trip when the token has already expired.
+export const isTokenExpired = (token: string): boolean => {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.exp * 1000 < Date.now() + 30_000; // 30s buffer
+  } catch {
+    return true;
+  }
+};
 
-  // ── Core fetch ────────────────────────────────────────────────────────────
-  private async request<T = any>(
+// ══════════════════════════════════════════════════════════════════════════════
+// API SERVICE
+// ══════════════════════════════════════════════════════════════════════════════
+class ApiService {
+  private cache        = new Map<string, { data: unknown; timestamp: number }>();
+  private requestQueue = new Map<string, Promise<unknown>>();
+
+  // ── Core fetch ─────────────────────────────────────────────────────────────
+  private async request<T = unknown>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const token = localStorage.getItem("access_token");
-    const headers: HeadersInit = {};
+    const url    = `${API_BASE_URL}${endpoint}`;
+    const token  = localStorage.getItem("access_token");
+    const headers: Record<string, string> = {};
 
-    if (!(options.body instanceof FormData)) {
+    if (!(options.body instanceof FormData))
       headers["Content-Type"] = "application/json";
-    }
-    if (token) {
-      headers["Authorization"] = token.startsWith("Bearer ")
-        ? token
-        : `Bearer ${token}`;
-    }
+    if (token)
+      headers["Authorization"] = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
     Object.assign(headers, options.headers);
 
-    console.log(`API Request: ${url}`, { headers: { ...headers, Authorization: "Bearer ***" } });
+    // FIX: Use method+endpoint as dedup key.
+    // The original used JSON.stringify(options) which:
+    //   (a) serialised the full request body on every call (slow)
+    //   (b) never matched for FormData (FormData stringifies to "[object FormData]")
+    const method     = (options.method ?? "GET").toUpperCase();
+    const requestKey = `${method}:${endpoint}`;
 
-    const requestKey = `${endpoint}-${JSON.stringify(options)}`;
-    if (this.requestQueue.has(requestKey)) {
+    if (method === "GET" && this.requestQueue.has(requestKey))
       return this.requestQueue.get(requestKey) as Promise<T>;
-    }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId  = setTimeout(() => controller.abort(), 30_000);
 
-    const requestPromise = (async (): Promise<T> => {
+    const promise = (async (): Promise<T> => {
       try {
-        const response = await fetch(url, { ...options, headers, signal: controller.signal });
+        const response = await fetch(url, {
+          ...options,
+          headers,
+          signal: controller.signal,
+        });
         clearTimeout(timeoutId);
-        console.log(`API Response: ${url} - Status: ${response.status}`);
 
         if (response.status === 401) {
           this.clearLocalStorage();
@@ -125,329 +121,331 @@ class ApiService {
         }
 
         if (!response.ok) {
-          let errorMessage = `API error: ${response.status}`;
+          let msg = `API error: ${response.status}`;
           try {
-            const errorData = await response.json();
-            console.error("API Error Details:", errorData);
-            if (errorData.detail === "Given token not valid for any token type") {
+            const err = await response.json();
+            if (err.detail === "Given token not valid for any token type") {
               this.clearLocalStorage();
-              errorMessage = "Session expired. Please login again.";
-            } else if (errorData.detail)            errorMessage = errorData.detail;
-            else if (errorData.error)               errorMessage = errorData.error;
-            else if (errorData.non_field_errors)    errorMessage = errorData.non_field_errors.join(", ");
-            else                                    errorMessage = JSON.stringify(errorData);
-          } catch {
-            errorMessage = response.statusText || `API error: ${response.status}`;
-          }
-          throw new Error(errorMessage);
+              msg = "Session expired. Please login again.";
+            } else if (err.detail)         msg = err.detail;
+            else if (err.error)            msg = err.error;
+            else if (err.non_field_errors) msg = err.non_field_errors.join(", ");
+            else                           msg = JSON.stringify(err);
+          } catch { /* response body was not JSON */ }
+          throw new Error(msg);
         }
 
-        if (response.status === 204 || response.headers.get("content-length") === "0") {
-          return null as T;
-        }
+        if (response.status === 204 ||
+            response.headers.get("content-length") === "0") return null as T;
+
         return response.json() as Promise<T>;
-      } catch (error) {
-        clearTimeout(timeoutId);
-        console.error("API Request Failed:", error);
-        throw error;
       } finally {
+        clearTimeout(timeoutId);
         this.requestQueue.delete(requestKey);
       }
     })();
 
-    this.requestQueue.set(requestKey, requestPromise);
-    return requestPromise;
+    if (method === "GET") this.requestQueue.set(requestKey, promise);
+    return promise;
   }
 
-  // ── Retry with token refresh ──────────────────────────────────────────────
-  private async requestWithRetry<T = any>(
+  // ── Retry with token refresh ───────────────────────────────────────────────
+  private async requestWithRetry<T = unknown>(
     endpoint: string,
     options: RequestInit = {},
-    retryCount = 0
+    retried = false
   ): Promise<T> {
     try {
-      return (await this.request(endpoint, options)) as T;
-    } catch (error: any) {
-      if (
-        (error.message.includes("Authentication expired") ||
-          error.message.includes("Session expired")) &&
-        retryCount === 0
-      ) {
+      return await this.request<T>(endpoint, options);
+    } catch (err: any) {
+      if (!retried &&
+          (err.message.includes("Authentication expired") ||
+           err.message.includes("Session expired"))) {
         try {
           await this.refreshToken();
-          return await this.requestWithRetry<T>(endpoint, options, retryCount + 1);
+          return await this.requestWithRetry<T>(endpoint, options, true);
         } catch {
           this.clearLocalStorage();
           throw new Error("Session expired. Please login again.");
         }
       }
-      throw error;
+      throw err;
     }
   }
 
-  // ── Cached request ────────────────────────────────────────────────────────
-  private async cachedRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const cacheKey = `${endpoint}-${JSON.stringify(options)}`;
-    const cached = this.cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) return cached.data as T;
+  // ── Cached GET ─────────────────────────────────────────────────────────────
+  private async cachedRequest<T = unknown>(
+    endpoint: string,
+    ttl = TTL_LIST
+  ): Promise<T> {
+    const cached = this.cache.get(endpoint);
+    if (cached && Date.now() - cached.timestamp < ttl)
+      return cached.data as T;
 
-    const data = await this.requestWithRetry<T>(endpoint, options);
-    this.cache.set(cacheKey, { data, timestamp: Date.now() });
+    const data = await this.requestWithRetry<T>(endpoint);
+    this.cache.set(endpoint, { data, timestamp: Date.now() });
     return data;
   }
 
-  private invalidateCache(pattern: string) {
-    for (const key of this.cache.keys()) {
-      if (key.startsWith(pattern)) this.cache.delete(key);
-    }
+  invalidateCache(prefix: string) {
+    for (const key of this.cache.keys())
+      if (key.startsWith(prefix)) this.cache.delete(key);
   }
 
-  private clearLocalStorage(): void {
+  private clearLocalStorage() {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     this.cache.clear();
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════════════════
   // AUTH
-  // ══════════════════════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════════════════
 
   async refreshToken(): Promise<{ access: string; refresh: string }> {
-    const refreshToken = localStorage.getItem("refresh_token");
-    if (!refreshToken) throw new Error("No refresh token available");
+    const refresh = localStorage.getItem("refresh_token");
+    if (!refresh) throw new Error("No refresh token available");
 
-    const response = await fetch(`${API_BASE_URL}/users/token/refresh/`, {
-      method: "POST",
+    const res = await fetch(`${API_BASE_URL}/users/token/refresh/`, {
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh: refreshToken }),
+      body:    JSON.stringify({ refresh }),
     });
 
-    if (!response.ok) {
-      let msg = "Failed to refresh token";
-      try { const e = await response.json(); if (e.detail) msg = e.detail; } catch { /* ignore */ }
+    if (!res.ok) {
       this.clearLocalStorage();
-      throw new Error(msg);
+      throw new Error("Failed to refresh token");
     }
 
-    const data = await response.json();
+    const data = await res.json();
     if (data.access)  localStorage.setItem("access_token",  data.access);
     if (data.refresh) localStorage.setItem("refresh_token", data.refresh);
     return data;
   }
 
   async login(loginData: LoginData): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE_URL}/users/login/`, {
-      method: "POST",
+    const res = await fetch(`${API_BASE_URL}/users/login/`, {
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: loginData.username, password: loginData.password }),
+      body:    JSON.stringify({
+        username: loginData.username,
+        password: loginData.password,
+      }),
     });
 
-    console.log("Login Response Status:", response.status);
-
-    if (!response.ok) {
-      let errorData: any;
-      try { errorData = await response.json(); console.error("Login Error Data:", errorData); }
-      catch { throw new Error(`Login failed with status: ${response.status}`); }
-      throw new Error(
-        errorData.detail || "Invalid credentials. Please check your username and password."
-      );
+    if (!res.ok) {
+      let msg = `Login failed (${res.status})`;
+      try { msg = (await res.json()).detail ?? msg; } catch { /* ignore */ }
+      throw new Error(msg);
     }
 
-    const data = await response.json();
-    console.log("Login Response:", data);
+    const data = await res.json();
     localStorage.setItem("access_token", data.access);
     if (data.refresh) localStorage.setItem("refresh_token", data.refresh);
     return data as AuthResponse;
   }
 
   async loginWithGoogle(code: string): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE_URL}/users/login/`, {
-      method: "POST",
+    const res = await fetch(`${API_BASE_URL}/users/login/`, {
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ google_auth_code: code }),
+      body:    JSON.stringify({ google_auth_code: code }),
     });
-    if (!response.ok) {
-      let errorData: any;
-      try { errorData = await response.json(); } catch { /* ignore */ }
-      throw new Error(errorData?.detail || "Google authentication failed");
+    if (!res.ok) {
+      let msg = "Google authentication failed";
+      try { msg = (await res.json()).detail ?? msg; } catch { /* ignore */ }
+      throw new Error(msg);
     }
-    const data = await response.json();
+    const data = await res.json();
     localStorage.setItem("access_token", data.access);
     if (data.refresh) localStorage.setItem("refresh_token", data.refresh);
     return data as AuthResponse;
   }
 
-  async register(registerData: RegisterData): Promise<any> {
-    return this.request("/users/register/", { method: "POST", body: JSON.stringify(registerData) });
+  async register(registerData: RegisterData): Promise<unknown> {
+    return this.request("/users/register/", {
+      method: "POST",
+      body:   JSON.stringify(registerData),
+    });
   }
 
-  async registerWithImage(formData: FormData): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/users/register/`, { method: "POST", body: formData });
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || JSON.stringify(errorData));
+  async registerWithImage(formData: FormData): Promise<unknown> {
+    const res = await fetch(`${API_BASE_URL}/users/register/`, {
+      method: "POST",
+      body:   formData,
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail ?? JSON.stringify(err));
     }
-    return response.json();
+    return res.json();
   }
 
   async logout(): Promise<void> {
-    const refreshToken = localStorage.getItem("refresh_token");
-    if (!refreshToken) { this.clearLocalStorage(); return; }
-    try {
-      await this.request("/users/logout/", { method: "POST", body: JSON.stringify({ refresh: refreshToken }) });
-    } catch (error) {
-      console.log("Logout API call failed:", error);
-    } finally {
-      this.clearLocalStorage();
+    const refresh = localStorage.getItem("refresh_token");
+    if (refresh) {
+      try {
+        await this.request("/users/logout/", {
+          method: "POST",
+          body:   JSON.stringify({ refresh }),
+        });
+      } catch { /* ignore logout errors */ }
     }
+    this.clearLocalStorage();
   }
 
-  async getDashboard(): Promise<any> {
-    return this.cachedRequest("/users/dashboard/");
+  async getDashboard(): Promise<unknown> {
+    return this.cachedRequest("/users/dashboard/", TTL_PERSONAL);
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // HOSPITAL  —  every list endpoint calls unwrapList()
-  // ══════════════════════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════════════════
+  // HOSPITAL
+  // ════════════════════════════════════════════════════════════════════════════
 
-  // Appointments ─────────────────────────────────────────────────────────────
-  async getAppointments(): Promise<any[]> {
-    const data = await this.cachedRequest("/hospital/appointments/");
-    return unwrapList(data); // FIX: was returning raw paginated object
+  async getAppointments(): Promise<unknown[]> {
+    return unwrapList(await this.cachedRequest("/hospital/appointments/"));
   }
 
-  async createAppointment(data: any): Promise<any> {
+  async createAppointment(data: unknown): Promise<unknown> {
     this.invalidateCache("/hospital/appointments/");
-    return this.request("/hospital/appointments/create/", { method: "POST", body: JSON.stringify(data) });
+    return this.request("/hospital/appointments/create/", {
+      method: "POST",
+      body:   JSON.stringify(data),
+    });
   }
 
-  async getAppointmentDetails(appointmentId: number): Promise<any> {
-    return this.cachedRequest(`/hospital/appointments/${appointmentId}/`);
+  async getAppointmentDetails(id: number): Promise<unknown> {
+    return this.cachedRequest(`/hospital/appointments/${id}/`);
   }
 
-  async refreshAppointments(): Promise<any[]> {
+  async refreshAppointments(): Promise<unknown[]> {
     this.invalidateCache("/hospital/appointments/");
     return this.getAppointments();
   }
 
-  // Test requests ────────────────────────────────────────────────────────────
-  async getTestRequests(): Promise<any[]> {
-    const data = await this.cachedRequest("/hospital/test-requests/");
-    return unwrapList(data); // FIX
+  async getTestRequests(): Promise<unknown[]> {
+    return unwrapList(await this.cachedRequest("/hospital/test-requests/"));
   }
 
-  async createTestRequest(data: any): Promise<any> {
+  async createTestRequest(data: unknown): Promise<unknown> {
     this.invalidateCache("/hospital/test-requests/");
-    return this.request("/hospital/test-requests/create/", { method: "POST", body: JSON.stringify(data) });
+    return this.request("/hospital/test-requests/create/", {
+      method: "POST",
+      body:   JSON.stringify(data),
+    });
   }
 
-  async refreshTestRequests(): Promise<any[]> {
+  async refreshTestRequests(): Promise<unknown[]> {
     this.invalidateCache("/hospital/test-requests/");
     return this.getTestRequests();
   }
 
-  // Vital requests ───────────────────────────────────────────────────────────
-  async getVitalRequests(): Promise<any[]> {
-    const data = await this.cachedRequest("/hospital/vital-requests/");
-    return unwrapList(data); // FIX
+  async getVitalRequests(): Promise<unknown[]> {
+    return unwrapList(await this.cachedRequest("/hospital/vital-requests/"));
   }
 
-  async createVitalRequest(data: any): Promise<any> {
+  async createVitalRequest(data: unknown): Promise<unknown> {
     this.invalidateCache("/hospital/vital-requests/");
-    return this.request("/hospital/vital-requests/create/", { method: "POST", body: JSON.stringify(data) });
+    return this.request("/hospital/vital-requests/create/", {
+      method: "POST",
+      body:   JSON.stringify(data),
+    });
   }
 
-  async refreshVitalRequests(): Promise<any[]> {
+  async refreshVitalRequests(): Promise<unknown[]> {
     this.invalidateCache("/hospital/vital-requests/");
     return this.getVitalRequests();
   }
 
-  // Single-object POSTs — no list unwrap needed ──────────────────────────────
-  async createVitals(data: any): Promise<any> {
-    return this.request("/hospital/vitals/create/", { method: "POST", body: JSON.stringify(data) });
+  async createVitals(data: unknown): Promise<unknown> {
+    return this.request("/hospital/vitals/create/", {
+      method: "POST",
+      body:   JSON.stringify(data),
+    });
   }
 
-  async createLabResult(data: any): Promise<any> {
-    return this.request("/hospital/lab-results/create/", { method: "POST", body: JSON.stringify(data) });
+  async createLabResult(data: unknown): Promise<unknown> {
+    return this.request("/hospital/lab-results/create/", {
+      method: "POST",
+      body:   JSON.stringify(data),
+    });
   }
 
-  async createMedicalReport(data: any): Promise<any> {
-    return this.request("/hospital/medical-reports/create/", { method: "POST", body: JSON.stringify(data) });
+  async createMedicalReport(data: unknown): Promise<unknown> {
+    return this.request("/hospital/medical-reports/create/", {
+      method: "POST",
+      body:   JSON.stringify(data),
+    });
   }
 
-  // Staff ────────────────────────────────────────────────────────────────────
-  async getStaffMembers(): Promise<any[]> {
-    const data = await this.cachedRequest("/hospital/staff/");
-    return unwrapList(data); // FIX: getLabScientists/getNurses call .filter() on this
+  async getStaffMembers(): Promise<unknown[]> {
+    return unwrapList(await this.cachedRequest("/hospital/staff/"));
   }
 
-  async getLabScientists(): Promise<any[]> {
-    return (await this.getStaffMembers()).filter((m) => m.role === "LAB");
+  async getLabScientists(): Promise<unknown[]> {
+    return (await this.getStaffMembers()).filter((m: any) => m.role === "LAB");
   }
 
-  async getNurses(): Promise<any[]> {
-    return (await this.getStaffMembers()).filter((m) => m.role === "NURSE");
+  async getNurses(): Promise<unknown[]> {
+    return (await this.getStaffMembers()).filter((m: any) => m.role === "NURSE");
   }
 
-  // Patients ─────────────────────────────────────────────────────────────────
-  async getPatients(): Promise<any[]> {
-    const data = await this.cachedRequest("/hospital/patients/");
-    return unwrapList(data); // FIX
+  async getPatients(): Promise<unknown[]> {
+    return unwrapList(await this.cachedRequest("/hospital/patients/"));
   }
 
-  // Assignments ──────────────────────────────────────────────────────────────
   async assignStaff(data: {
     appointment_id: number;
     staff_id: string;
     role: "DOCTOR" | "NURSE" | "LAB";
     notes?: string;
-  }): Promise<any> {
+  }): Promise<unknown> {
     return this.request("/hospital/assignments/assign-staff/", {
       method: "POST",
-      body: JSON.stringify(data),
+      body:   JSON.stringify(data),
     });
   }
 
-  async getAppointmentAssignments(appointmentId: number): Promise<any[]> {
-    const data = await this.cachedRequest(`/hospital/assignments/appointment/${appointmentId}/`);
-    return unwrapList(data); // FIX
+  async getAppointmentAssignments(id: number): Promise<unknown[]> {
+    return unwrapList(
+      await this.cachedRequest(`/hospital/assignments/appointment/${id}/`)
+    );
   }
 
-  async getAvailableStaff(role?: string): Promise<any[]> {
-    const url = role
-      ? `/hospital/assignments/available-staff/?role=${role}`
-      : "/hospital/assignments/available-staff/";
-    const data = await this.cachedRequest(url);
-    return unwrapList(data); // FIX
+  async getAvailableStaff(role?: string): Promise<unknown[]> {
+    const qs = role ? `?role=${encodeURIComponent(role)}` : "";
+    return unwrapList(
+      await this.cachedRequest(`/hospital/assignments/available-staff/${qs}`)
+    );
   }
 
-  async reassignStaff(assignmentId: number, newStaffId: string): Promise<any> {
+  async reassignStaff(assignmentId: number, newStaffId: string): Promise<unknown> {
     return this.request(`/hospital/assignments/${assignmentId}/reassign/`, {
       method: "PATCH",
-      body: JSON.stringify({ staff_id: newStaffId }),
+      body:   JSON.stringify({ staff_id: newStaffId }),
     });
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // BLOG  —  every list endpoint calls unwrapList() before .map()
-  // ══════════════════════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════════════════
+  // BLOG
+  // ════════════════════════════════════════════════════════════════════════════
 
   async getBlogPosts(): Promise<any[]> {
-    const data = await this.cachedRequest("/hospital/blog/");
-    return unwrapList(data).map(normalizeBlogPost); // FIX: was data.map() → "not a function"
+    const data = await this.cachedRequest("/hospital/blog/", TTL_BLOG);
+    return unwrapList(data).map(normalizeBlogPost);
   }
 
   async getBlogPost(slug: string): Promise<any> {
-    const data = await this.cachedRequest(`/hospital/blog/${slug}/`);
-    return normalizeBlogPost(data); // single object — no unwrap needed
+    const data = await this.cachedRequest(`/hospital/blog/${slug}/`, TTL_BLOG);
+    return normalizeBlogPost(data);
   }
 
-  async createBlogPost(data: FormData): Promise<any> {
+  async createBlogPost(data: FormData): Promise<unknown> {
     this.invalidateCache("/hospital/blog/");
     return this.request("/hospital/blog/", { method: "POST", body: data });
   }
 
-  async updateBlogPost(slug: string, data: FormData): Promise<any> {
+  async updateBlogPost(slug: string, data: FormData): Promise<unknown> {
     this.invalidateCache("/hospital/blog/");
     return this.request(`/hospital/blog/${slug}/`, { method: "PUT", body: data });
   }
@@ -457,44 +455,34 @@ class ApiService {
     await this.request(`/hospital/blog/${slug}/`, { method: "DELETE" });
   }
 
-  async getBlogStats(): Promise<any> {
+  async getBlogStats(): Promise<unknown> {
     return this.cachedRequest("/hospital/blog/admin/stats/");
   }
 
   async getAllBlogPosts(): Promise<any[]> {
-    const data = await this.cachedRequest("/hospital/blog/admin/all/");
-    return unwrapList(data).map(normalizeBlogPost); // FIX
+    const data = await this.cachedRequest("/hospital/blog/admin/all/", TTL_BLOG);
+    return unwrapList(data).map(normalizeBlogPost);
   }
 
+  // Search is never cached — results depend on the query string
   async searchBlogPosts(query: string): Promise<any[]> {
-    const data = await this.cachedRequest(
+    const data = await this.request(
       `/hospital/blog/search/?q=${encodeURIComponent(query)}`
     );
-    return unwrapList(data).map(normalizeBlogPost); // FIX
+    return unwrapList(data).map(normalizeBlogPost);
   }
 
-  async getLatestBlogPosts(limit: number = 6): Promise<any[]> {
-    try {
-      // getBlogPosts() already returns a plain, normalized array
-      const allPosts = await this.getBlogPosts();
-      if (!allPosts.length) return [];
-
-      return allPosts
-        .sort((a, b) => {
-          const dateA = new Date(a.created_at || a.published_date || 0).getTime();
-          const dateB = new Date(b.created_at || b.published_date || 0).getTime();
-          return dateB - dateA;
-        })
-        .slice(0, limit);
-    } catch (error) {
-      console.error("❌ Failed to fetch latest blog posts:", error);
-      try {
-        const data = await this.request(`/hospital/blog/latest/?limit=${limit}`);
-        return unwrapList(data).map(normalizeBlogPost);
-      } catch {
-        return [];
-      }
-    }
+  // FIX: The original fetched ALL blog posts (full page of 20), sorted them
+  // client-side in JS, then sliced. This sent 20 full objects over the wire
+  // just to display 1–6 items.
+  // Now calls /hospital/blog/latest/?limit=N directly — the backend returns
+  // only what's needed, pre-sorted, pre-cached in Redis.
+  async getLatestBlogPosts(limit = 6): Promise<any[]> {
+    const data = await this.cachedRequest(
+      `/hospital/blog/latest/?limit=${limit}`,
+      TTL_BLOG
+    );
+    return unwrapList(data).map(normalizeBlogPost);
   }
 }
 

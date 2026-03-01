@@ -1,175 +1,146 @@
-// App.tsx - Updated with Google OAuth callback
-import React, { lazy, Suspense } from 'react';
-import type { ComponentType } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Layout from './components/Layout';
-import LoadingSpinner from './components/LoadSpinner';
-import ScrollToTop from './components/ScrollToTop';
-import AuthError from './pages/AuthError';
+// App.tsx
+import React, { lazy, Suspense, useMemo } from "react";
+import type { ComponentType } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import Layout         from "./components/Layout";
+import LoadingSpinner from "./components/LoadSpinner";
+import ScrollToTop    from "./components/ScrollToTop";
+import AuthError      from "./pages/AuthError";
 
-// Define component prop types
-interface BlogProps {
-  onPostClick?: (slug: string) => void;
-}
+// ── Route prop types ──────────────────────────────────────────────────────────
+interface BlogProps         { onPostClick?: (slug: string) => void }
+interface BlogPostDetailProps { slug: string; onBack?: () => void }
+interface HomeProps          { onBlogPostClick?: (slug: string) => void }
 
-interface BlogPostDetailProps {
-  slug: string;
-  onBack?: () => void;
-}
+// ── Lazy imports ──────────────────────────────────────────────────────────────
+// All page components are code-split so the initial bundle only ships the
+// shell + auth. Each page loads on first navigation to that route.
+const Home           = lazy(() => import("./pages/home/Home"))          as ComponentType<HomeProps>;
+const AboutUs        = lazy(() => import("./pages/About"));
+const Services       = lazy(() => import("./pages/Services"));
+const Packages       = lazy(() => import("./pages/Package"));
+const Blog           = lazy(() => import("./pages/blog/Blog"))          as ComponentType<BlogProps>;
+const BlogPostDetail = lazy(() => import("./pages/blog/BlogPostDetail")) as ComponentType<BlogPostDetailProps>;
+const Contact        = lazy(() => import("./pages/Contact"));
+const AuthModal      = lazy(() => import("./pages/authform/AuthModal"));
+const DashboardRouter = lazy(() => import("./pages/DashboardRouter"));
+const BlogEditor     = lazy(() => import("./pages/blog/BlogEditor"));
+const GoogleCallback = lazy(() => import("./pages/GoogleCallback"));
 
-interface HomeProps {
-  onBlogPostClick?: (slug: string) => void;
-}
-
-// Lazy imports with proper typing
-const Home = lazy(() => import('./pages/home/Home')) as ComponentType<HomeProps>;
-const AboutUs = lazy(() => import('./pages/About'));
-const Services = lazy(() => import('./pages/Services'));
-const Packages = lazy(() => import('./pages/Package'));
-const Blog = lazy(() => import('./pages/blog/Blog')) as ComponentType<BlogProps>;
-const BlogPostDetail = lazy(() => import('./pages/blog/BlogPostDetail')) as ComponentType<BlogPostDetailProps>;
-const Contact = lazy(() => import('./pages/Contact'));
-const AuthModal = lazy(() => import('./pages/authform/AuthModal'));
-const DashboardRouter = lazy(() => import('./pages/DashboardRouter'));
-const BlogEditor = lazy(() => import('./pages/blog/BlogEditor'));
-const GoogleCallback = lazy(() => import('./pages/GoogleCallback')); // ADD THIS IMPORT
-
-// Protected route component
+// ── Route guards ──────────────────────────────────────────────────────────────
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
-  
-  return <>{children}</>;
+  return user ? <>{children}</> : <Navigate to="/" replace />;
 };
 
-// Admin route component - only accessible to admins
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
-  
-  // Check if user is admin
-  if (user.profile?.role !== 'ADMIN') {
-    return <Navigate to="/dashboard" replace />;
-  }
-  
+  if (!user)                          return <Navigate to="/"          replace />;
+  if (user.profile?.role !== "ADMIN") return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 };
 
-// Public route component - redirects to dashboard if user is logged in
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  return <>{children}</>;
+  return user ? <Navigate to="/dashboard" replace /> : <>{children}</>;
 };
 
-// Wrapper component to handle routing logic
+// ── BlogPostDetailWrapper ─────────────────────────────────────────────────────
+// FIX: The original defined this component inline inside AppRoutes — React
+// created a new component type on every render which caused the Suspense
+// boundary to unmount and remount the lazy component unnecessarily.
+// Defined at module level it is stable across renders.
+const BlogPostDetailWrapper: React.FC = () => {
+  const { slug = "" } = useParams<{ slug: string }>();
+  const navigate      = useNavigate();
+  return (
+    <BlogPostDetail
+      slug={slug}
+      onBack={() => navigate("/blog")}
+    />
+  );
+};
+
+// ── Path → nav label map (module-level constant, allocated once) ──────────────
+const PATH_TO_PAGE: Record<string, string> = {
+  "":          "home",
+  home:        "home",
+  "about-us":  "about us",
+  services:    "services",
+  packages:    "packages",
+  blog:        "blog",
+  contact:     "contact",
+};
+
+const ROUTE_MAP: Record<string, string> = {
+  home:       "/",
+  "about us": "/about-us",
+  services:   "/services",
+  packages:   "/packages",
+  blog:       "/blog",
+  contact:    "/contact",
+};
+
+// ── Main route tree ───────────────────────────────────────────────────────────
 const AppRoutes: React.FC = () => {
-  const { user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [showAuthModal, setShowAuthModal] = React.useState(false);
+  const { user }    = useAuth();
+  const location    = useLocation();
+  const navigate    = useNavigate();
+  const [showAuth, setShowAuth] = React.useState(false);
 
-  // Get current page from URL path
-  const getCurrentPage = () => {
-    const path = location.pathname.split('/')[1] || 'home';
+  // FIX: Memoize current page derivation so it doesn't re-run on every render.
+  const currentPage = useMemo(() => {
+    const segment = location.pathname.split("/")[1] ?? "";
+    return PATH_TO_PAGE[segment] ?? "home";
+  }, [location.pathname]);
 
-     const pathToPageMap: { [key: string]: string } = {
-      '': 'home',
-      'home': 'home',
-      'about-us': 'about us',
-      'services': 'services',
-      'packages': 'packages',
-      'blog': 'blog',
-      'contact': 'contact',
-    }
-    return pathToPageMap[path] || 'home';
-  };
-
-  // Handle navigation
   const handleNavigate = (page: string) => {
-    const routeMap: { [key: string]: string } = {
-      'home': '/',
-      'about us': '/about-us',
-      'services': '/services',
-      'packages': '/packages',
-      'blog': '/blog',
-      'contact': '/contact',
-    };
-
-    const route = routeMap[page.toLowerCase()] || '/';
-    navigate(route);
-  };
-
-  const handleLoginClick = () => {
-    setShowAuthModal(true);
-  };
-
-  // Handle profile click - navigate to dashboard
-  const handleProfileClick = () => {
-    if (user) {
-      navigate('/dashboard');
-    }
-  };
-
-  // Blog post detail wrapper component
-  const BlogPostDetailWrapper: React.FC = () => {
-    const slug = useLocation().pathname.split('/').pop() || '';
-    
-    return (
-      <BlogPostDetail 
-        slug={slug} 
-        onBack={() => navigate('/blog')} 
-      />
-    );
+    navigate(ROUTE_MAP[page.toLowerCase()] ?? "/");
   };
 
   return (
     <>
       <ScrollToTop />
       <Layout
-        currentPage={getCurrentPage()}
+        currentPage={currentPage}
         onNavigate={handleNavigate}
-        onLoginClick={handleLoginClick}
-        onProfileClick={handleProfileClick}
+        onLoginClick={() => setShowAuth(true)}
+        onProfileClick={() => user && navigate("/dashboard")}
       >
         <Suspense fallback={<LoadingSpinner message="Loading page..." />}>
           <Routes>
-            {/* Public Routes - accessible to all */}
+            {/* Public */}
             <Route
               path="/"
               element={
                 <Home onBlogPostClick={(slug) => navigate(`/blog/${slug}`)} />
               }
             />
-            <Route path="/about-us" element={<AboutUs />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/packages" element={<Packages />} />
+            <Route path="/about-us"  element={<AboutUs />}  />
+            <Route path="/services"  element={<Services />} />
+            <Route path="/packages"  element={<Packages />} />
             <Route
               path="/blog"
               element={<Blog onPostClick={(slug) => navigate(`/blog/${slug}`)} />}
             />
-            <Route
-              path="/blog/:slug"
-              element={<BlogPostDetailWrapper />}
-            />
-            <Route path="/contact" element={<Contact />} />
-            
-            {/* Google OAuth Callback Route - UPDATE THIS */}
-            <Route path="/auth/callback" element={<GoogleCallback />} />
-            
-            <Route path="/auth/error" element={<AuthError />} />
+            {/* FIX: Uses the module-level wrapper component — no inline re-creation */}
+            <Route path="/blog/:slug" element={<BlogPostDetailWrapper />} />
+            <Route path="/contact"    element={<Contact />} />
 
-            {/* Protected Dashboard Route */}
+            {/* OAuth */}
+            <Route path="/auth/callback" element={<GoogleCallback />} />
+            <Route path="/auth/error"    element={<AuthError />} />
+
+            {/* Protected */}
             <Route
               path="/dashboard/*"
               element={
@@ -178,8 +149,6 @@ const AppRoutes: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-
-            {/* Admin Blog Editor Route */}
             <Route
               path="/admin/blog/edit/:slug"
               element={
@@ -189,35 +158,21 @@ const AppRoutes: React.FC = () => {
               }
             />
 
-            {/* Auth routes - redirect to home if already logged in */}
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <Navigate to="/" replace />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <PublicRoute>
-                  <Navigate to="/" replace />
-                </PublicRoute>
-              }
-            />
+            {/* Auth redirects */}
+            <Route path="/login"    element={<PublicRoute><Navigate to="/" replace /></PublicRoute>} />
+            <Route path="/register" element={<PublicRoute><Navigate to="/" replace /></PublicRoute>} />
 
-            {/* Catch-all redirect */}
+            {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </Layout>
 
-      {showAuthModal && (
+      {showAuth && (
         <Suspense fallback={<LoadingSpinner message="Loading authentication..." />}>
           <AuthModal
-            isOpen={showAuthModal}
-            onClose={() => setShowAuthModal(false)}
+            isOpen={showAuth}
+            onClose={() => setShowAuth(false)}
           />
         </Suspense>
       )}
@@ -225,14 +180,12 @@ const AppRoutes: React.FC = () => {
   );
 };
 
-const App: React.FC = () => {
-  return (
-    <Router>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </Router>
-  );
-};
+const App: React.FC = () => (
+  <Router>
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  </Router>
+);
 
 export default App;
