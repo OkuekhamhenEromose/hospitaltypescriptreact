@@ -75,7 +75,7 @@ const PatientDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [formData, setFormData] = useState({name:"",age:"",sex:"M",address:"",message:""});
 
-  const imgUrl=(p:any)=>p?.profile_pix?(p.profile_pix.startsWith("http")?p.profile_pix:`https://dhospitalback.onrender.com${p.profile_pix}`):null;
+  const imgUrl=(p:any)=>p?.profile_pix?(p.profile_pix.startsWith("http")?p.profile_pix:`https://hospitalback-clean.onrender.com${p.profile_pix}`):null;
   const pName=(a:Appointment)=>a.name||user?.profile?.fullname||"Patient";
 
   const navItems=[

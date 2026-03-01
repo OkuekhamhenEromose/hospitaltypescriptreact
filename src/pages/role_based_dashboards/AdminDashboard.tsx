@@ -165,7 +165,7 @@ const AdminDashboard: React.FC = () => {
   const [q, setQ] = useState("");
 
   const isAdmin = user?.profile?.role === "ADMIN";
-  const imgUrl = (p: any) => p?.profile_pix ? (p.profile_pix.startsWith("http") ? p.profile_pix : `https://dhospitalback.onrender.com${p.profile_pix}`) : null;
+  const imgUrl = (p: any) => p?.profile_pix ? (p.profile_pix.startsWith("http") ? p.profile_pix : `${p.profile_pix}`) : null;
   const sw = collapsed ? 72 : 248;
 
   const navItems = [
@@ -836,7 +836,7 @@ const CreateBlogModal: React.FC<{ onClose: () => void; onSuccess: () => void }> 
       fd.append("content", form.content); fd.append("published", form.published.toString());
       fd.append("enable_toc", form.enable_toc.toString()); fd.append("featured_image", featImg);
       if (img1) fd.append("image_1", img1); if (img2) fd.append("image_2", img2);
-      const res = await fetch("https://dhospitalback.onrender.com/api/hospital/blog/", { method: "POST", headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }, body: fd });
+      const res = await fetch("https://hospitalback-clean.onrender.com/api/hospital/blog/", { method: "POST", headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }, body: fd });
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       onSuccess(); alert("Blog post created!");
     } catch (err: any) { alert(`Failed: ${err.message}`); } finally { setSaving(false); }

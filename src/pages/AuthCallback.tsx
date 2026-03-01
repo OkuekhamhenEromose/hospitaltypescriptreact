@@ -20,7 +20,7 @@ const AuthCallback = () => {
           setTimeout(() => navigate('/dashboard'), 1000);
         } catch (error) {
           try {
-            const response = await fetch('https://dhospitalback.onrender.com/api/users/dashboard/', {
+            const response = await fetch('https://hospitalback-clean.onrender.com/api/users/dashboard/', {
               method: 'GET',
               headers: {
                 'Authorization': `Bearer ${accessToken}`,
