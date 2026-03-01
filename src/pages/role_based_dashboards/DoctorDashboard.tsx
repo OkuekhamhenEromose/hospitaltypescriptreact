@@ -12,7 +12,7 @@ const C = {
 };
 
 // ─── SVG ICON LIBRARY ─────────────────────────────────────────────────────
-const I: Record<string, (p: React.SVGProps<SVGSVGElement>) => JSX.Element> = {
+const I: Record<string, (p: React.SVGProps<SVGSVGElement>) => React.ReactElement> = {
   Logo: p => <svg viewBox="0 0 32 32" {...p}><rect width="32" height="32" rx="8" fill="#177fed"/><path d="M16 6v20M6 16h20" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"/></svg>,
   Stethoscope: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4.5 7.5a3 3 0 003 3M4.5 7.5H3M7.5 10.5c0 5 4 8 7 8a5 5 0 005-5"/><circle cx="19.5" cy="13.5" r="1.5"/><path d="M4.5 7.5V5a1.5 1.5 0 013 0v2.5"/><path d="M4.5 5a1.5 1.5 0 00-3 0v2.5"/></svg>,
   Calendar: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,

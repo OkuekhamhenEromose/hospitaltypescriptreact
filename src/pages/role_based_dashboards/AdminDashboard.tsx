@@ -1,34 +1,47 @@
+// components/dashboards/AdminDashboard.tsx
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiService } from "../../services/api";
-import { useNavigate } from "react-router-dom";
-import EthaLogo from "../../assets/img/etta-replace1-removebg-preview.png";
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  Users,
-  FileText,
-  Menu,
-  X,
-  Home,
-  User,
-  Calendar,
-  BarChart3,
-  Search,
-  ChevronDown,
-  Bell,
-  MessageSquare,
-  UserPlus,
-  Stethoscope,
-  FlaskConical,
-  Shield,
-  Filter,
-  RefreshCw,
-  Clock,
-  Download,
-} from "lucide-react";
+
+// ─── HOSPITAL BRAND PALETTE ───────────────────────────────────────────────
+const C = {
+  blue1: "#1378e5", blue2: "#177fed", blue3: "#0f5fc4",
+  red: "#e53935", white: "#ffffff", slate: "#f0f4fa",
+  muted: "#8aa0ba", text: "#0d1b2e", soft: "#e8f0fc",
+  green: "#12b76a", amber: "#f59e0b", purple: "#7c3aed",
+  teal: "#0d9488", indigo: "#4f46e5", orange: "#ea580c",
+};
+
+// ─── SVG ICON LIBRARY ─────────────────────────────────────────────────────
+const I: Record<string, (p: React.SVGProps<SVGSVGElement>) => React.ReactElement> = {
+  Logo:       p => <svg viewBox="0 0 32 32" {...p}><rect width="32" height="32" rx="8" fill="#177fed"/><path d="M16 6v20M6 16h20" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"/></svg>,
+  Home:       p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  Users:      p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
+  User:       p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  UserPlus:   p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
+  FileText:   p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+  BarChart:   p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>,
+  Bell:       p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
+  Search:     p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>,
+  Menu:       p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" {...p}><path d="M3 12h18M3 6h18M3 18h12"/></svg>,
+  ChevDown:   p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M6 9l6 6 6-6"/></svg>,
+  ChevLeft:   p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M15 18l-6-6 6-6"/></svg>,
+  X:          p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" {...p}><path d="M18 6L6 18M6 6l12 12"/></svg>,
+  Filter:     p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
+  Download:   p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>,
+  Plus:       p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  Edit:       p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  Trash:      p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>,
+  Eye:        p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  Calendar:   p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
+  Clock:      p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>,
+  Shield:     p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  Stethoscope:p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4.5 7.5a3 3 0 003 3M4.5 7.5H3M7.5 10.5c0 5 4 8 7 8a5 5 0 005-5"/><circle cx="19.5" cy="13.5" r="1.5"/><path d="M4.5 7.5V5a1.5 1.5 0 013 0v2.5M4.5 5a1.5 1.5 0 00-3 0v2.5"/></svg>,
+  Flask:      p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 3h6M10 3v7L6.5 16.5A3 3 0 009.5 21h5a3 3 0 003-4.5L14 10V3"/><path d="M7.5 16h9" strokeWidth="1.4"/></svg>,
+  RefreshCw:  p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>,
+  Activity:   p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+  Check:      p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="20 6 9 17 4 12"/></svg>,
+};
 
 interface DashboardStats {
   totalPatients: number;
@@ -56,13 +69,85 @@ interface StaffAssignment {
   bookedAt: string;
 }
 
+// ─── STATUS MAP ────────────────────────────────────────────────────────────
+const ST: Record<string, { label: string; bg: string; color: string; dot: string }> = {
+  COMPLETED:        { label: "Completed",       bg: "#ecfdf5", color: "#059669", dot: "#12b76a" },
+  IN_REVIEW:        { label: "In Review",        bg: "#eff6ff", color: "#1378e5", dot: "#177fed" },
+  AWAITING_RESULTS: { label: "Awaiting Results", bg: "#fffbeb", color: "#b45309", dot: "#f59e0b" },
+  PENDING:          { label: "Pending",          bg: "#f8fafc", color: "#64748b", dot: "#94a3b8" },
+  IN_PROGRESS:      { label: "In Progress",      bg: "#f0fdf4", color: "#16a34a", dot: "#22c55e" },
+};
+
+// ─── SHARED INPUT STYLES ──────────────────────────────────────────────────
+const ls: React.CSSProperties = { display: "block", fontSize: 12.5, fontWeight: 600, color: C.text, marginBottom: 6 };
+const is: React.CSSProperties = { width: "100%", height: 40, padding: "0 12px", border: `1.5px solid ${C.soft}`, borderRadius: 10, fontSize: 13, color: C.text, background: C.slate, outline: "none", fontFamily: "inherit", marginBottom: 16 };
+const ts: React.CSSProperties = { width: "100%", padding: "10px 12px", border: `1.5px solid ${C.soft}`, borderRadius: 10, fontSize: 13, color: C.text, background: C.slate, outline: "none", fontFamily: "inherit", resize: "vertical" as const, marginBottom: 16 };
+
+// ─── AVATAR HELPER ────────────────────────────────────────────────────────
+function Avatar({ name, size = 32, grad = `135deg,${C.blue1},${C.blue2}` }: { name: string; size?: number; grad?: string }) {
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", background: `linear-gradient(${grad})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <span style={{ color: C.white, fontSize: size * 0.38, fontWeight: 600 }}>{name?.charAt(0)?.toUpperCase() || "?"}</span>
+    </div>
+  );
+}
+
+// ─── STATUS PILL ─────────────────────────────────────────────────────────
+function Pill({ status }: { status: string }) {
+  const s = ST[status] || ST.PENDING;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: s.bg, color: s.color, fontSize: 11.5, fontWeight: 600 }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot }} />
+      {s.label}
+    </span>
+  );
+}
+
+// ─── MODAL SHELL ─────────────────────────────────────────────────────────
+function Modal({ title, subtitle, onClose, children, wide }: { title: string; subtitle?: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(13,27,46,0.55)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(3px)" }}>
+      <div style={{ background: C.white, borderRadius: 18, width: "100%", maxWidth: wide ? 640 : 480, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(23,127,237,0.2)", fontFamily: "'DM Sans',sans-serif" }}>
+        <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.soft}`, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: C.white, borderRadius: "18px 18px 0 0", zIndex: 1 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{title}</div>
+            {subtitle && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{subtitle}</div>}
+          </div>
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: C.slate, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <I.X style={{ width: 14, height: 14, color: C.muted }} />
+          </button>
+        </div>
+        <div style={{ padding: "20px 24px" }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ACTION BUTTONS ───────────────────────────────────────────────────────
+function Actions({ onCancel, label, color = C.blue2, disabled = false }: { onCancel: () => void; label: string; color?: string; disabled?: boolean }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, paddingTop: 4 }}>
+      <button type="button" onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: `1.5px solid ${C.soft}`, background: C.white, color: C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+      <button type="submit" disabled={disabled} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: disabled ? C.muted : color, color: C.white, fontSize: 13, fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: disabled ? "none" : `0 4px 12px ${color}55`, opacity: disabled ? 0.6 : 1 }}>{label}</button>
+    </div>
+  );
+}
+
+// ─── TABLE SHELL ──────────────────────────────────────────────────────────
+function TableCard({ header, children }: { header: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.soft}`, overflow: "hidden", boxShadow: "0 2px 12px rgba(23,127,237,0.05)" }}>
+      <div style={{ padding: "18px 22px", borderBottom: `1px solid ${C.soft}` }}>{header}</div>
+      <div style={{ overflowX: "auto" as const }}>{children}</div>
+    </div>
+  );
+}
+
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "patients" | "staff" | "blog" | "assignments"
-  >("overview");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "patients" | "staff" | "assignments" | "blog">("overview");
+  const [collapsed, setCollapsed] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [staff, setStaff] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
@@ -70,1851 +155,741 @@ const AdminDashboard: React.FC = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedAppt, setSelectedAppt] = useState<any>(null);
   const [availableDoctors, setAvailableDoctors] = useState<any[]>([]);
   const [availableNurses, setAvailableNurses] = useState<any[]>([]);
-  const [availableLabScientists, setAvailableLabScientists] = useState<any[]>(
-    []
-  );
+  const [availableLabs, setAvailableLabs] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<StaffAssignment[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [q, setQ] = useState("");
 
   const isAdmin = user?.profile?.role === "ADMIN";
+  const imgUrl = (p: any) => p?.profile_pix ? (p.profile_pix.startsWith("http") ? p.profile_pix : `https://dhospitalback.onrender.com${p.profile_pix}`) : null;
+  const sw = collapsed ? 72 : 248;
 
-  const getProfileImageUrl = (profile: any) => {
-    if (!profile?.profile_pix) return null;
+  const navItems = [
+    { id: "overview",    label: "Overview",          icon: "Home",     count: null },
+    { id: "patients",    label: "Patients",           icon: "User",     count: stats?.totalPatients || 0 },
+    { id: "staff",       label: "Staff",              icon: "Users",    count: (stats?.totalDoctors || 0) + (stats?.totalNurses || 0) + (stats?.totalLabScientists || 0) },
+    { id: "assignments", label: "Staff Assignments",  icon: "UserPlus", count: appointments.filter(a => a.status !== "COMPLETED").length },
+    { id: "blog",        label: "Blog Management",    icon: "FileText", count: blogPosts.length },
+  ];
 
-    if (profile.profile_pix.startsWith("http")) {
-      return profile.profile_pix;
-    }
+  useEffect(() => { if (isAdmin) { loadData(); loadStaff(); } }, [isAdmin]);
+  useEffect(() => { if (activeTab === "assignments") buildAssignments(); }, [activeTab, statusFilter, appointments]);
 
-    return `https://dhospitalback.onrender.com${profile.profile_pix}`;
-  };
-
-  useEffect(() => {
-    if (isAdmin) {
-      loadDashboardData();
-      loadAvailableStaff();
-    }
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (activeTab === "assignments") {
-      loadAssignments();
-    }
-  }, [activeTab, statusFilter]);
-
-  const loadDashboardData = async () => {
+  async function loadData() {
     try {
       setLoading(true);
-      const [staffData, appointmentsData, blogStats, allBlogPosts] =
-        await Promise.all([
-          apiService.getStaffMembers(),
-          apiService.getAppointments(),
-          apiService.getBlogStats(),
-          apiService.getAllBlogPosts(),
-        ]);
-
+      const [staffData, apptData, blogStats, posts] = await Promise.all([
+        apiService.getStaffMembers(),
+        apiService.getAppointments(),
+        apiService.getBlogStats(),
+        apiService.getAllBlogPosts(),
+      ]);
       setStaff(staffData);
-      setBlogPosts(allBlogPosts);
-      setAppointments(appointmentsData);
-
-      const patientMap = new Map();
-      appointmentsData.forEach((appointment: any) => {
-        if (appointment.patient && !patientMap.has(appointment.patient.id)) {
-          patientMap.set(appointment.patient.id, {
-            ...appointment.patient,
-            appointments_count: appointmentsData.filter(
-              (a: any) => a.patient?.id === appointment.patient.id
-            ).length,
-          });
-        }
-      });
-      setPatients(Array.from(patientMap.values()));
-
+      setAppointments(apptData);
+      setBlogPosts(posts);
+      const pm = new Map<number, any>();
+      apptData.forEach((a: any) => { if (a.patient && !pm.has(a.patient.id)) pm.set(a.patient.id, { ...a.patient, appointments_count: apptData.filter((x: any) => x.patient?.id === a.patient.id).length }); });
+      setPatients(Array.from(pm.values()));
       setStats({
-        totalPatients: patientMap.size,
+        totalPatients: pm.size,
         totalDoctors: staffData.filter((s: any) => s.role === "DOCTOR").length,
         totalNurses: staffData.filter((s: any) => s.role === "NURSE").length,
-        totalLabScientists: staffData.filter((s: any) => s.role === "LAB")
-          .length,
-        totalAppointments: appointmentsData.length,
-        blogStats: blogStats,
+        totalLabScientists: staffData.filter((s: any) => s.role === "LAB").length,
+        totalAppointments: apptData.length,
+        blogStats,
       });
-    } catch (error) {
-      console.error("Error loading dashboard data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    } catch (e) { console.error(e); } finally { setLoading(false); }
+  }
 
-  const loadAvailableStaff = async () => {
+  async function loadStaff() {
     try {
-      const [doctors, nurses, labScientists] = await Promise.all([
-        apiService.getAvailableStaff("DOCTOR"),
-        apiService.getAvailableStaff("NURSE"),
-        apiService.getAvailableStaff("LAB"),
-      ]);
-      setAvailableDoctors(doctors);
-      setAvailableNurses(nurses);
-      setAvailableLabScientists(labScientists);
-    } catch (error) {
-      console.error("Error loading available staff:", error);
-    }
-  };
+      const [d, n, l] = await Promise.all([apiService.getAvailableStaff("DOCTOR"), apiService.getAvailableStaff("NURSE"), apiService.getAvailableStaff("LAB")]);
+      setAvailableDoctors(d); setAvailableNurses(n); setAvailableLabs(l);
+    } catch (e) { console.error(e); }
+  }
 
-  const loadAssignments = async () => {
-    try {
-      const filteredAppointments =
-        statusFilter === "all"
-          ? appointments
-          : appointments.filter((a) => a.status === statusFilter);
+  function buildAssignments() {
+    const src = statusFilter === "all" ? appointments : appointments.filter(a => a.status === statusFilter);
+    setAssignments(src.map((a: any) => ({
+      appointmentId: a.id, patientId: a.patient?.id, patientName: a.name,
+      assignedDoctor: a.doctor, assignedNurse: a.vital_requests?.[0]?.assigned_to,
+      assignedLab: a.test_requests?.[0]?.assigned_to, status: a.status, bookedAt: a.booked_at,
+    })));
+  }
 
-      const assignmentsData: StaffAssignment[] = filteredAppointments.map(
-        (appt: any) => ({
-          appointmentId: appt.id,
-          patientId: appt.patient?.id,
-          patientName: appt.name,
-          assignedDoctor: appt.doctor,
-          assignedNurse: appt.vital_requests?.[0]?.assigned_to,
-          assignedLab: appt.test_requests?.[0]?.assigned_to,
-          status: appt.status,
-          bookedAt: appt.booked_at,
-        })
-      );
-      setAssignments(assignmentsData);
-    } catch (error) {
-      console.error("Error loading assignments:", error);
-    }
-  };
+  async function handleAssign(data: any) {
+    const ops = [];
+    if (data.doctor_id) ops.push(apiService.assignStaff({ appointment_id: data.appointment_id, staff_id: data.doctor_id, role: "DOCTOR" }));
+    if (data.nurse_id)  ops.push(apiService.assignStaff({ appointment_id: data.appointment_id, staff_id: data.nurse_id,  role: "NURSE" }));
+    if (data.lab_id)    ops.push(apiService.assignStaff({ appointment_id: data.appointment_id, staff_id: data.lab_id,    role: "LAB" }));
+    await Promise.all(ops);
+    loadData(); buildAssignments();
+  }
 
-  const handleAssignStaff = async (data: any) => {
-    try {
-      const promises = [];
+  function exportCSV() {
+    const rows = assignments.map(a => ({ "Appointment ID": a.appointmentId, "Patient": a.patientName, "Doctor": a.assignedDoctor?.fullname || "Unassigned", "Nurse": a.assignedNurse?.fullname || "Unassigned", "Lab Scientist": a.assignedLab?.fullname || "Unassigned", "Status": a.status, "Booked": new Date(a.bookedAt).toLocaleDateString() }));
+    if (!rows.length) return;
+    const hdrs = Object.keys(rows[0]);
+    const csv = [hdrs.join(","), ...rows.map(r => hdrs.map(h => { const v = String((r as any)[h]); return /[,"\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v; }).join(","))].join("\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = `assignments_${new Date().toISOString().split("T")[0]}.csv`; a.click();
+  }
 
-      if (data.doctor_id) {
-        promises.push(
-          apiService.assignStaff({
-            appointment_id: data.appointment_id,
-            staff_id: data.doctor_id,
-            role: "DOCTOR",
-          })
-        );
-      }
-
-      if (data.nurse_id) {
-        promises.push(
-          apiService.assignStaff({
-            appointment_id: data.appointment_id,
-            staff_id: data.nurse_id,
-            role: "NURSE",
-          })
-        );
-      }
-
-      if (data.lab_id) {
-        promises.push(
-          apiService.assignStaff({
-            appointment_id: data.appointment_id,
-            staff_id: data.lab_id,
-            role: "LAB",
-          })
-        );
-      }
-
-      await Promise.all(promises);
-      loadDashboardData();
-      loadAssignments();
-    } catch (error) {
-      console.error("Error assigning staff:", error);
-      throw error;
-    }
-  };
-
-  const handleOpenAssignmentModal = (appointment: any) => {
-    setSelectedAppointment(appointment);
-    setShowAssignmentModal(true);
-  };
-
-  // const handleReassignStaff = async (assignmentId: number, newStaffId: string) => {
-  //   try {
-  //     await apiService.reassignStaff(assignmentId, newStaffId);
-  //     loadAssignments();
-  //   } catch (error) {
-  //     console.error("Error reassigning staff:", error);
-  //   }
-  // };
-
-  const handleExportAssignments = () => {
-    const csvData = assignments.map((a) => ({
-      "Appointment ID": a.appointmentId,
-      "Patient Name": a.patientName,
-      "Assigned Doctor": a.assignedDoctor?.fullname || "Unassigned",
-      "Assigned Nurse": a.assignedNurse?.fullname || "Unassigned",
-      "Assigned Lab Scientist": a.assignedLab?.fullname || "Unassigned",
-      Status: a.status,
-      "Booked Date": new Date(a.bookedAt).toLocaleDateString(),
-    }));
-
-    // Simple CSV generator without external library
-    const convertToCSV = (data: any[]) => {
-      const headers = Object.keys(data[0]);
-      const csvRows = [];
-
-      // Add header row
-      csvRows.push(headers.join(","));
-
-      // Add data rows
-      for (const row of data) {
-        const values = headers.map((header) => {
-          const value = row[header];
-          // Escape quotes and wrap in quotes if contains comma or quotes
-          const escaped = String(value).replace(/"/g, '""');
-          return /[,"\n]/.test(escaped) ? `"${escaped}"` : escaped;
-        });
-        csvRows.push(values.join(","));
-      }
-
-      return csvRows.join("\n");
-    };
-
-    const csv = convertToCSV(csvData);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `assignments_${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-
-    // Clean up
-    window.URL.revokeObjectURL(url);
-  };
-
-  const navigationItems = [
-    {
-      id: "overview",
-      name: "Overview",
-      icon: <Home className="w-5 h-5" />,
-      color: "text-blue-600",
-    },
-    {
-      id: "patients",
-      name: "Patients",
-      icon: <User className="w-5 h-5" />,
-      color: "text-green-600",
-    },
-    {
-      id: "staff",
-      name: "Staff",
-      icon: <Users className="w-5 h-5" />,
-      color: "text-purple-600",
-    },
-    {
-      id: "assignments",
-      name: "Staff Assignments",
-      icon: <UserPlus className="w-5 h-5" />,
-      color: "text-indigo-600",
-    },
-    {
-      id: "blog",
-      name: "Blog Management",
-      icon: <FileText className="w-5 h-5" />,
-      color: "text-orange-600",
-    },
-  ];
+  // Filter helpers
+  const filteredPatients = q ? patients.filter(p => p.fullname?.toLowerCase().includes(q.toLowerCase()) || p.user?.email?.toLowerCase().includes(q.toLowerCase())) : patients;
+  const filteredStaff = q ? staff.filter(s => s.fullname?.toLowerCase().includes(q.toLowerCase()) || s.role?.toLowerCase().includes(q.toLowerCase())) : staff;
+  const filteredPosts = q ? blogPosts.filter(p => p.title?.toLowerCase().includes(q.toLowerCase())) : blogPosts;
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <X className="w-8 h-8 text-red-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Access Denied
-            </h2>
-            <p className="text-gray-600">
-              Admin role required to access this dashboard.
-            </p>
+      <div style={{ fontFamily: "'DM Sans',sans-serif", minHeight: "100vh", background: C.slate, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');`}</style>
+        <div style={{ background: C.white, borderRadius: 18, padding: "40px 48px", textAlign: "center", boxShadow: "0 24px 64px rgba(23,127,237,0.15)" }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#fef2f2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <I.X style={{ width: 24, height: 24, color: C.red }} />
           </div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 8 }}>Access Denied</div>
+          <div style={{ fontSize: 14, color: C.muted }}>Admin role required to access this dashboard.</div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar Overlay for Mobile */}
-      {mobileSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setMobileSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div
-        className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
-        ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        ${sidebarOpen ? "w-64" : "w-20"}
-      `}
-      >
-        <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div className="flex items-center justify-between p-6 border-b">
-            {sidebarOpen && (
-              <div className="flex items-center space-x-3">
-                {/* <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg"></div> */}
-                <img
-                  src={EthaLogo}
-                  alt="Etha-Atlantic Memorial Logo"
-                  className="w-12 h-12"
-                />
-                <div>
-                  <h1 className="text-lg font-bold text-gray-900">
-                    Etha-Atlantic
-                  </h1>
-                  <p className="text-xs text-gray-500">Admin Panel</p>
-                </div>
-              </div>
-            )}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100 hidden lg:block"
-            >
-              <Menu className="w-5 h-5 text-gray-600" />
-            </button>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
-            {navigationItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id as any);
-                  setMobileSidebarOpen(false);
-                }}
-                className={`
-                  w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium
-                  ${
-                    activeTab === item.id
-                      ? "bg-blue-50 text-blue-700 border border-blue-200"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  }
-                `}
-              >
-                <div
-                  className={`${
-                    activeTab === item.id ? item.color : "text-gray-400"
-                  }`}
-                >
-                  {item.icon}
-                </div>
-                {sidebarOpen && <span>{item.name}</span>}
-              </button>
-            ))}
-          </nav>
-
-          {/* User Section */}
-          <div className="p-4 border-t">
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
-              {user?.profile?.profile_pix ? (
-                <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300">
-                  <img
-                    src={getProfileImageUrl(user.profile)}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">
-                    {user?.profile?.fullname?.charAt(0) || "A"}
-                  </span>
-                </div>
-              )}
-              {sidebarOpen && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {user?.profile?.fullname || "Admin User"}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    Administrator
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+  if (loading) return (
+    <div style={{ fontFamily: "'DM Sans',sans-serif", minHeight: "100vh", background: C.slate, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 44, height: 44, border: `3px solid ${C.soft}`, borderTopColor: C.blue2, borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 14px" }} />
+        <p style={{ color: C.muted, fontSize: 13 }}>Loading admin dashboard…</p>
       </div>
+    </div>
+  );
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header */}
-        <header className="bg-white border-b shadow-sm">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setMobileSidebarOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"
-              >
-                <Menu className="w-5 h-5 text-gray-600" />
+  return (
+    <div style={{ fontFamily: "'DM Sans',sans-serif", WebkitFontSmoothing: "antialiased", minHeight: "100vh", background: C.slate, display: "flex" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        *{box-sizing:border-box}
+        ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:${C.soft};border-radius:4px}
+        .nh:hover{background:${C.soft}!important}
+        .rh:hover{background:${C.slate}!important}
+        .ch:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(23,127,237,0.12)!important}
+        .bp:hover{background:${C.blue3}!important}
+        .gp:hover{background:#059669!important}
+        .pp:hover{background:#6d28d9!important}
+        .ip:hover{background:#4338ca!important}
+        .op:hover{background:#c2410c!important}
+        .xh:hover{background:${C.soft}!important}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        .fi{animation:fi 0.2s ease forwards}
+        table{border-collapse:collapse;width:100%}
+        th{padding:11px 18px;text-align:left;font-size:11.5px;font-weight:600;color:${C.muted};text-transform:uppercase;letter-spacing:0.5px;background:${C.slate};border-bottom:1px solid ${C.soft}}
+        td{padding:13px 18px;font-size:13px;color:${C.text};border-bottom:1px solid ${C.soft}}
+      `}</style>
+
+      {/* ── SIDEBAR ───────────────────────────────────────────────────── */}
+      <aside style={{ width: sw, minHeight: "100vh", background: C.white, display: "flex", flexDirection: "column", borderRight: `1px solid ${C.soft}`, position: "sticky", top: 0, height: "100vh", overflow: "hidden", flexShrink: 0, transition: "width 0.25s cubic-bezier(.4,0,.2,1)", boxShadow: "2px 0 10px rgba(23,127,237,0.05)" }}>
+
+        {/* Brand */}
+        <div style={{ padding: "18px 14px 14px", borderBottom: `1px solid ${C.soft}`, display: "flex", alignItems: "center", gap: 10, minHeight: 62 }}>
+          <I.Logo style={{ width: 30, height: 30, flexShrink: 0 }} />
+          {!collapsed && <div><div style={{ fontWeight: 700, fontSize: 14, color: C.text, lineHeight: 1.2, whiteSpace: "nowrap" }}>Etha-Atlantic</div><div style={{ fontSize: 11, color: C.muted }}>Admin Panel</div></div>}
+        </div>
+
+        {/* Nav */}
+        <nav style={{ flex: 1, padding: "10px 8px", display: "flex", flexDirection: "column", gap: 3, overflowY: "auto" }}>
+          {navItems.map(n => {
+            const A = I[n.icon]; const act = activeTab === n.id;
+            return (
+              <button key={n.id} className="nh" onClick={() => setActiveTab(n.id as any)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: collapsed ? "10px" : "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", background: act ? C.soft : "transparent", justifyContent: collapsed ? "center" : "flex-start", transition: "all 0.15s" }}>
+                <A style={{ width: 17, height: 17, color: act ? C.blue2 : C.muted, flexShrink: 0 }} />
+                {!collapsed && <><span style={{ flex: 1, textAlign: "left", fontSize: 13, fontWeight: act ? 600 : 400, color: act ? C.text : C.muted, whiteSpace: "nowrap" }}>{n.label}</span>{n.count !== null && <span style={{ fontSize: 11, fontWeight: 600, minWidth: 20, height: 20, borderRadius: 10, background: act ? C.blue2 : "#eef2f7", color: act ? C.white : C.muted, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>{n.count}</span>}</>}
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {navigationItems.find((item) => item.id === activeTab)?.name}
-              </h1>
+            );
+          })}
+        </nav>
+
+        {/* User card */}
+        <div style={{ borderTop: `1px solid ${C.soft}`, padding: "10px 8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: C.slate }}>
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: `linear-gradient(135deg,${C.purple},#9333ea)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+              {imgUrl(user?.profile) ? <img src={imgUrl(user?.profile)!} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: C.white, fontSize: 12, fontWeight: 600 }}>{user?.profile?.fullname?.charAt(0) || "A"}</span>}
             </div>
+            {!collapsed && <div style={{ flex: 1, overflow: "hidden" }}><div style={{ fontSize: 12.5, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.profile?.fullname || "Admin"}</div><div style={{ fontSize: 11, color: C.muted }}>Administrator</div></div>}
+          </div>
+          <button className="nh" onClick={() => setCollapsed(!collapsed)} style={{ marginTop: 6, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px", borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.muted, fontSize: 12, transition: "all 0.15s" }}>
+            <I.ChevLeft style={{ width: 13, height: 13, transition: "transform 0.25s", transform: collapsed ? "rotate(180deg)" : "none" }} />{!collapsed && <span>Collapse</span>}
+          </button>
+        </div>
+      </aside>
 
-            <div className="flex items-center space-x-4">
-              {/* Search Bar */}
-              <div className="relative hidden md:block">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
-                />
+      {/* ── MAIN ──────────────────────────────────────────────────────── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: "100vh" }}>
+
+        {/* Topbar */}
+        <header style={{ height: 64, background: C.white, borderBottom: `1px solid ${C.soft}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", position: "sticky", top: 0, zIndex: 30, boxShadow: "0 2px 10px rgba(23,127,237,0.04)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>
+              {navItems.find(n => n.id === activeTab)?.label}
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {/* Search */}
+            <div style={{ position: "relative" }}>
+              <I.Search style={{ width: 14, height: 14, color: C.muted, position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…" style={{ paddingLeft: 30, paddingRight: 12, height: 36, border: `1.5px solid ${C.soft}`, borderRadius: 10, fontSize: 13, color: C.text, background: C.slate, outline: "none", fontFamily: "inherit", width: 210 }} />
+            </div>
+            {/* Refresh */}
+            <button className="xh" onClick={loadData} title="Refresh" style={{ width: 36, height: 36, borderRadius: 9, border: `1.5px solid ${C.soft}`, background: C.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
+              <I.RefreshCw style={{ width: 15, height: 15, color: C.muted }} />
+            </button>
+            {/* Bell */}
+            <button className="xh" style={{ width: 36, height: 36, borderRadius: 9, border: `1.5px solid ${C.soft}`, background: C.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", transition: "all 0.15s" }}>
+              <I.Bell style={{ width: 15, height: 15, color: C.muted }} />
+              <span style={{ position: "absolute", top: 6, right: 6, width: 7, height: 7, borderRadius: "50%", background: C.red, border: `1.5px solid ${C.white}` }} />
+            </button>
+            {/* User chip */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 12px 5px 5px", borderRadius: 24, background: C.slate, border: `1.5px solid ${C.soft}`, cursor: "pointer" }}>
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: `linear-gradient(135deg,${C.purple},#9333ea)`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                {imgUrl(user?.profile) ? <img src={imgUrl(user?.profile)!} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: C.white, fontSize: 11, fontWeight: 600 }}>{user?.profile?.fullname?.charAt(0) || "A"}</span>}
               </div>
-
-              {/* Notifications */}
-              <button className="p-2 rounded-lg hover:bg-gray-100 relative">
-                <Bell className="w-5 h-5 text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-
-              {/* Messages */}
-              <button className="p-2 rounded-lg hover:bg-gray-100 relative">
-                <MessageSquare className="w-5 h-5 text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
-              </button>
-
-              {/* User Menu */}
-              <div className="flex items-center space-x-3">
-                {user?.profile?.profile_pix ? (
-                  <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300">
-                    <img
-                      src={getProfileImageUrl(user.profile)}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
-                      {user?.profile?.fullname?.charAt(0) || "A"}
-                    </span>
-                  </div>
-                )}
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium text-gray-900">
-                    {user?.profile?.fullname || "Admin User"}
-                  </p>
-                  <p className="text-xs text-gray-500">Administrator</p>
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </div>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>{user?.profile?.fullname?.split(" ")[0] || "Admin"}</span>
+              <I.ChevDown style={{ width: 13, height: 13, color: C.muted }} />
             </div>
           </div>
         </header>
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-auto">
-          <div className="p-6">
-            {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        {/* Content */}
+        <main style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
+
+          {/* ── OVERVIEW TAB ──────────────────────────────────────────── */}
+          {activeTab === "overview" && stats && (
+            <div className="fi">
+              {/* Stats Row */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 20 }}>
+                {[
+                  { label: "Total Patients",    value: stats.totalPatients,     sub: "All registered",       grad: `135deg,${C.blue1},${C.blue2}`,       icon: "User" },
+                  { label: "Doctors",            value: stats.totalDoctors,      sub: "Active physicians",    grad: "135deg,#059669,#10b981",              icon: "Stethoscope" },
+                  { label: "Nurses",             value: stats.totalNurses,       sub: "Care staff",           grad: `135deg,${C.teal},#14b8a6`,            icon: "Shield" },
+                  { label: "Lab Scientists",     value: stats.totalLabScientists,sub: "Laboratory staff",     grad: `135deg,${C.orange},#f97316`,          icon: "Flask" },
+                ].map((s, i) => {
+                  const A = I[s.icon];
+                  return (
+                    <div key={i} className="ch" style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.soft}`, padding: "18px 20px", transition: "all 0.18s", boxShadow: "0 2px 12px rgba(23,127,237,0.04)" }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 11, background: `linear-gradient(${s.grad})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <A style={{ width: 18, height: 18, color: C.white }} />
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: C.green, background: "#ecfdf5", padding: "2px 8px", borderRadius: 10 }}>+{Math.floor(Math.random() * 10) + 1}%</span>
+                      </div>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: C.text, lineHeight: 1 }}>{s.value}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: C.text, marginTop: 4 }}>{s.label}</div>
+                      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>{s.sub}</div>
+                    </div>
+                  );
+                })}
               </div>
-            ) : (
-              <>
-                {activeTab === "overview" && <OverviewTab stats={stats} />}
-                {activeTab === "patients" && (
-                  <PatientsTab patients={patients} />
-                )}
-                {activeTab === "staff" && <StaffTab staff={staff} />}
-                {activeTab === "assignments" && (
-                  <StaffAssignmentTab
-                    assignments={assignments}
-                    appointments={appointments.filter(
-                      (a) => statusFilter === "all" || a.status === statusFilter
-                    )}
-                    onAssign={handleOpenAssignmentModal}
-                    onFilterChange={setStatusFilter}
-                    onExport={handleExportAssignments}
-                    onRefresh={() => {
-                      loadDashboardData();
-                      loadAssignments();
-                    }}
-                  />
-                )}
-                {activeTab === "blog" && (
-                  <BlogManagementTab
-                    posts={blogPosts}
-                    onRefresh={loadDashboardData}
-                    onCreateNew={() => setShowCreateModal(true)}
-                  />
-                )}
-              </>
-            )}
-          </div>
+
+              {/* Second Row */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                {/* Blog stats */}
+                <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.soft}`, padding: "20px 22px", boxShadow: "0 2px 12px rgba(23,127,237,0.04)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: `linear-gradient(135deg,${C.purple},#9333ea)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <I.BarChart style={{ width: 15, height: 15, color: C.white }} />
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Blog Statistics</span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {[
+                      { label: "Total Posts",    value: stats.blogStats.total_posts,      bg: "#eff6ff", color: C.blue2 },
+                      { label: "Published",      value: stats.blogStats.published_posts,   bg: "#ecfdf5", color: "#059669" },
+                      { label: "Drafts",         value: stats.blogStats.draft_posts,       bg: "#fffbeb", color: "#b45309" },
+                      { label: "With TOC",       value: stats.blogStats.posts_with_toc,    bg: "#f5f3ff", color: C.purple },
+                    ].map((b, i) => (
+                      <div key={i} style={{ background: b.bg, borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
+                        <div style={{ fontSize: 22, fontWeight: 700, color: b.color }}>{b.value}</div>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>{b.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quick actions */}
+                <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.soft}`, padding: "20px 22px", boxShadow: "0 2px 12px rgba(23,127,237,0.04)" }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 14 }}>Quick Actions</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {[
+                      { label: "Assign Staff to Patient",  icon: "UserPlus", color: C.blue2,   cls: "bp", tab: "assignments" },
+                      { label: "View All Patients",        icon: "User",     color: C.green,   cls: "gp", tab: "patients" },
+                      { label: "Create Blog Post",         icon: "FileText", color: C.purple,  cls: "pp", tab: "blog" },
+                    ].map((a, i) => {
+                      const A = I[a.icon];
+                      return (
+                        <button key={i} className={a.cls} onClick={() => a.tab === "blog" ? (setActiveTab("blog"), setShowCreateModal(true)) : setActiveTab(a.tab as any)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: 10, border: "none", background: a.color + "12", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <A style={{ width: 15, height: 15, color: a.color }} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: a.color }}>{a.label}</span>
+                          </div>
+                          <I.ChevLeft style={{ width: 13, height: 13, color: a.color, transform: "rotate(180deg)" }} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Appointment summary bar */}
+              <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.soft}`, padding: "18px 22px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" as const, gap: 16, boxShadow: "0 2px 12px rgba(23,127,237,0.04)", marginTop: 0 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Appointment Overview</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{stats.totalAppointments} total appointments across all patients</div>
+                </div>
+                <div style={{ display: "flex", gap: 20, flexWrap: "wrap" as const }}>
+                  {[
+                    { label: "Pending",  value: appointments.filter(a => a.status === "PENDING").length,          color: "#64748b" },
+                    { label: "In Review",value: appointments.filter(a => a.status === "IN_REVIEW").length,        color: C.blue2 },
+                    { label: "Awaiting", value: appointments.filter(a => a.status === "AWAITING_RESULTS").length, color: C.amber },
+                    { label: "Completed",value: appointments.filter(a => a.status === "COMPLETED").length,        color: C.green },
+                  ].map((m, i) => (
+                    <div key={i} style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: m.color }}>{m.value}</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>{m.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── PATIENTS TAB ──────────────────────────────────────────── */}
+          {activeTab === "patients" && (
+            <div className="fi">
+              <TableCard header={
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Patient Management</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{filteredPatients.length} registered patients</div>
+                  </div>
+                  <button className="bp" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: "none", background: C.blue2, color: C.white, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: `0 4px 12px ${C.blue2}44`, transition: "all 0.15s" }}>
+                    <I.Plus style={{ width: 14, height: 14 }} />Add Patient
+                  </button>
+                </div>
+              }>
+                <table>
+                  <thead><tr><th>Patient</th><th>Contact</th><th>Appointments</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    {filteredPatients.map(p => (
+                      <tr key={p.id} className="rh" style={{ cursor: "pointer" }}>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <Avatar name={p.fullname || "P"} size={34} grad={`135deg,${C.blue1},${C.blue2}`} />
+                            <div><div style={{ fontWeight: 600, fontSize: 13 }}>{p.fullname}</div><div style={{ fontSize: 11.5, color: C.muted }}>ID: {p.id}</div></div>
+                          </div>
+                        </td>
+                        <td><div style={{ fontSize: 13 }}>{p.user?.email}</div><div style={{ fontSize: 11.5, color: C.muted }}>{p.phone || "No phone"}</div></td>
+                        <td><span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 20, background: C.soft, color: C.blue2, fontSize: 11.5, fontWeight: 600 }}>{p.appointments_count} appts</span></td>
+                        <td><span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: "#ecfdf5", color: "#059669", fontSize: 11.5, fontWeight: 600 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green }} />Active</span></td>
+                        <td>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            {[{ ic: "Eye", col: C.blue2 }, { ic: "Edit", col: C.green }, { ic: "Trash", col: C.red }].map((b, i) => {
+                              const B = I[b.ic];
+                              return <button key={i} style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: b.col + "14", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><B style={{ width: 13, height: 13, color: b.col }} /></button>;
+                            })}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableCard>
+            </div>
+          )}
+
+          {/* ── STAFF TAB ─────────────────────────────────────────────── */}
+          {activeTab === "staff" && (
+            <div className="fi">
+              {/* Role breakdown cards */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 16 }}>
+                {[
+                  { role: "DOCTOR",  label: "Doctors",       grad: `135deg,${C.blue1},${C.blue2}`,  icon: "Stethoscope" },
+                  { role: "NURSE",   label: "Nurses",        grad: `135deg,${C.teal},#14b8a6`,       icon: "Shield" },
+                  { role: "LAB",     label: "Lab Scientists",grad: `135deg,${C.orange},#f97316`,     icon: "Flask" },
+                ].map((r, i) => {
+                  const A = I[r.icon]; const cnt = staff.filter(s => s.role === r.role).length;
+                  return (
+                    <div key={i} style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.soft}`, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(${r.grad})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <A style={{ width: 17, height: 17, color: C.white }} />
+                      </div>
+                      <div><div style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{cnt}</div><div style={{ fontSize: 12, color: C.muted }}>{r.label}</div></div>
+                    </div>
+                  );
+                })}
+              </div>
+              <TableCard header={
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Staff Management</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{filteredStaff.length} staff members</div>
+                  </div>
+                  <button className="gp" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: "none", background: C.green, color: C.white, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: `0 4px 12px ${C.green}44`, transition: "all 0.15s" }}>
+                    <I.Plus style={{ width: 14, height: 14 }} />Add Staff
+                  </button>
+                </div>
+              }>
+                <table>
+                  <thead><tr><th>Staff Member</th><th>Role</th><th>Contact</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    {filteredStaff.map(m => {
+                      const roleColor = m.role === "DOCTOR" ? C.blue2 : m.role === "NURSE" ? C.teal : C.orange;
+                      return (
+                        <tr key={m.id} className="rh">
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <Avatar name={m.fullname || "S"} size={34} grad={m.role === "DOCTOR" ? `135deg,${C.blue1},${C.blue2}` : m.role === "NURSE" ? `135deg,${C.teal},#14b8a6` : `135deg,${C.orange},#f97316`} />
+                              <div><div style={{ fontWeight: 600, fontSize: 13 }}>{m.fullname}</div><div style={{ fontSize: 11.5, color: C.muted }}>ID: {m.id}</div></div>
+                            </div>
+                          </td>
+                          <td><span style={{ padding: "3px 10px", borderRadius: 20, background: roleColor + "16", color: roleColor, fontSize: 11.5, fontWeight: 600 }}>{m.role}</span></td>
+                          <td><div style={{ fontSize: 13 }}>{m.user?.email}</div><div style={{ fontSize: 11.5, color: C.muted }}>{m.phone || "No phone"}</div></td>
+                          <td><span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: "#ecfdf5", color: "#059669", fontSize: 11.5, fontWeight: 600 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green }} />Active</span></td>
+                          <td>
+                            <div style={{ display: "flex", gap: 6 }}>
+                              {[{ ic: "Eye", col: C.blue2 }, { ic: "Edit", col: C.green }, { ic: "Trash", col: C.red }].map((b, i) => {
+                                const B = I[b.ic];
+                                return <button key={i} style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: b.col + "14", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><B style={{ width: 13, height: 13, color: b.col }} /></button>;
+                              })}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </TableCard>
+            </div>
+          )}
+
+          {/* ── ASSIGNMENTS TAB ───────────────────────────────────────── */}
+          {activeTab === "assignments" && (
+            <div className="fi" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Summary row */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+                {[
+                  { label: "Doctors Assigned",       icon: "Stethoscope", color: C.blue2,  count: assignments.filter(a => a.assignedDoctor).length, grad: `135deg,${C.blue1},${C.blue2}` },
+                  { label: "Nurses Assigned",        icon: "Shield",      color: C.teal,   count: assignments.filter(a => a.assignedNurse).length,  grad: `135deg,${C.teal},#14b8a6` },
+                  { label: "Lab Scientists Assigned",icon: "Flask",       color: C.orange, count: assignments.filter(a => a.assignedLab).length,    grad: `135deg,${C.orange},#f97316` },
+                ].map((s, i) => {
+                  const A = I[s.icon]; const pct = assignments.length ? Math.round((s.count / assignments.length) * 100) : 0;
+                  return (
+                    <div key={i} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.soft}`, padding: "18px 20px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(${s.grad})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <A style={{ width: 16, height: 16, color: C.white }} />
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{s.label}</div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                        <div style={{ fontSize: 26, fontWeight: 700, color: C.text }}>{s.count}<span style={{ fontSize: 13, color: C.muted, fontWeight: 400 }}>/{assignments.length}</span></div>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: s.color, background: s.color + "14", padding: "3px 10px", borderRadius: 10 }}>{pct}%</span>
+                      </div>
+                      {/* Progress bar */}
+                      <div style={{ height: 4, borderRadius: 2, background: C.soft, marginTop: 12, overflow: "hidden" }}>
+                        <div style={{ height: "100%", borderRadius: 2, background: `linear-gradient(${s.grad})`, width: `${pct}%`, transition: "width 0.6s ease" }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Table with controls */}
+              <TableCard header={
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" as const, gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Active Appointments</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Click any row or press Assign to allocate staff</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+                    <div style={{ position: "relative" }}>
+                      <I.Filter style={{ width: 13, height: 13, color: C.muted, position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+                      <select onChange={e => setStatusFilter(e.target.value)} style={{ paddingLeft: 28, paddingRight: 12, height: 36, border: `1.5px solid ${C.soft}`, borderRadius: 10, fontSize: 12.5, color: C.text, background: C.white, outline: "none", fontFamily: "inherit", cursor: "pointer" }}>
+                        <option value="all">All Status</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="IN_REVIEW">In Review</option>
+                        <option value="AWAITING_RESULTS">Awaiting Results</option>
+                        <option value="COMPLETED">Completed</option>
+                      </select>
+                    </div>
+                    <button className="ip" onClick={() => { loadData(); buildAssignments(); }} style={{ display: "flex", alignItems: "center", gap: 7, padding: "0 14px", height: 36, borderRadius: 10, border: "none", background: C.indigo, color: C.white, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                      <I.RefreshCw style={{ width: 13, height: 13 }} />Refresh
+                    </button>
+                    <button className="gp" onClick={exportCSV} style={{ display: "flex", alignItems: "center", gap: 7, padding: "0 14px", height: 36, borderRadius: 10, border: "none", background: C.green, color: C.white, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                      <I.Download style={{ width: 13, height: 13 }} />Export
+                    </button>
+                  </div>
+                </div>
+              }>
+                <table>
+                  <thead><tr><th>Patient</th><th>Doctor</th><th>Nurse</th><th>Lab Scientist</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    {appointments.filter(a => statusFilter === "all" || a.status === statusFilter).map(appt => (
+                      <tr key={appt.id} className="rh" style={{ cursor: "pointer" }} onClick={() => { setSelectedAppt(appt); setShowAssignModal(true); }}>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <Avatar name={appt.name || "P"} size={32} />
+                            <div><div style={{ fontWeight: 600, fontSize: 13 }}>{appt.name}</div><div style={{ fontSize: 11.5, color: C.muted }}>Age {appt.age} · {appt.sex === "M" ? "Male" : "Female"}</div></div>
+                          </div>
+                        </td>
+                        {[
+                          { person: appt.doctor, color: C.blue2 },
+                          { person: appt.vital_requests?.[0]?.assigned_to, color: C.teal },
+                          { person: appt.test_requests?.[0]?.assigned_to, color: C.orange },
+                        ].map((col, ci) => (
+                          <td key={ci}>
+                            {col.person ? (
+                              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                <Avatar name={col.person.fullname} size={24} grad={`135deg,${col.color},${col.color}cc`} />
+                                <span style={{ fontSize: 13 }}>{col.person.fullname}</span>
+                              </div>
+                            ) : (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: "#fffbeb", color: "#b45309", fontSize: 11.5, fontWeight: 600 }}>
+                                <I.Clock style={{ width: 10, height: 10 }} />Unassigned
+                              </span>
+                            )}
+                          </td>
+                        ))}
+                        <td><Pill status={appt.status} /></td>
+                        <td onClick={e => e.stopPropagation()}>
+                          <button className="ip" onClick={() => { setSelectedAppt(appt); setShowAssignModal(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "none", background: C.indigo, color: C.white, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                            <I.UserPlus style={{ width: 12, height: 12 }} />Assign
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableCard>
+            </div>
+          )}
+
+          {/* ── BLOG TAB ──────────────────────────────────────────────── */}
+          {activeTab === "blog" && (
+            <div className="fi">
+              <TableCard header={
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Blog Management</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{filteredPosts.length} posts</div>
+                  </div>
+                  <button className="op" onClick={() => setShowCreateModal(true)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: "none", background: C.orange, color: C.white, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: `0 4px 12px ${C.orange}44`, transition: "all 0.15s" }}>
+                    <I.Plus style={{ width: 14, height: 14 }} />New Post
+                  </button>
+                </div>
+              }>
+                <table>
+                  <thead><tr><th>Title</th><th>Author</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    {filteredPosts.map(post => (
+                      <tr key={post.id} className="rh">
+                        <td style={{ maxWidth: 280 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{post.title}</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{post.description?.substring(0, 80)}…</div>
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                            <Avatar name={post.author?.fullname || "A"} size={26} grad={`135deg,${C.purple},#9333ea`} />
+                            <span style={{ fontSize: 13 }}>{post.author?.fullname || "Unknown"}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: post.published ? "#ecfdf5" : "#fffbeb", color: post.published ? "#059669" : "#b45309", fontSize: 11.5, fontWeight: 600 }}>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: post.published ? C.green : C.amber }} />
+                            {post.published ? "Published" : "Draft"}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: 12.5, color: C.muted }}>{new Date(post.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</td>
+                        <td>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button onClick={() => window.open(`/blog/${post.slug}`, "_blank")} style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: C.blue2 + "14", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><I.Eye style={{ width: 13, height: 13, color: C.blue2 }} /></button>
+                            <button style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: C.green + "14", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><I.Edit style={{ width: 13, height: 13, color: C.green }} /></button>
+                            <button onClick={async () => { if (!confirm("Delete this post?")) return; try { await apiService.deleteBlogPost(post.slug); loadData(); } catch { alert("Failed to delete."); } }} style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: C.red + "14", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><I.Trash style={{ width: 13, height: 13, color: C.red }} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableCard>
+            </div>
+          )}
         </main>
       </div>
 
-      {/* Create Blog Modal */}
+      {/* ── ASSIGNMENT MODAL ──────────────────────────────────────────── */}
+      {showAssignModal && selectedAppt && (
+        <AssignModal
+          appointment={selectedAppt}
+          doctors={availableDoctors}
+          nurses={availableNurses}
+          labs={availableLabs}
+          onClose={() => { setShowAssignModal(false); setSelectedAppt(null); }}
+          onAssign={handleAssign}
+        />
+      )}
+
+      {/* ── CREATE BLOG MODAL ─────────────────────────────────────────── */}
       {showCreateModal && (
         <CreateBlogModal
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            loadDashboardData();
-          }}
-        />
-      )}
-
-      {/* Assignment Modal */}
-      {showAssignmentModal && selectedAppointment && (
-        <AssignmentModal
-          appointment={selectedAppointment}
-          availableDoctors={availableDoctors}
-          availableNurses={availableNurses}
-          availableLabScientists={availableLabScientists}
-          onClose={() => {
-            setShowAssignmentModal(false);
-            setSelectedAppointment(null);
-          }}
-          onAssign={handleAssignStaff}
+          onSuccess={() => { setShowCreateModal(false); loadData(); }}
         />
       )}
     </div>
   );
 };
 
-// Overview Tab Component
-const OverviewTab: React.FC<{ stats: DashboardStats | null }> = ({ stats }) => {
-  if (!stats) return null;
-
-  const statCards = [
-    {
-      label: "Total Patients",
-      value: stats.totalPatients,
-      color: "bg-gradient-to-r from-blue-500 to-blue-600",
-      icon: "👥",
-      trend: "+12%",
-    },
-    {
-      label: "Doctors",
-      value: stats.totalDoctors,
-      color: "bg-gradient-to-r from-green-500 to-green-600",
-      icon: "👨‍⚕️",
-      trend: "+5%",
-    },
-    {
-      label: "Nurses",
-      value: stats.totalNurses,
-      color: "bg-gradient-to-r from-purple-500 to-purple-600",
-      icon: "👩‍⚕️",
-      trend: "+8%",
-    },
-    {
-      label: "Lab Scientists",
-      value: stats.totalLabScientists,
-      color: "bg-gradient-to-r from-orange-500 to-orange-600",
-      icon: "🔬",
-      trend: "+3%",
-    },
-  ];
-
-  return (
-    <div className="space-y-6">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat, index) => (
-          <div
-            key={index}
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center justify-between">
-              <div
-                className={`${stat.color} text-white w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg`}
-              >
-                {stat.icon}
-              </div>
-              <span className="text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                {stat.trend}
-              </span>
-            </div>
-            <div className="mt-4">
-              <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">
-                {stat.value}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Blog Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <BarChart3 className="w-5 h-5 mr-2 text-blue-600" />
-            Blog Statistics
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-xl">
-              <p className="text-2xl font-bold text-blue-600">
-                {stats.blogStats.total_posts}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">Total Posts</p>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-xl">
-              <p className="text-2xl font-bold text-green-600">
-                {stats.blogStats.published_posts}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">Published</p>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-xl">
-              <p className="text-2xl font-bold text-yellow-600">
-                {stats.blogStats.draft_posts}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">Drafts</p>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-xl">
-              <p className="text-2xl font-bold text-purple-600">
-                {stats.blogStats.posts_with_toc}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">With TOC</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Quick Actions
-          </h3>
-          <div className="space-y-3">
-            <button className="w-full flex items-center justify-between p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors">
-              <span className="font-medium text-blue-700">Add New Patient</span>
-              <Plus className="w-5 h-5 text-blue-600" />
-            </button>
-            <button className="w-full flex items-center justify-between p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-colors">
-              <span className="font-medium text-green-700">
-                Schedule Appointment
-              </span>
-              <Calendar className="w-5 h-5 text-green-600" />
-            </button>
-            <button className="w-full flex items-center justify-between p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors">
-              <span className="font-medium text-purple-700">
-                Create Blog Post
-              </span>
-              <FileText className="w-5 h-5 text-purple-600" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Patients Tab Component
-const PatientsTab: React.FC<{ patients: any[] }> = ({ patients }) => (
-  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900">
-            Patient Management
-          </h3>
-          <p className="text-sm text-gray-600 mt-1">
-            {patients.length} registered patients
-          </p>
-        </div>
-        <button className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
-          <Plus className="w-4 h-4" />
-          <span>Add Patient</span>
-        </button>
-      </div>
-    </div>
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Patient
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Contact
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Appointments
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {patients.map((patient) => (
-            <tr key={patient.id} className="hover:bg-gray-50 transition-colors">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
-                    <span className="text-white text-sm font-medium">
-                      {patient.fullname?.charAt(0) || "P"}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      {patient.fullname}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      ID: {patient.id}
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {patient.user?.email}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {patient.phone || "No phone"}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {patient.appointments_count} appointments
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Active
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div className="flex items-center space-x-2">
-                  <button className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50">
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  <button className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50">
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-);
-
-// Staff Tab Component
-const StaffTab: React.FC<{ staff: any[] }> = ({ staff }) => (
-  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900">
-            Staff Management
-          </h3>
-          <p className="text-sm text-gray-600 mt-1">
-            {staff.length} staff members
-          </p>
-        </div>
-        <button className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm">
-          <Plus className="w-4 h-4" />
-          <span>Add Staff</span>
-        </button>
-      </div>
-    </div>
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Staff Member
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Role
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Contact
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {staff.map((member) => (
-            <tr key={member.id} className="hover:bg-gray-50 transition-colors">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-teal-600 rounded-full flex items-center justify-center mr-3">
-                    <span className="text-white text-sm font-medium">
-                      {member.fullname?.charAt(0) || "S"}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      {member.fullname}
-                    </div>
-                    <div className="text-sm text-gray-500">ID: {member.id}</div>
-                  </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    member.role === "DOCTOR"
-                      ? "bg-blue-100 text-blue-800"
-                      : member.role === "NURSE"
-                      ? "bg-purple-100 text-purple-800"
-                      : "bg-yellow-100 text-yellow-800"
-                  }`}
-                >
-                  {member.role}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {member.user?.email}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {member.phone || "No phone"}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Active
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div className="flex items-center space-x-2">
-                  <button className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50">
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  <button className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50">
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-);
-
-// Staff Assignment Tab Component
-const StaffAssignmentTab: React.FC<{
-  assignments: StaffAssignment[];
-  appointments: any[];
-  onAssign: (appointment: any) => void;
-  onFilterChange: (filter: string) => void;
-  onExport: () => void;
-  onRefresh: () => void;
-}> = ({
-  assignments,
-  appointments,
-  onAssign,
-  onFilterChange,
-  onExport,
-  onRefresh,
-}) => {
-  return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-          <div>
-            <h3 className="text-xl font-semibold text-gray-900">
-              Staff Assignments
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Assign doctors, nurses, and lab scientists to patients
-            </p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={onRefresh}
-              className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>Refresh</span>
-            </button>
-            <button
-              onClick={onExport}
-              className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              <span>Export</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Assignments Summary */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h4 className="text-lg font-semibold text-gray-900 mb-4">
-            Assignment Summary
-          </h4>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Stethoscope className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Doctors Assigned</p>
-                  <p className="text-sm text-gray-600">
-                    {assignments.filter((a) => a.assignedDoctor).length} of{" "}
-                    {assignments.length}
-                  </p>
-                </div>
-              </div>
-              <span className="text-sm font-medium text-blue-600">
-                {assignments.length > 0
-                  ? Math.round(
-                      (assignments.filter((a) => a.assignedDoctor).length /
-                        assignments.length) *
-                        100
-                    )
-                  : 0}
-                %
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Nurses Assigned</p>
-                  <p className="text-sm text-gray-600">
-                    {assignments.filter((a) => a.assignedNurse).length} of{" "}
-                    {assignments.length}
-                  </p>
-                </div>
-              </div>
-              <span className="text-sm font-medium text-purple-600">
-                {assignments.length > 0
-                  ? Math.round(
-                      (assignments.filter((a) => a.assignedNurse).length /
-                        assignments.length) *
-                        100
-                    )
-                  : 0}
-                %
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <FlaskConical className="w-5 h-5 text-orange-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">
-                    Lab Scientists Assigned
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {assignments.filter((a) => a.assignedLab).length} of{" "}
-                    {assignments.length}
-                  </p>
-                </div>
-              </div>
-              <span className="text-sm font-medium text-orange-600">
-                {assignments.length > 0
-                  ? Math.round(
-                      (assignments.filter((a) => a.assignedLab).length /
-                        assignments.length) *
-                        100
-                    )
-                  : 0}
-                %
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h4 className="text-lg font-semibold text-gray-900 mb-4">
-            Quick Assignment
-          </h4>
-          <div className="space-y-3">
-            <button className="w-full flex items-center justify-between p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors">
-              <div className="flex items-center space-x-3">
-                <UserPlus className="w-5 h-5 text-blue-600" />
-                <span className="font-medium text-blue-700">
-                  Assign Multiple Staff
-                </span>
-              </div>
-              <ChevronDown className="w-5 h-5 text-blue-600" />
-            </button>
-            <button className="w-full flex items-center justify-between p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-colors">
-              <div className="flex items-center space-x-3">
-                <Calendar className="w-5 h-5 text-green-600" />
-                <span className="font-medium text-green-700">
-                  View Assignment Calendar
-                </span>
-              </div>
-            </button>
-            <button className="w-full flex items-center justify-between p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors">
-              <div className="flex items-center space-x-3">
-                <FileText className="w-5 h-5 text-purple-600" />
-                <span className="font-medium text-purple-700">
-                  Generate Assignment Report
-                </span>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Assignment Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-blue-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                Active Appointments
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Click on any appointment to assign staff
-              </p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Filter className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <select
-                  onChange={(e) => onFilterChange(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                >
-                  <option value="all">All Status</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="IN_REVIEW">In Review</option>
-                  <option value="AWAITING_RESULTS">Awaiting Results</option>
-                  <option value="COMPLETED">Completed</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Patient
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Doctor
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nurse
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Lab Scientist
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {appointments
-                .filter((a) => a.status !== "COMPLETED")
-                .map((appointment) => (
-                  <tr
-                    key={appointment.id}
-                    className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => onAssign(appointment)}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
-                          <span className="text-white text-sm font-medium">
-                            {appointment.name?.charAt(0) || "P"}
-                          </span>
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {appointment.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Age: {appointment.age} | {appointment.sex}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {appointment.doctor ? (
-                        <div className="flex items-center">
-                          <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-2">
-                            <span className="text-xs text-blue-600 font-medium">
-                              {appointment.doctor.fullname?.charAt(0)}
-                            </span>
-                          </div>
-                          <span className="text-sm text-gray-900">
-                            {appointment.doctor.fullname}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Unassigned
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {appointment.vital_requests?.[0]?.assigned_to ? (
-                        <div className="flex items-center">
-                          <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center mr-2">
-                            <span className="text-xs text-purple-600 font-medium">
-                              {appointment.vital_requests[0].assigned_to.fullname?.charAt(
-                                0
-                              )}
-                            </span>
-                          </div>
-                          <span className="text-sm text-gray-900">
-                            {appointment.vital_requests[0].assigned_to.fullname}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Unassigned
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {appointment.test_requests?.[0]?.assigned_to ? (
-                        <div className="flex items-center">
-                          <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center mr-2">
-                            <span className="text-xs text-orange-600 font-medium">
-                              {appointment.test_requests[0].assigned_to.fullname?.charAt(
-                                0
-                              )}
-                            </span>
-                          </div>
-                          <span className="text-sm text-gray-900">
-                            {appointment.test_requests[0].assigned_to.fullname}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Unassigned
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                          appointment.status === "PENDING"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : appointment.status === "IN_REVIEW"
-                            ? "bg-blue-100 text-blue-800"
-                            : appointment.status === "AWAITING_RESULTS"
-                            ? "bg-orange-100 text-orange-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {appointment.status.replace("_", " ")}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAssign(appointment);
-                        }}
-                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        <UserPlus className="w-3 h-3 mr-1" />
-                        Assign
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Assignment Modal Component
-const AssignmentModal: React.FC<{
+// ─── ASSIGNMENT MODAL ─────────────────────────────────────────────────────
+const AssignModal: React.FC<{
   appointment: any;
-  availableDoctors: any[];
-  availableNurses: any[];
-  availableLabScientists: any[];
+  doctors: any[]; nurses: any[]; labs: any[];
   onClose: () => void;
   onAssign: (data: any) => Promise<void>;
-}> = ({
-  appointment,
-  availableDoctors,
-  availableNurses,
-  availableLabScientists,
-  onClose,
-  onAssign,
-}) => {
-  const [selectedDoctor, setSelectedDoctor] = useState<string>(
-    appointment?.doctor?.id || ""
-  );
-  const [selectedNurse, setSelectedNurse] = useState<string>(
-    appointment?.vital_requests?.[0]?.assigned_to?.id || ""
-  );
-  const [selectedLab, setSelectedLab] = useState<string>(
-    appointment?.test_requests?.[0]?.assigned_to?.id || ""
-  );
-  const [loading, setLoading] = useState(false);
-  const [notes, setNotes] = useState("");
+}> = ({ appointment, doctors, nurses, labs, onClose, onAssign }) => {
+  const [selDoctor, setSelDoctor] = useState(appointment?.doctor?.id?.toString() || "");
+  const [selNurse, setSelNurse]   = useState(appointment?.vital_requests?.[0]?.assigned_to?.id?.toString() || "");
+  const [selLab, setSelLab]       = useState(appointment?.test_requests?.[0]?.assigned_to?.id?.toString() || "");
+  const [notes, setNotes]         = useState("");
+  const [saving, setSaving]       = useState(false);
 
-  const handleSubmit = async () => {
-    if (!selectedDoctor && !selectedNurse && !selectedLab) {
-      alert("Please select at least one staff member to assign");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await onAssign({
-        appointment_id: appointment.id,
-        doctor_id: selectedDoctor,
-        nurse_id: selectedNurse,
-        lab_id: selectedLab,
-        notes: notes,
-      });
-      onClose();
-    } catch (error: any) {
-      console.error("Assignment error:", error);
-      alert(`Failed to assign staff: ${error.message || "Please try again"}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-xl">
-        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Assign Staff</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Assign healthcare professionals to {appointment?.name}
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-white transition-colors"
-            >
-              <X className="w-5 h-5 text-gray-600" />
-            </button>
-          </div>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {/* Doctor Assignment */}
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Stethoscope className="w-5 h-5 text-blue-600" />
-              <label className="block text-sm font-medium text-gray-700">
-                Assign Doctor
-              </label>
-            </div>
-            <select
-              value={selectedDoctor}
-              onChange={(e) => setSelectedDoctor(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select a doctor...</option>
-              {availableDoctors.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>
-                  Dr. {doctor.fullname}
-                </option>
-              ))}
-            </select>
-            {appointment.doctor && !selectedDoctor && (
-              <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                Currently assigned:{" "}
-                <strong>Dr. {appointment.doctor.fullname}</strong>
-              </div>
-            )}
-          </div>
-
-          {/* Nurse Assignment */}
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Shield className="w-5 h-5 text-purple-600" />
-              <label className="block text-sm font-medium text-gray-700">
-                Assign Nurse
-              </label>
-            </div>
-            <select
-              value={selectedNurse}
-              onChange={(e) => setSelectedNurse(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-            >
-              <option value="">Select a nurse...</option>
-              {availableNurses.map((nurse) => (
-                <option key={nurse.id} value={nurse.id}>
-                  Nurse {nurse.fullname}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Lab Scientist Assignment */}
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <FlaskConical className="w-5 h-5 text-orange-600" />
-              <label className="block text-sm font-medium text-gray-700">
-                Assign Lab Scientist
-              </label>
-            </div>
-            <select
-              value={selectedLab}
-              onChange={(e) => setSelectedLab(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            >
-              <option value="">Select a lab scientist...</option>
-              {availableLabScientists.map((scientist) => (
-                <option key={scientist.id} value={scientist.id}>
-                  {scientist.fullname}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Assignment Notes (Optional)
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Add any special instructions or notes for the assigned staff..."
-            />
-          </div>
-
-          {/* Appointment Info */}
-          <div className="bg-gray-50 p-4 rounded-xl">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">
-              Appointment Details
-            </h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500">Patient:</span>
-                <span className="ml-2 font-medium">{appointment.name}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">Age/Sex:</span>
-                <span className="ml-2 font-medium">
-                  {appointment.age} / {appointment.sex}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500">Status:</span>
-                <span className="ml-2 font-medium capitalize">
-                  {appointment.status.toLowerCase().replace("_", " ")}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500">Booked:</span>
-                <span className="ml-2 font-medium">
-                  {new Date(appointment.booked_at).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 font-medium transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={
-                loading || (!selectedDoctor && !selectedNurse && !selectedLab)
-              }
-              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 font-medium transition-all shadow-sm"
-            >
-              {loading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Assigning...</span>
-                </div>
-              ) : (
-                "Assign Staff"
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Blog Management Tab Component
-const BlogManagementTab: React.FC<{
-  posts: any[];
-  onRefresh: () => void;
-  onCreateNew: () => void;
-}> = ({ posts, onRefresh, onCreateNew }) => {
-  const navigate = useNavigate();
-
-  const handleEdit = (slug: string) => {
-    navigate(`/admin/blog/edit/${slug}`);
-  };
-
-  const handleView = (slug: string) => {
-    window.open(`/blog/${slug}`, "_blank");
-  };
-
-  const handleDelete = async (slug: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this blog post? This action cannot be undone."
-      )
-    )
-      return;
-
-    try {
-      await apiService.deleteBlogPost(slug);
-      alert("Blog post deleted successfully!");
-      onRefresh();
-    } catch (error) {
-      console.error("Error deleting post:", error);
-      alert("Failed to delete blog post. Please try again.");
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-          <div>
-            <h3 className="text-xl font-semibold text-gray-900">Blog Posts</h3>
-            <p className="text-sm text-gray-600 mt-1">
-              {posts.length} total posts
-            </p>
-          </div>
-          <button
-            onClick={onCreateNew}
-            className="flex items-center space-x-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create New Post</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Title
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Author
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {posts.map((post) => (
-                <tr
-                  key={post.id}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">
-                      {post.title}
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1 line-clamp-2">
-                      {post.description?.substring(0, 100)}...
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {post.author?.fullname || "Unknown Author"}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        post.published
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
-                    >
-                      {post.published ? "Published" : "Draft"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {new Date(post.created_at).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleView(post.slug)}
-                        className="text-blue-600 hover:text-blue-900 p-2 rounded hover:bg-blue-50 transition-colors"
-                        title="View Post"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(post.slug)}
-                        className="text-green-600 hover:text-green-900 p-2 rounded hover:bg-green-50 transition-colors"
-                        title="Edit Post"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(post.slug)}
-                        className="text-red-600 hover:text-red-900 p-2 rounded hover:bg-red-50 transition-colors"
-                        title="Delete Post"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Create Blog Modal Component
-const CreateBlogModal: React.FC<{
-  onClose: () => void;
-  onSuccess: () => void;
-}> = ({ onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    content: "",
-    published: false,
-    enable_toc: true,
-  });
-  const [featuredImage, setFeaturedImage] = useState<File | null>(null);
-  const [image1, setImage1] = useState<File | null>(null);
-  const [image2, setImage2] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    if (
-      !formData.title.trim() ||
-      !formData.description.trim() ||
-      !formData.content.trim()
-    ) {
-      alert("Please fill in all required fields");
-      return;
-    }
-
-    if (!featuredImage) {
-      alert("Featured image is required");
-      return;
-    }
-
-    setLoading(true);
-
+    if (!selDoctor && !selNurse && !selLab) { alert("Please select at least one staff member."); return; }
+    setSaving(true);
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("title", formData.title);
-      formDataToSend.append("description", formData.description);
-      formDataToSend.append("content", formData.content);
-      formDataToSend.append("published", formData.published.toString());
-      formDataToSend.append("enable_toc", formData.enable_toc.toString());
-
-      // Append images
-      formDataToSend.append("featured_image", featuredImage);
-      if (image1) formDataToSend.append("image_1", image1);
-      if (image2) formDataToSend.append("image_2", image2);
-
-      console.log("Creating blog post...");
-
-      // Try the API call with error handling
-      const response = await fetch(
-        "https://dhospitalback.onrender.com/api/hospital/blog/",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: formDataToSend,
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error:", response.status, errorText);
-        throw new Error(
-          `Failed to create blog post: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-      console.log("✅ Blog post created:", data);
-
-      onSuccess();
-      alert("Blog post created successfully!");
-    } catch (error: any) {
-      console.error("❌ Error creating blog post:", error);
-      alert(`Failed to create blog post. Error: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+      await onAssign({ appointment_id: appointment.id, doctor_id: selDoctor, nurse_id: selNurse, lab_id: selLab, notes });
+      onClose();
+    } catch (err: any) { alert(`Assignment failed: ${err.message}`); } finally { setSaving(false); }
+  }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
-        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Create New Blog Post
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Add a main image and two additional images for your blog post
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-white transition-colors"
-            >
-              <X className="w-5 h-5 text-gray-600" />
-            </button>
-          </div>
+    <Modal title="Assign Staff" subtitle={`Allocate healthcare professionals to ${appointment?.name}`} onClose={onClose} wide>
+      <form onSubmit={handleSubmit}>
+        {/* Patient info */}
+        <div style={{ background: C.slate, borderRadius: 10, padding: "12px 14px", marginBottom: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {[["Patient", appointment.name], ["Age / Sex", `${appointment.age} / ${appointment.sex === "M" ? "Male" : "Female"}`], ["Status", appointment.status.replace(/_/g, " ")], ["Booked", new Date(appointment.booked_at).toLocaleDateString()]].map(([k, v]) => (
+            <div key={k}><span style={{ fontSize: 11, color: C.muted }}>{k}</span><div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{v}</div></div>
+          ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Title *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder="Enter blog post title"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description *
-            </label>
-            <textarea
-              required
-              rows={3}
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder="Enter a brief description that will appear on the blog listing"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Content *
-            </label>
-            <textarea
-              required
-              rows={15}
-              value={formData.content}
-              onChange={(e) =>
-                setFormData({ ...formData, content: e.target.value })
-              }
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-mono text-sm"
-              placeholder={`Write your blog post content using HTML tags. Headings will be used for table of contents.
-
-Example structure:
-<h1>Main Heading</h1>
-<p>Introduction paragraph...</p>
-
-<h2>First Subheading</h2>
-<p>Content for first section...</p>
-
-<h2>Second Subheading</h2>
-<p>Content for second section...</p>
-
-<h3>Nested Subheading</h3>
-<p>More detailed content...</p>
-
-Make sure to include at least 6 subheadings for proper structure.`}
-            />
-            <p className="text-sm text-gray-500 mt-2">
-              Use HTML heading tags (h1-h6) for subheadings. They will be
-              automatically extracted for the table of contents.
-            </p>
-          </div>
-
-          {/* Image Uploads */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Featured Image (Main) *
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setFeaturedImage(e.target.files?.[0] || null)}
-                className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                required
-              />
-              <p className="text-xs text-gray-500">
-                Main image displayed at top
-              </p>
+        {/* Selectors */}
+        {[
+          { label: "Assign Doctor", icon: "Stethoscope", color: C.blue2, val: selDoctor, set: setSelDoctor, opts: doctors, prefix: "Dr. " },
+          { label: "Assign Nurse", icon: "Shield", color: C.teal, val: selNurse, set: setSelNurse, opts: nurses, prefix: "Nurse " },
+          { label: "Assign Lab Scientist", icon: "Flask", color: C.orange, val: selLab, set: setSelLab, opts: labs, prefix: "" },
+        ].map((row, i) => {
+          const A = I[row.icon];
+          return (
+            <div key={i} style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
+                <A style={{ width: 14, height: 14, color: row.color }} />
+                <label style={{ ...ls, marginBottom: 0 }}>{row.label}</label>
+              </div>
+              <select value={row.val} onChange={e => row.set(e.target.value)} style={{ ...is, marginBottom: 0, borderColor: row.val ? row.color + "55" : C.soft }}>
+                <option value="">Select…</option>
+                {row.opts.map((o: any) => <option key={o.id} value={o.id}>{row.prefix}{o.fullname}</option>)}
+              </select>
             </div>
+          );
+        })}
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Additional Image 1
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setImage1(e.target.files?.[0] || null)}
-                className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-              />
-              <p className="text-xs text-gray-500">Second image for content</p>
-            </div>
+        {/* Notes */}
+        <label style={ls}>Assignment Notes (optional)</label>
+        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Special instructions for assigned staff…" style={{ ...ts }} />
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Additional Image 2
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setImage2(e.target.files?.[0] || null)}
-                className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-              />
-              <p className="text-xs text-gray-500">Third image for content</p>
-            </div>
-          </div>
+        <Actions onCancel={onClose} label={saving ? "Assigning…" : "Assign Staff"} color={C.indigo} disabled={saving} />
+      </form>
+    </Modal>
+  );
+};
 
-          <div className="flex items-center space-x-6">
-            <label className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                checked={formData.published}
-                onChange={(e) =>
-                  setFormData({ ...formData, published: e.target.checked })
-                }
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Publish immediately
-              </span>
-            </label>
+// ─── CREATE BLOG MODAL ────────────────────────────────────────────────────
+const CreateBlogModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = ({ onClose, onSuccess }) => {
+  const [form, setForm] = useState({ title: "", description: "", content: "", published: false, enable_toc: true });
+  const [featImg, setFeatImg] = useState<File | null>(null);
+  const [img1, setImg1]       = useState<File | null>(null);
+  const [img2, setImg2]       = useState<File | null>(null);
+  const [saving, setSaving]   = useState(false);
 
-            <label className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                checked={formData.enable_toc}
-                onChange={(e) =>
-                  setFormData({ ...formData, enable_toc: e.target.checked })
-                }
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Enable table of contents
-              </span>
-            </label>
-          </div>
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title.trim() || !form.description.trim() || !form.content.trim()) { alert("Please fill all required fields."); return; }
+    if (!featImg) { alert("Featured image is required."); return; }
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append("title", form.title); fd.append("description", form.description);
+      fd.append("content", form.content); fd.append("published", form.published.toString());
+      fd.append("enable_toc", form.enable_toc.toString()); fd.append("featured_image", featImg);
+      if (img1) fd.append("image_1", img1); if (img2) fd.append("image_2", img2);
+      const res = await fetch("https://dhospitalback.onrender.com/api/hospital/blog/", { method: "POST", headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }, body: fd });
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      onSuccess(); alert("Blog post created!");
+    } catch (err: any) { alert(`Failed: ${err.message}`); } finally { setSaving(false); }
+  }
 
-          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 font-medium transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 font-medium transition-all shadow-sm"
-            >
-              {loading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Creating...</span>
-                </div>
-              ) : (
-                "Create Post"
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
+  const fileInput = (label: string, req: boolean, onChange: (f: File | null) => void, color: string) => (
+    <div>
+      <label style={{ ...ls }}>{label}{req && <span style={{ color: C.red }}> *</span>}</label>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", border: `1.5px dashed ${color}55`, borderRadius: 10, cursor: "pointer", background: color + "08", transition: "all 0.15s" }}>
+        <I.Plus style={{ width: 14, height: 14, color }} />
+        <span style={{ fontSize: 12.5, color, fontWeight: 600 }}>Choose image…</span>
+        <input type="file" accept="image/*" required={req} onChange={e => onChange(e.target.files?.[0] || null)} style={{ display: "none" }} />
+      </label>
     </div>
+  );
+
+  return (
+    <Modal title="Create Blog Post" subtitle="Publish a new article to the hospital blog" onClose={onClose} wide>
+      <form onSubmit={handleSubmit}>
+        <label style={ls}>Title<span style={{ color: C.red }}> *</span></label>
+        <input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Enter post title" style={is} />
+
+        <label style={ls}>Description<span style={{ color: C.red }}> *</span></label>
+        <textarea required rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Brief summary shown in blog listing" style={ts} />
+
+        <label style={ls}>Content<span style={{ color: C.red }}> *</span></label>
+        <textarea required rows={12} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} placeholder={`Write your post content using HTML.\n\nExample:\n<h2>Introduction</h2>\n<p>Your content here...</p>\n<h2>Section Two</h2>\n<p>More content...</p>`} style={{ ...ts, fontFamily: "monospace", fontSize: 12 }} />
+
+        {/* Images */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+          {fileInput("Featured Image", true,  f => setFeatImg(f), C.blue2)}
+          {fileInput("Image 2 (optional)", false, f => setImg1(f),   C.green)}
+          {fileInput("Image 3 (optional)", false, f => setImg2(f),   C.purple)}
+        </div>
+
+        {/* Toggles */}
+        <div style={{ display: "flex", gap: 20, marginBottom: 20 }}>
+          {[
+            { label: "Publish immediately", key: "published" },
+            { label: "Enable table of contents", key: "enable_toc" },
+          ].map(t => (
+            <label key={t.key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <div onClick={() => setForm(f => ({ ...f, [t.key]: !(f as any)[t.key] }))} style={{ width: 36, height: 20, borderRadius: 10, background: (form as any)[t.key] ? C.blue2 : C.soft, position: "relative", transition: "background 0.2s", cursor: "pointer", flexShrink: 0 }}>
+                <div style={{ width: 14, height: 14, borderRadius: "50%", background: C.white, position: "absolute", top: 3, left: (form as any)[t.key] ? 19 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{t.label}</span>
+            </label>
+          ))}
+        </div>
+
+        <Actions onCancel={onClose} label={saving ? "Creating…" : "Create Post"} color={C.orange} disabled={saving} />
+      </form>
+    </Modal>
   );
 };
 

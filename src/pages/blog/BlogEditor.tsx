@@ -1,4 +1,4 @@
-// components/blog/BlogEditor.tsx - Enhanced version
+// components/blog/BlogEditor.tsx - Cleaned
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/api';
@@ -32,9 +32,7 @@ const BlogEditor: React.FC = () => {
   const isEdit = !!slug;
 
   useEffect(() => {
-    if (isEdit && slug) {
-      loadBlogPost(slug);
-    }
+    if (isEdit && slug) loadBlogPost(slug);
   }, [isEdit, slug]);
 
   const loadBlogPost = async (postSlug: string) => {
@@ -54,7 +52,6 @@ const BlogEditor: React.FC = () => {
         image_2: post.image_2 || ''
       });
     } catch (error) {
-      console.error('Error loading blog post:', error);
       alert('Failed to load blog post');
     } finally {
       setLoading(false);
@@ -73,15 +70,9 @@ const BlogEditor: React.FC = () => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       switch (field) {
-        case 'featured_image':
-          setFeaturedImage(file);
-          break;
-        case 'image_1':
-          setImage1(file);
-          break;
-        case 'image_2':
-          setImage2(file);
-          break;
+        case 'featured_image': setFeaturedImage(file); break;
+        case 'image_1': setImage1(file); break;
+        case 'image_2': setImage2(file); break;
       }
     }
   };
@@ -108,15 +99,9 @@ const BlogEditor: React.FC = () => {
       formDataToSend.append('published', formData.published.toString());
       formDataToSend.append('enable_toc', formData.enable_toc.toString());
       
-      if (featuredImage) {
-        formDataToSend.append('featured_image', featuredImage);
-      }
-      if (image1) {
-        formDataToSend.append('image_1', image1);
-      }
-      if (image2) {
-        formDataToSend.append('image_2', image2);
-      }
+      if (featuredImage) formDataToSend.append('featured_image', featuredImage);
+      if (image1) formDataToSend.append('image_1', image1);
+      if (image2) formDataToSend.append('image_2', image2);
 
       if (isEdit && slug) {
         await apiService.updateBlogPost(slug, formDataToSend);
@@ -128,7 +113,6 @@ const BlogEditor: React.FC = () => {
       
       navigate('/admin/dashboard');
     } catch (error) {
-      console.error('Error saving blog post:', error);
       alert('Failed to save blog post. Please try again.');
     } finally {
       setSaving(false);
@@ -149,7 +133,6 @@ const BlogEditor: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-6">
           <button
             onClick={() => navigate('/admin/dashboard')}
@@ -168,7 +151,6 @@ const BlogEditor: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg">
           <div className="p-6 space-y-6">
-            {/* Title */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
                 Title *
@@ -185,7 +167,6 @@ const BlogEditor: React.FC = () => {
               />
             </div>
 
-            {/* Description */}
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
                 Description *
@@ -202,7 +183,6 @@ const BlogEditor: React.FC = () => {
               />
             </div>
 
-            {/* Content */}
             <div>
               <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
                 Content *
@@ -215,28 +195,14 @@ const BlogEditor: React.FC = () => {
                 value={formData.content}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                placeholder={`Write your blog post content using HTML tags. Headings will be used for table of contents.
-
-Example structure:
-<h1>Main Heading</h1>
-<p>Introduction paragraph...</p>
-
-<h2>First Subheading</h2>
-<p>Content for first section...</p>
-
-<h2>Second Subheading</h2>
-<p>Content for second section...</p>
-
-Make sure to include at least 6 subheadings for proper structure.`}
+                placeholder={`Write your blog post content using HTML tags. Headings will be used for table of contents.\n\nExample structure:\n<h1>Main Heading</h1>\n<p>Introduction paragraph...</p>\n\n<h2>First Subheading</h2>\n<p>Content for first section...</p>\n\n<h2>Second Subheading</h2>\n<p>Content for second section...</p>`}
               />
               <p className="mt-1 text-sm text-gray-500">
                 Use HTML heading tags (h1-h6) for subheadings. They will be automatically extracted for the table of contents.
               </p>
             </div>
 
-            {/* Image Uploads */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Featured Image */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Featured Image *
@@ -246,20 +212,16 @@ Make sure to include at least 6 subheadings for proper structure.`}
                   accept="image/*"
                   onChange={handleFileChange('featured_image')}
                   className="w-full text-sm"
+                  required
                 />
                 {currentImages.featured_image && (
                   <div className="mt-2">
                     <p className="text-xs text-gray-500 mb-1">Current image:</p>
-                    <img 
-                      src={currentImages.featured_image} 
-                      alt="Current featured" 
-                      className="w-full h-20 object-cover rounded"
-                    />
+                    <img src={currentImages.featured_image} alt="Current featured" className="w-full h-20 object-cover rounded" />
                   </div>
                 )}
               </div>
 
-              {/* Image 1 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Additional Image 1
@@ -273,16 +235,11 @@ Make sure to include at least 6 subheadings for proper structure.`}
                 {currentImages.image_1 && (
                   <div className="mt-2">
                     <p className="text-xs text-gray-500 mb-1">Current image:</p>
-                    <img 
-                      src={currentImages.image_1} 
-                      alt="Current image 1" 
-                      className="w-full h-20 object-cover rounded"
-                    />
+                    <img src={currentImages.image_1} alt="Current image 1" className="w-full h-20 object-cover rounded" />
                   </div>
                 )}
               </div>
 
-              {/* Image 2 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Additional Image 2
@@ -296,17 +253,12 @@ Make sure to include at least 6 subheadings for proper structure.`}
                 {currentImages.image_2 && (
                   <div className="mt-2">
                     <p className="text-xs text-gray-500 mb-1">Current image:</p>
-                    <img 
-                      src={currentImages.image_2} 
-                      alt="Current image 2" 
-                      className="w-full h-20 object-cover rounded"
-                    />
+                    <img src={currentImages.image_2} alt="Current image 2" className="w-full h-20 object-cover rounded" />
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Checkboxes */}
             <div className="flex space-x-6">
               <label className="flex items-center">
                 <input
@@ -332,7 +284,6 @@ Make sure to include at least 6 subheadings for proper structure.`}
             </div>
           </div>
 
-          {/* Footer */}
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
             <button
               type="button"

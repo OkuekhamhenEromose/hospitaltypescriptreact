@@ -9,7 +9,7 @@ const C = {
   green:"#12b76a",amber:"#f59e0b",purple:"#7c3aed",emerald:"#059669",
 };
 
-const I: Record<string, (p: React.SVGProps<SVGSVGElement>) => JSX.Element> = {
+const I: Record<string, (p: React.SVGProps<SVGSVGElement>) => React.ReactElement> = {
   Logo: p=><svg viewBox="0 0 32 32" {...p}><rect width="32" height="32" rx="8" fill="#177fed"/><path d="M16 6v20M6 16h20" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"/></svg>,
   Home: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
   Plus: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" {...p}><path d="M12 5v14M5 12h14"/></svg>,

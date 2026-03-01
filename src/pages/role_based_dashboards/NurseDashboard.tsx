@@ -9,7 +9,7 @@ const C = {
   green:"#12b76a",amber:"#f59e0b",orange:"#f97316",teal:"#0d9488",
 };
 
-const I: Record<string, (p: React.SVGProps<SVGSVGElement>) => JSX.Element> = {
+const I: Record<string, (p: React.SVGProps<SVGSVGElement>) => React.ReactElement> = {
   Logo: p=><svg viewBox="0 0 32 32" {...p}><rect width="32" height="32" rx="8" fill="#177fed"/><path d="M16 6v20M6 16h20" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"/></svg>,
   Activity: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
   Clipboard: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>,
@@ -42,7 +42,7 @@ const ST: Record<string, {label:string;bg:string;color:string;dot:string}> = {
 
 const ls: React.CSSProperties = {display:"block",fontSize:12.5,fontWeight:600,color:"#0d1b2e",marginBottom:6};
 const is: React.CSSProperties = {width:"100%",height:40,padding:"0 12px",border:`1.5px solid #e8f0fc`,borderRadius:10,fontSize:13,color:"#0d1b2e",background:"#f0f4fa",outline:"none",fontFamily:"inherit",marginBottom:16};
-const ts: React.CSSProperties = {width:"100%",padding:"10px 12px",border:`1.5px solid #e8f0fc`,borderRadius:10,fontSize:13,color:"#0d1b2e",background:"#f0f4fa",outline:"none",fontFamily:"inherit",resize:"vertical" as const,marginBottom:16};
+// const ts: React.CSSProperties = {width:"100%",padding:"10px 12px",border:`1.5px solid #e8f0fc`,borderRadius:10,fontSize:13,color:"#0d1b2e",background:"#f0f4fa",outline:"none",fontFamily:"inherit",resize:"vertical" as const,marginBottom:16};
 
 function Modal({title,onClose,children,wide}:{title:string;onClose:()=>void;children:React.ReactNode;wide?:boolean}) {
   return (
