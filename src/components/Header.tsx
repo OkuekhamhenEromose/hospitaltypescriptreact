@@ -1,4 +1,4 @@
-// Header.tsx - Updated with safe guard
+// Header.tsx - Cleaned
 import React, { useState, useEffect } from "react";
 import { User, LogOut, ChevronDown, Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -9,7 +9,7 @@ import { normalizeMediaUrl } from "../utils/mediaUrl";
 interface HeaderProps {
   currentPage: string;
   onNavigate?: (page: string) => void;
-  user: any; // Could be null, undefined, or user object
+  user: any;
   onLoginClick: () => void;
   onProfileClick: () => void;
   onLogout: () => void;
@@ -18,12 +18,11 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({
   currentPage,
   onNavigate,
-  user, // This is undefined causing the error!
+  user,
   onLoginClick,
   onProfileClick,
   onLogout,
 }) => {
-  // SAFE GUARD: Convert undefined to null
   const safeUser = user === undefined ? null : user;
   
   const [scrolled, setScrolled] = useState(false);
@@ -32,7 +31,6 @@ const Header: React.FC<HeaderProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Now safeUser is guaranteed to be null or an object, never undefined
   const profileImageUrl = safeUser?.profile?.profile_pix
     ? normalizeMediaUrl(safeUser.profile.profile_pix)
     : null;
@@ -48,9 +46,7 @@ const Header: React.FC<HeaderProps> = ({
   }, []);
 
   const handleProfileClick = () => {
-    if (onProfileClick) {
-      onProfileClick();
-    }
+    if (onProfileClick) onProfileClick();
     setShowProfileDropdown(false);
   };
 
@@ -59,17 +55,26 @@ const Header: React.FC<HeaderProps> = ({
     setShowProfileDropdown(false);
   };
 
-  // Function to handle logo click - navigate to homepage
   const handleLogoClick = () => {
     navigate("/");
-    if (onNavigate) {
-      onNavigate("home");
+    if (onNavigate) onNavigate("home");
+  };
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.style.display = "none";
+    const parent = e.currentTarget.parentElement;
+    if (parent) {
+      const fallback = document.createElement("div");
+      fallback.className = "w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center";
+      fallback.innerHTML = `<span class="text-white text-sm font-medium">${
+        safeUser?.profile?.fullname?.charAt(0) || safeUser?.username?.charAt(0) || "U"
+      }</span>`;
+      parent.appendChild(fallback);
     }
   };
 
   return (
     <>
-      {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center space-x-3">
@@ -80,44 +85,34 @@ const Header: React.FC<HeaderProps> = ({
             >
               <Menu className="w-6 h-6 text-gray-800" />
             </button>
-
             <button
               onClick={handleLogoClick}
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
             >
               <div className="bg-white rounded-full flex items-center justify-center ml-8 mt-2">
-                <img
-                  src={HeaderLogo}
-                  alt="Etha-Atlantic Memorial Logo"
-                  className="w-12 h-12"
-                />
+                <img src={HeaderLogo} alt="Etha-Atlantic Memorial Logo" className="w-12 h-12" />
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-gray-900 tracking-tight leading-tight">
                   ETHA-ATLANTIC
                 </h1>
-                <p className="text-xs font-semibold text-gray-700 tracking-wider">
-                  MEMORIAL
-                </p>
+                <p className="text-xs font-semibold text-gray-700 tracking-wider">MEMORIAL</p>
               </div>
             </button>
           </div>
-
-          {/* Mobile Sign In Button - Use safeUser */}
           <div>
-            {!safeUser ? (
+            {!safeUser && (
               <button
                 onClick={onLoginClick}
                 className="bg-blue-600 text-white px-4 py-2 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-sm hover:shadow-md text-sm"
               >
                 Sign In
               </button>
-            ) : null}
+            )}
           </div>
         </div>
       </div>
 
-      {/* Mobile Navigation Menu */}
       <div className="lg:hidden">
         <MobileNav
           isOpen={mobileMenuOpen}
@@ -125,25 +120,19 @@ const Header: React.FC<HeaderProps> = ({
           currentPage={currentPage}
           onNavigate={onNavigate || (() => {})}
           onLogoClick={handleLogoClick}
-          user={safeUser} // Pass safeUser
+          user={safeUser}
           onLoginClick={onLoginClick}
         />
       </div>
 
-      {/* Desktop Header */}
       <header
         className={`hidden lg:block fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "bg-white/95 backdrop-blur-md shadow-lg"
-            : "bg-white/80 backdrop-blur-sm"
+          scrolled ? "bg-white/95 backdrop-blur-md shadow-lg" : "bg-white/80 backdrop-blur-sm"
         }`}
       >
-        {/* Top Section - Logo and Auth */}
         <div
           className={`border-b border-white/20 transition-all duration-300 ${
-            hideTopSection
-              ? "h-0 opacity-0 overflow-hidden"
-              : "h-auto opacity-100"
+            hideTopSection ? "h-0 opacity-0 overflow-hidden" : "h-auto opacity-100"
           }`}
           style={{
             transitionProperty: "opacity, height",
@@ -153,73 +142,39 @@ const Header: React.FC<HeaderProps> = ({
         >
           <div className="container mx-auto px-12 py-3">
             <div className="flex items-center justify-between">
-              <button
-                onClick={handleLogoClick}
-                className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
-              >
+              <button onClick={handleLogoClick} className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer">
                 <div className="bg-white rounded-full flex items-center justify-center">
-                  <img
-                    src={HeaderLogo}
-                    alt="Etha-Atlantic Memorial Logo"
-                    className="w-8 h-8"
-                  />
+                  <img src={HeaderLogo} alt="Etha-Atlantic Memorial Logo" className="w-8 h-8" />
                 </div>
                 <div>
                   <h1 className="text-lg font-bold text-gray-900 tracking-tight leading-tight">
                     ETHA-ATLANTIC
                   </h1>
-                  <p className="text-xs font-semibold text-gray-700 tracking-wider">
-                    MEMORIAL
-                  </p>
+                  <p className="text-xs font-semibold text-gray-700 tracking-wider">MEMORIAL</p>
                 </div>
               </button>
 
-              {/* User Section - Use safeUser */}
               <div className="flex items-center space-x-4">
                 {safeUser ? (
                   <div className="flex items-center space-x-3">
                     <div className="relative">
                       <button
-                        onClick={() =>
-                          setShowProfileDropdown(!showProfileDropdown)
-                        }
+                        onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                         className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
                       >
-                        {/* Profile Image - Use safeUser */}
                         {profileImageUrl ? (
                           <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                             <img
                               src={profileImageUrl}
                               alt="Profile"
                               className="w-full h-full object-cover"
-                              onError={(e) => {
-                                console.error(
-                                  "Profile image failed to load:",
-                                  profileImageUrl
-                                );
-                                e.currentTarget.style.display = "none";
-                                const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  const fallback =
-                                    document.createElement("div");
-                                  fallback.className =
-                                    "w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center";
-                                  fallback.innerHTML = `<span class="text-white text-sm font-medium">${
-                                    safeUser.profile?.fullname?.charAt(0) ||
-                                    safeUser.username?.charAt(0) ||
-                                    "U"
-                                  }</span>`;
-                                  parent.appendChild(fallback);
-                                }
-                              }}
+                              onError={handleImageError}
                             />
                           </div>
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
                             <span className="text-white text-sm font-medium">
-                              {safeUser.profile?.fullname?.charAt(0) ||
-                                safeUser.username?.charAt(0) ||
-                                "U"}
+                              {safeUser.profile?.fullname?.charAt(0) || safeUser.username?.charAt(0) || "U"}
                             </span>
                           </div>
                         )}
@@ -273,26 +228,16 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Navigation Section */}
         <nav className="bg-gradient-to-r from-white/50 to-white/30 backdrop-blur-sm border-b border-white/10">
           <div className="container mx-auto px-12">
             <div className="flex items-center justify-between h-14">
               <ul className="flex space-x-8">
-                {[
-                  "home",
-                  "about us",
-                  "services",
-                  "packages",
-                  "blog",
-                  "contact",
-                ].map((page) => (
+                {["home", "about us", "services", "packages", "blog", "contact"].map((page) => (
                   <li key={page}>
                     <button
                       onClick={() => onNavigate && onNavigate(page)}
                       className={`font-semibold text-sm uppercase transition-colors relative h-14 flex items-center ${
-                        currentPage === page
-                          ? "text-gray-900"
-                          : "text-gray-700 hover:text-blue-600"
+                        currentPage === page ? "text-gray-900" : "text-gray-700 hover:text-blue-600"
                       }`}
                     >
                       {page}
@@ -303,7 +248,6 @@ const Header: React.FC<HeaderProps> = ({
                   </li>
                 ))}
               </ul>
-
               <button className="bg-red-500 text-white px-6 py-2.5 rounded-full font-semibold hover:bg-red-600 transition-all shadow-md hover:shadow-lg flex-shrink-0">
                 Book Appointment
               </button>

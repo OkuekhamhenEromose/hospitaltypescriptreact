@@ -8,45 +8,32 @@ const SocialButton = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Message sent:', message);
     setMessage('');
   };
 
   return (
     <>
-      {/* WhatsApp Button - Icon only on mobile, icon+text on desktop */}
       <div className="fixed bottom-6 right-6 z-50">
-        {/* Mobile: Circle with WhatsApp icon only */}
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="sm:hidden bg-green-500 text-white p-3 rounded-full shadow-lg hover:bg-green-600 transition-colors flex items-center justify-center"
           aria-label="Chat with us on WhatsApp"
         >
-          <img
-            src={Whatsapp}
-            alt="WhatsApp"
-            className="w-8 h-8"
-          />
+          <img src={Whatsapp} alt="WhatsApp" className="w-8 h-8" />
         </button>
         
-        {/* Desktop: Button with icon and text */}
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="hidden sm:flex bg-green-500 text-white px-4 py-3 rounded-full shadow-lg hover:bg-green-600 transition-colors items-center space-x-2"
           aria-label="Chat with us on WhatsApp"
         >
-          <img
-            src={Whatsapp}
-            alt="WhatsApp"
-            className="w-5 h-5"
-          />
+          <img src={Whatsapp} alt="WhatsApp" className="w-5 h-5" />
           <span className="font-medium">Hello, how can I help you today?</span>
         </button>
       </div>
 
       {isOpen && (
         <div className="fixed bottom-20 sm:bottom-24 right-4 sm:right-6 w-80 sm:w-96 bg-white rounded-lg shadow-2xl z-50 overflow-hidden">
-          {/* Rest of the chat window stays the same... */}
           <div className="bg-green-500 text-white p-3 sm:p-4 flex items-center justify-between">
             <div className="flex items-center space-x-2 sm:space-x-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full flex items-center justify-center">

@@ -2,991 +2,326 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiService } from "../../services/api";
-import {
-  Activity,
-  Clipboard,
-  Menu,
-  Clock,
-  CheckCircle,
-  Search,
-  Bell,
-  ChevronDown,
-  FileText,
-  AlertCircle,
-  Heart,
-  Thermometer,
-  X,
-  Filter,
-  RefreshCw,
-} from "lucide-react";
+
+const C = {
+  blue1:"#1378e5",blue2:"#177fed",blue3:"#0f5fc4",red:"#e53935",white:"#ffffff",
+  slate:"#f0f4fa",muted:"#8aa0ba",text:"#0d1b2e",soft:"#e8f0fc",
+  green:"#12b76a",amber:"#f59e0b",orange:"#f97316",teal:"#0d9488",
+};
+
+const I: Record<string, (p: React.SVGProps<SVGSVGElement>) => JSX.Element> = {
+  Logo: p=><svg viewBox="0 0 32 32" {...p}><rect width="32" height="32" rx="8" fill="#177fed"/><path d="M16 6v20M6 16h20" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"/></svg>,
+  Activity: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+  Clipboard: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>,
+  Clock: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>,
+  Check: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="20 6 9 17 4 12"/></svg>,
+  Alert: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+  Heart: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>,
+  Thermometer: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg>,
+  Bell: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
+  Search: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>,
+  ChevDown: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M6 9l6 6 6-6"/></svg>,
+  ChevLeft: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M15 18l-6-6 6-6"/></svg>,
+  X: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" {...p}><path d="M18 6L6 18M6 6l12 12"/></svg>,
+  Filter: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
+  RefreshCw: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>,
+  FileText: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+};
 
 interface VitalRequest {
   id: number;
-  appointment: {
-    id: number;
-    name: string;
-    age: number;
-    sex: string;
-  };
-  note: string;
-  status: string;
-  created_at: string;
-  assigned_to?: any;
+  appointment: { id: number; name: string; age: number; sex: string; };
+  note: string; status: string; created_at: string; assigned_to?: any;
+}
+
+const ST: Record<string, {label:string;bg:string;color:string;dot:string}> = {
+  DONE:        {label:"Completed",  bg:"#ecfdf5",color:"#059669",dot:"#12b76a"},
+  IN_PROGRESS: {label:"In Progress",bg:"#fff7ed",color:"#c2410c",dot:"#f97316"},
+  PENDING:     {label:"Pending",    bg:"#fffbeb",color:"#b45309",dot:"#f59e0b"},
+};
+
+const ls: React.CSSProperties = {display:"block",fontSize:12.5,fontWeight:600,color:"#0d1b2e",marginBottom:6};
+const is: React.CSSProperties = {width:"100%",height:40,padding:"0 12px",border:`1.5px solid #e8f0fc`,borderRadius:10,fontSize:13,color:"#0d1b2e",background:"#f0f4fa",outline:"none",fontFamily:"inherit",marginBottom:16};
+const ts: React.CSSProperties = {width:"100%",padding:"10px 12px",border:`1.5px solid #e8f0fc`,borderRadius:10,fontSize:13,color:"#0d1b2e",background:"#f0f4fa",outline:"none",fontFamily:"inherit",resize:"vertical" as const,marginBottom:16};
+
+function Modal({title,onClose,children,wide}:{title:string;onClose:()=>void;children:React.ReactNode;wide?:boolean}) {
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(13,27,46,0.55)",zIndex:50,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(3px)"}}>
+      <div style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:wide?580:460,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(23,127,237,0.2)",fontFamily:"'DM Sans',sans-serif"}}>
+        <div style={{padding:"20px 24px",borderBottom:"1px solid #e8f0fc",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,background:"#fff",borderRadius:"18px 18px 0 0",zIndex:1}}>
+          <span style={{fontSize:16,fontWeight:700,color:"#0d1b2e"}}>{title}</span>
+          <button onClick={onClose} style={{width:30,height:30,borderRadius:8,border:"none",background:"#f0f4fa",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <I.X style={{width:14,height:14,color:"#8aa0ba"}}/>
+          </button>
+        </div>
+        <div style={{padding:"20px 24px"}}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Actions({onCancel,label,color="#177fed"}:{onCancel:()=>void;label:string;color?:string}) {
+  return (
+    <div style={{display:"flex",justifyContent:"flex-end",gap:10,paddingTop:4}}>
+      <button type="button" onClick={onCancel} style={{padding:"9px 20px",borderRadius:9,border:"1.5px solid #e8f0fc",background:"#fff",color:"#8aa0ba",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+      <button type="submit" style={{padding:"9px 20px",borderRadius:9,border:"none",background:color,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 4px 12px ${color}55`}}>{label}</button>
+    </div>
+  );
 }
 
 const NurseDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [vitalRequests, setVitalRequests] = useState<VitalRequest[]>([]);
-  const [filteredRequests, setFilteredRequests] = useState<VitalRequest[]>([]);
-  const [selectedRequest, setSelectedRequest] = useState<VitalRequest | null>(
-    null
-  );
-  const [activeTab, setActiveTab] = useState<
-    "all" | "pending" | "in_progress" | "completed"
-  >("all");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [showVitalsForm, setShowVitalsForm] = useState(false);
+  const [requests, setRequests] = useState<VitalRequest[]>([]);
+  const [filtered, setFiltered] = useState<VitalRequest[]>([]);
+  const [selected, setSelected] = useState<VitalRequest|null>(null);
+  const [tab, setTab] = useState<"all"|"pending"|"in_progress"|"completed">("all");
+  const [collapsed, setCollapsed] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [vitalsData, setVitalsData] = useState({
-    blood_pressure: "",
-    respiration_rate: "",
-    pulse_rate: "",
-    body_temperature: "",
-    height_cm: "",
-    weight_kg: "",
-  });
+  const [q, setQ] = useState("");
+  const [vitals, setVitals] = useState({ blood_pressure:"", respiration_rate:"", pulse_rate:"", body_temperature:"", height_cm:"", weight_kg:"" });
 
-  const getProfileImageUrl = (profile: any) => {
-    if (!profile?.profile_pix) return null;
-    if (profile.profile_pix.startsWith("http")) return profile.profile_pix;
-    return `https://dhospitalback.onrender.com${profile.profile_pix}`;
-  };
+  const imgUrl = (p: any) => p?.profile_pix?(p.profile_pix.startsWith("http")?p.profile_pix:`https://dhospitalback.onrender.com${p.profile_pix}`):null;
+  const pName = (r: VitalRequest) => r.appointment?.name||"Unknown Patient";
+  const pAge  = (r: VitalRequest) => r.appointment?.age||"N/A";
+  const pSex  = (r: VitalRequest) => { const s=r.appointment?.sex; return s==="M"?"Male":s==="F"?"Female":"Unknown"; };
 
-  const getPatientName = (request: VitalRequest) => {
-    return request.appointment?.name || "Unknown Patient";
-  };
-
-  const getPatientInitial = (request: VitalRequest) => {
-    const name = getPatientName(request);
-    return name.charAt(0).toUpperCase();
-  };
-
-  const getPatientAge = (request: VitalRequest) => {
-    return request.appointment?.age || "N/A";
-  };
-
-  const getPatientGender = (request: VitalRequest) => {
-    const sex = request.appointment?.sex;
-    if (sex === "M") return "Male";
-    if (sex === "F") return "Female";
-    return "Unknown";
-  };
-
-  const navigationItems = [
-    {
-      id: "all" as const,
-      name: "All Requests",
-      icon: <FileText className="w-4 h-4 md:w-5 md:h-5" />,
-      color: "text-blue-600",
-      count: vitalRequests.length,
-    },
-    {
-      id: "pending" as const,
-      name: "Pending",
-      icon: <Clock className="w-4 h-4 md:w-5 md:h-5" />,
-      color: "text-yellow-600",
-      count: vitalRequests.filter((r) => r.status === "PENDING").length,
-    },
-    {
-      id: "in_progress" as const,
-      name: "In Progress",
-      icon: <AlertCircle className="w-4 h-4 md:w-5 md:h-5" />,
-      color: "text-orange-600",
-      count: vitalRequests.filter((r) => r.status === "IN_PROGRESS").length,
-    },
-    {
-      id: "completed" as const,
-      name: "Completed",
-      icon: <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />,
-      color: "text-green-600",
-      count: vitalRequests.filter((r) => r.status === "DONE").length,
-    },
+  const navItems = [
+    {id:"all",       label:"All Requests", icon:"FileText", count:requests.length},
+    {id:"pending",   label:"Pending",      icon:"Clock",    count:requests.filter(r=>r.status==="PENDING").length},
+    {id:"in_progress",label:"In Progress", icon:"Alert",    count:requests.filter(r=>r.status==="IN_PROGRESS").length},
+    {id:"completed", label:"Completed",    icon:"Check",    count:requests.filter(r=>r.status==="DONE").length},
   ];
 
-  useEffect(() => {
-    loadVitalRequests();
-    const interval = setInterval(() => {
-      loadVitalRequests();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const stats = [
+    {label:"Total Requests", value:requests.length,                                        sub:`+${requests.filter(r=>r.status==="PENDING").length} new`, grad:`135deg,${C.blue1},${C.blue2}`,   icon:"Clipboard"},
+    {label:"Pending",        value:requests.filter(r=>r.status==="PENDING").length,        sub:"Need attention",                                          grad:"135deg,#d97706,#f59e0b",          icon:"Clock"},
+    {label:"In Progress",    value:requests.filter(r=>r.status==="IN_PROGRESS").length,    sub:"Being processed",                                         grad:`135deg,#ea580c,${C.orange}`,      icon:"Alert"},
+    {label:"Completed",      value:requests.filter(r=>r.status==="DONE").length,           sub:"Fully recorded",                                          grad:`135deg,#059669,${C.green}`,       icon:"Check"},
+  ];
 
-  useEffect(() => {
-    filterRequests();
-  }, [vitalRequests, activeTab, searchQuery]);
+  useEffect(()=>{load();const t=setInterval(load,30000);return()=>clearInterval(t);},[]);
+  useEffect(()=>{
+    let f=requests;
+    if(tab==="pending")     f=f.filter(r=>r.status==="PENDING");
+    if(tab==="in_progress") f=f.filter(r=>r.status==="IN_PROGRESS");
+    if(tab==="completed")   f=f.filter(r=>r.status==="DONE");
+    if(q.trim()){const lq=q.toLowerCase();f=f.filter(r=>pName(r).toLowerCase().includes(lq)||(r.note&&r.note.toLowerCase().includes(lq)));}
+    setFiltered(f);
+  },[requests,tab,q]);
 
-  const loadVitalRequests = async () => {
-    try {
-      const data = await apiService.getVitalRequests();
-      setVitalRequests(data || []);
-    } catch (error) {
-      console.error("Failed to load vital requests:", error);
-      setVitalRequests([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  async function load(){try{const d=await apiService.getVitalRequests();setRequests(d||[]);}catch{setRequests([]);}finally{setLoading(false);}}
 
-  const filterRequests = () => {
-    let filtered = vitalRequests;
-
-    switch (activeTab) {
-      case "pending":
-        filtered = filtered.filter((r) => r.status === "PENDING");
-        break;
-      case "in_progress":
-        filtered = filtered.filter((r) => r.status === "IN_PROGRESS");
-        break;
-      case "completed":
-        filtered = filtered.filter((r) => r.status === "DONE");
-        break;
-      default:
-        break;
-    }
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (request) =>
-          getPatientName(request).toLowerCase().includes(query) ||
-          (request.note && request.note.toLowerCase().includes(query))
-      );
-    }
-
-    setFilteredRequests(filtered);
-  };
-
-  const handleSubmitVitals = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedRequest) return;
-
+  async function submitVitals(e: React.FormEvent){
+    e.preventDefault(); if(!selected) return;
     try {
       await apiService.createVitals({
-        vital_request: selectedRequest.id,
-        ...vitalsData,
-        respiration_rate: vitalsData.respiration_rate
-          ? parseInt(vitalsData.respiration_rate)
-          : null,
-        pulse_rate: vitalsData.pulse_rate
-          ? parseInt(vitalsData.pulse_rate)
-          : null,
-        body_temperature: vitalsData.body_temperature
-          ? parseFloat(vitalsData.body_temperature)
-          : null,
-        height_cm: vitalsData.height_cm
-          ? parseFloat(vitalsData.height_cm)
-          : null,
-        weight_kg: vitalsData.weight_kg
-          ? parseFloat(vitalsData.weight_kg)
-          : null,
+        vital_request:selected.id, ...vitals,
+        respiration_rate:vitals.respiration_rate?parseInt(vitals.respiration_rate):null,
+        pulse_rate:vitals.pulse_rate?parseInt(vitals.pulse_rate):null,
+        body_temperature:vitals.body_temperature?parseFloat(vitals.body_temperature):null,
+        height_cm:vitals.height_cm?parseFloat(vitals.height_cm):null,
+        weight_kg:vitals.weight_kg?parseFloat(vitals.weight_kg):null,
       });
-
-      setShowVitalsForm(false);
-      setVitalsData({
-        blood_pressure: "",
-        respiration_rate: "",
-        pulse_rate: "",
-        body_temperature: "",
-        height_cm: "",
-        weight_kg: "",
-      });
-
-      await loadVitalRequests();
-      alert("Vitals recorded successfully!");
-    } catch (error) {
-      console.error("Failed to submit vitals:", error);
-      alert("Failed to record vitals. Please try again.");
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "DONE":
-        return "bg-green-100 text-green-800 border border-green-200";
-      case "IN_PROGRESS":
-        return "bg-orange-100 text-orange-800 border border-orange-200";
-      case "PENDING":
-        return "bg-yellow-100 text-yellow-800 border border-yellow-200";
-      default:
-        return "bg-gray-100 text-gray-800 border border-gray-200";
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "DONE":
-        return <CheckCircle className="w-3 h-3 md:w-4 md:h-4 text-green-600" />;
-      case "IN_PROGRESS":
-        return (
-          <AlertCircle className="w-3 h-3 md:w-4 md:h-4 text-orange-600" />
-        );
-      case "PENDING":
-        return <Clock className="w-3 h-3 md:w-4 md:h-4 text-yellow-600" />;
-      default:
-        return <Clock className="w-3 h-3 md:w-4 md:h-4 text-gray-600" />;
-    }
-  };
-
-  const handleMarkInProgress = async (requestId: number) => {
-    try {
-      setVitalRequests((prev) =>
-        prev.map((req) =>
-          req.id === requestId ? { ...req, status: "IN_PROGRESS" } : req
-        )
-      );
-      alert("Vital request marked as In Progress");
-    } catch (error) {
-      console.error("Failed to update status:", error);
-    }
-  };
-
-  const handleMarkComplete = async (requestId: number) => {
-    try {
-      setVitalRequests((prev) =>
-        prev.map((req) =>
-          req.id === requestId ? { ...req, status: "DONE" } : req
-        )
-      );
-      alert("Vital request marked as Completed");
-    } catch (error) {
-      console.error("Failed to update status:", error);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading nurse dashboard...</p>
-        </div>
-      </div>
-    );
+      setShowForm(false);setVitals({blood_pressure:"",respiration_rate:"",pulse_rate:"",body_temperature:"",height_cm:"",weight_kg:""});
+      await load();alert("Vitals recorded successfully!");
+    } catch{alert("Failed to record vitals.");}
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar Overlay for Mobile */}
-      {mobileSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setMobileSidebarOpen(false)}
-        />
-      )}
+  function markInProgress(id:number){setRequests(prev=>prev.map(r=>r.id===id?{...r,status:"IN_PROGRESS"}:r));}
+  function markDone(id:number){setRequests(prev=>prev.map(r=>r.id===id?{...r,status:"DONE"}:r));}
 
-      {/* Sidebar */}
-      <div
-        className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
-        ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        ${sidebarOpen ? "w-64" : "w-20"}
-      `}
-      >
-        <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div className="flex items-center justify-between p-4 md:p-6 border-b">
-            {sidebarOpen && (
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Activity className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-gray-900">MediCare</h1>
-                  <p className="text-xs text-gray-500">Nurse Panel</p>
-                </div>
-              </div>
-            )}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 hidden lg:block"
-            >
-              <Menu className="w-5 h-5 text-gray-600" />
-            </button>
-          </div>
+  const sw=collapsed?72:248;
 
-          {/* Navigation */}
-          <nav className="flex-1 p-2 md:p-4 space-y-2">
-            {navigationItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setMobileSidebarOpen(false);
-                }}
-                className={`
-                  w-full flex items-center space-x-3 px-3 py-2.5 md:px-4 md:py-3 rounded-xl transition-all duration-200 font-medium
-                  ${
-                    activeTab === item.id
-                      ? "bg-blue-50 text-blue-700 border border-blue-200"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  }
-                `}
-              >
-                <div
-                  className={`${
-                    activeTab === item.id ? item.color : "text-gray-400"
-                  }`}
-                >
-                  {item.icon}
-                </div>
-                {sidebarOpen && (
-                  <div className="flex-1 flex justify-between items-center">
-                    <span className="text-sm md:text-base">{item.name}</span>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        activeTab === item.id
-                          ? "bg-blue-200 text-blue-800"
-                          : "bg-gray-200 text-gray-600"
-                      }`}
-                    >
-                      {item.count}
-                    </span>
-                  </div>
-                )}
-              </button>
-            ))}
-          </nav>
+  if(loading) return(
+    <div style={{fontFamily:"'DM Sans',sans-serif",minHeight:"100vh",background:C.slate,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{textAlign:"center"}}><div style={{width:44,height:44,border:`3px solid ${C.soft}`,borderTopColor:C.teal,borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 14px"}}/><p style={{color:C.muted,fontSize:13}}>Loading nurse dashboard…</p></div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
-          {/* User Section */}
-          <div className="p-3 md:p-4 border-t">
-            <div className="flex items-center space-x-3 p-2 md:p-3 rounded-lg bg-gray-50">
-              {user?.profile?.profile_pix ? (
-                <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300 flex-shrink-0">
-                  <img
-                    src={getProfileImageUrl(user.profile)}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm font-medium">
-                    {user?.profile?.fullname?.charAt(0) ||
-                      user?.username?.charAt(0) ||
-                      "N"}
-                  </span>
-                </div>
-              )}
-              {sidebarOpen && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {user?.profile?.fullname || user?.username}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">Nurse</p>
-                </div>
-              )}
-            </div>
-          </div>
+  return(
+    <div style={{fontFamily:"'DM Sans',sans-serif",WebkitFontSmoothing:"antialiased",minHeight:"100vh",background:C.slate,display:"flex"}}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        *{box-sizing:border-box}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:#e8f0fc;border-radius:4px}
+        .nh:hover{background:#f0f4fa!important}.rh:hover{background:#f0f4fa!important}
+        .bth:hover{background:#0d9488!important}.bph:hover{background:#059669!important}.boh:hover{background:#ea580c!important}
+        .xh:hover{background:#f0f4fa!important}.ch:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(23,127,237,0.12)!important}
+        @keyframes spin{to{transform:rotate(360deg)}}@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi 0.2s ease forwards}
+      `}</style>
+
+      {/* SIDEBAR */}
+      <aside style={{width:sw,minHeight:"100vh",background:C.white,display:"flex",flexDirection:"column",borderRight:`1px solid ${C.soft}`,position:"sticky",top:0,height:"100vh",overflow:"hidden",flexShrink:0,transition:"width 0.25s cubic-bezier(.4,0,.2,1)",boxShadow:"2px 0 10px rgba(13,148,136,0.06)"}}>
+        <div style={{padding:"18px 14px 14px",borderBottom:`1px solid ${C.soft}`,display:"flex",alignItems:"center",gap:10,minHeight:62}}>
+          <div style={{width:30,height:30,borderRadius:8,background:`linear-gradient(135deg,${C.teal},#0f766e)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><I.Activity style={{width:16,height:16,color:C.white}}/></div>
+          {!collapsed&&<div><div style={{fontWeight:700,fontSize:14,color:C.text,lineHeight:1.2,whiteSpace:"nowrap"}}>Etha-Atlantic</div><div style={{fontSize:11,color:C.muted}}>Nurse Panel</div></div>}
         </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header */}
-        <header className="bg-white border-b shadow-sm">
-          <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
-            <div className="flex items-center space-x-3 md:space-x-4">
-              <button
-                onClick={() => setMobileSidebarOpen(true)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 lg:hidden"
-              >
-                <Menu className="w-5 h-5 text-gray-600" />
-              </button>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900">
-                {navigationItems.find((item) => item.id === activeTab)?.name}
-              </h1>
+        <nav style={{flex:1,padding:"10px 8px",display:"flex",flexDirection:"column",gap:3}}>
+          {navItems.map(n=>{const A=I[n.icon];const act=tab===n.id;return(
+            <button key={n.id} className="nh" onClick={()=>setTab(n.id as any)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:collapsed?"10px":"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:act?`${C.teal}14`:"transparent",justifyContent:collapsed?"center":"flex-start",transition:"all 0.15s"}}>
+              <A style={{width:17,height:17,color:act?C.teal:C.muted,flexShrink:0}}/>
+              {!collapsed&&<><span style={{flex:1,textAlign:"left",fontSize:13,fontWeight:act?600:400,color:act?C.text:C.muted,whiteSpace:"nowrap"}}>{n.label}</span><span style={{fontSize:11,fontWeight:600,minWidth:20,height:20,borderRadius:10,background:act?C.teal:"#eef2f7",color:act?C.white:C.muted,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 6px"}}>{n.count}</span></>}
+            </button>
+          );})}
+        </nav>
+        <div style={{borderTop:`1px solid ${C.soft}`,padding:"10px 8px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:10,background:C.slate}}>
+            <div style={{width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.teal},#0f766e)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
+              {imgUrl(user?.profile)?<img src={imgUrl(user?.profile)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"N"}</span>}
             </div>
+            {!collapsed&&<div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:12.5,fontWeight:600,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{user?.profile?.fullname||user?.username}</div><div style={{fontSize:11,color:C.muted}}>Nurse</div></div>}
+          </div>
+          <button className="nh" onClick={()=>setCollapsed(!collapsed)} style={{marginTop:6,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"7px",borderRadius:8,border:"none",background:"transparent",cursor:"pointer",color:C.muted,fontSize:12,transition:"all 0.15s"}}>
+            <I.ChevLeft style={{width:13,height:13,transition:"transform 0.25s",transform:collapsed?"rotate(180deg)":"none"}}/>{!collapsed&&<span>Collapse</span>}
+          </button>
+        </div>
+      </aside>
 
-            <div className="flex items-center space-x-2 md:space-x-4">
-              {/* Mobile Search */}
-              <div className="relative md:hidden">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-36"
-                />
+      {/* MAIN */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+        <header style={{background:C.white,borderBottom:`1px solid ${C.soft}`,padding:"0 28px",height:64,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:30,boxShadow:"0 1px 8px rgba(13,148,136,0.06)"}}>
+          <div><div style={{fontSize:17,fontWeight:700,color:C.text}}>{navItems.find(n=>n.id===tab)?.label}</div><div style={{fontSize:12,color:C.muted}}>{filtered.length} vital requests</div></div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{position:"relative"}}>
+              <I.Search style={{width:14,height:14,color:C.muted,position:"absolute",left:11,top:"50%",transform:"translateY(-50%)"}}/>
+              <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search requests…" style={{paddingLeft:32,paddingRight:14,height:37,border:`1.5px solid ${C.soft}`,borderRadius:10,fontSize:13,color:C.text,background:C.slate,outline:"none",width:210,fontFamily:"inherit"}}/>
+            </div>
+            <button onClick={load} className="xh" style={{width:37,height:37,borderRadius:10,border:`1.5px solid ${C.soft}`,background:C.white,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
+              <I.RefreshCw style={{width:15,height:15,color:C.muted}}/>
+            </button>
+            <button className="xh" style={{width:37,height:37,borderRadius:10,border:`1.5px solid ${C.soft}`,background:C.white,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",transition:"all 0.15s"}}>
+              <I.Bell style={{width:16,height:16,color:C.muted}}/><span style={{position:"absolute",top:8,right:8,width:6,height:6,borderRadius:"50%",background:C.red,border:`1.5px solid ${C.white}`}}/>
+            </button>
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px 5px 5px",borderRadius:10,background:C.slate,border:`1.5px solid ${C.soft}`}}>
+              <div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${C.teal},#0f766e)`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                {imgUrl(user?.profile)?<img src={imgUrl(user?.profile)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"N"}</span>}
               </div>
-
-              {/* Desktop Search */}
-              <div className="relative hidden md:block">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search vital requests..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48 lg:w-64"
-                />
-              </div>
-
-              {/* Notifications */}
-              <button className="p-1.5 md:p-2 rounded-lg hover:bg-gray-100 relative">
-                <Bell className="w-4 md:w-5 h-4 md:h-5 text-gray-600" />
-                <span className="absolute top-1 right-1 w-1.5 h-1.5 md:w-2 md:h-2 bg-red-500 rounded-full"></span>
-              </button>
-
-              {/* User Menu (Mobile) */}
-              <div className="md:hidden">
-                <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300">
-                  {user?.profile?.profile_pix ? (
-                    <img
-                      src={getProfileImageUrl(user.profile)}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                      <span className="text-white text-xs font-medium">
-                        {user?.profile?.fullname?.charAt(0) ||
-                          user?.username?.charAt(0) ||
-                          "N"}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* User Menu (Desktop) */}
-              <div className="hidden md:flex items-center space-x-3">
-                {user?.profile?.profile_pix ? (
-                  <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300">
-                    <img
-                      src={getProfileImageUrl(user.profile)}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
-                      {user?.profile?.fullname?.charAt(0) ||
-                        user?.username?.charAt(0) ||
-                        "N"}
-                    </span>
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {user?.profile?.fullname || user?.username}
-                  </p>
-                  <p className="text-xs text-gray-500">Nurse</p>
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </div>
+              <span style={{fontSize:13,fontWeight:600,color:C.text}}>{user?.profile?.fullname?.split(" ")[0]||user?.username}</span>
+              <I.ChevDown style={{width:13,height:13,color:C.muted}}/>
             </div>
           </div>
         </header>
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-auto">
-          <div className="p-3 md:p-4 lg:p-6">
-            {/* Stats Cards - Responsive Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 mb-6 md:mb-8">
-              {/* Total Requests Card */}
-              <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg">
-                    <Clipboard className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                  </div>
-                  <span className="text-xs md:text-sm font-medium text-green-600 bg-green-50 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full">
-                    +
-                    {vitalRequests.filter((r) => r.status === "PENDING").length}{" "}
-                    new
-                  </span>
+        <main style={{flex:1,padding:"26px 28px",overflowY:"auto"}}>
+          {/* Stats */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:22}}>
+            {stats.map((s,i)=>{const IC=I[s.icon];return(
+              <div key={i} className="ch" style={{background:C.white,borderRadius:16,padding:"18px 20px",border:`1px solid ${C.soft}`,boxShadow:"0 1px 4px rgba(13,148,136,0.06)",transition:"all 0.2s"}}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:12}}>
+                  <div style={{width:40,height:40,borderRadius:12,background:`linear-gradient(${s.grad})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 10px rgba(0,0,0,0.1)"}}><IC style={{width:17,height:17,color:C.white}}/></div>
+                  <span style={{fontSize:11,fontWeight:600,color:C.teal,background:"#f0fdfa",padding:"2px 8px",borderRadius:20}}>{s.sub}</span>
                 </div>
-                <div className="mt-3 md:mt-4">
-                  <p className="text-xs md:text-sm font-medium text-gray-600">
-                    Total Requests
-                  </p>
-                  <p className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mt-1">
-                    {vitalRequests.length}
-                  </p>
-                </div>
+                <div style={{fontSize:28,fontWeight:700,color:C.text,lineHeight:1}}>{s.value}</div>
+                <div style={{fontSize:12.5,color:C.muted,marginTop:4}}>{s.label}</div>
               </div>
+            );})}
+          </div>
 
-              {/* Pending Card */}
-              <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg">
-                    <Activity className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                  </div>
-                </div>
-                <div className="mt-3 md:mt-4">
-                  <p className="text-xs md:text-sm font-medium text-gray-600">
-                    Pending
-                  </p>
-                  <p className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mt-1">
-                    {vitalRequests.filter((r) => r.status === "PENDING").length}
-                  </p>
-                </div>
-              </div>
+          {/* Performance bar */}
+          <div style={{background:`linear-gradient(135deg,${C.teal}08,${C.teal}14)`,border:`1px solid ${C.soft}`,borderRadius:14,padding:"14px 20px",marginBottom:22,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div><div style={{fontSize:14,fontWeight:600,color:C.text}}>Nurse Performance Overview</div><div style={{fontSize:12.5,color:C.muted,marginTop:2}}>{filtered.length} requests match current filters</div></div>
+            <div style={{display:"flex",gap:28,alignItems:"center"}}>
+              <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:700,color:C.teal}}>98.5%</div><div style={{fontSize:11,color:C.muted}}>Completion Rate</div></div>
+              <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:700,color:C.text}}>15 min</div><div style={{fontSize:11,color:C.muted}}>Avg. Response</div></div>
+              <button onClick={load} className="xh" style={{padding:"7px 14px",borderRadius:8,border:`1.5px solid ${C.soft}`,background:C.white,cursor:"pointer",fontSize:12.5,fontWeight:600,color:C.muted,display:"flex",alignItems:"center",gap:6,transition:"all 0.15s"}}>
+                <I.RefreshCw style={{width:13,height:13}}/>Refresh
+              </button>
+            </div>
+          </div>
 
-              {/* In Progress Card */}
-              <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg">
-                    <AlertCircle className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                  </div>
-                </div>
-                <div className="mt-3 md:mt-4">
-                  <p className="text-xs md:text-sm font-medium text-gray-600">
-                    In Progress
-                  </p>
-                  <p className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mt-1">
-                    {
-                      vitalRequests.filter((r) => r.status === "IN_PROGRESS")
-                        .length
-                    }
-                  </p>
-                </div>
-              </div>
-
-              {/* Completed Card */}
-              <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="bg-gradient-to-r from-green-500 to-green-600 text-white w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg">
-                    <CheckCircle className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                  </div>
-                </div>
-                <div className="mt-3 md:mt-4">
-                  <p className="text-xs md:text-sm font-medium text-gray-600">
-                    Completed
-                  </p>
-                  <p className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mt-1">
-                    {vitalRequests.filter((r) => r.status === "DONE").length}
-                  </p>
+          {/* Requests list */}
+          <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.soft}`,overflow:"hidden",boxShadow:"0 1px 6px rgba(13,148,136,0.05)"}}>
+            <div style={{padding:"16px 22px",borderBottom:`1px solid ${C.soft}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div><div style={{fontSize:15,fontWeight:700,color:C.text}}>Vital Sign Requests</div><div style={{fontSize:12,color:C.muted,marginTop:2}}>{filtered.length} records · auto-refreshing</div></div>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                {q&&<button onClick={()=>setQ("")} className="xh" style={{fontSize:12,color:C.teal,padding:"4px 10px",borderRadius:6,border:"none",background:`${C.teal}14`,cursor:"pointer",transition:"all 0.15s"}}>Clear</button>}
+                <div style={{position:"relative",display:"flex",alignItems:"center"}}>
+                  <I.Filter style={{width:12,height:12,color:C.muted,position:"absolute",left:9,pointerEvents:"none"}}/>
+                  <select value={tab} onChange={e=>setTab(e.target.value as any)} style={{paddingLeft:26,paddingRight:10,height:34,border:`1.5px solid ${C.soft}`,borderRadius:8,fontSize:12.5,background:C.white,color:C.text,cursor:"pointer",outline:"none",fontFamily:"inherit"}}>
+                    <option value="all">All Status</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="completed">Completed</option>
+                  </select>
                 </div>
               </div>
             </div>
 
-            {/* Performance Stats */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl md:rounded-2xl p-3 md:p-4 mb-6 md:mb-8 border border-blue-100">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0">
-                <div>
-                  <h3 className="text-base md:text-lg font-semibold text-gray-900">
-                    Nurse Performance Overview
-                  </h3>
-                  <p className="text-xs md:text-sm text-gray-600 mt-1">
-                    {filteredRequests.length} requests match current filters
-                  </p>
-                </div>
-                <div className="flex items-center space-x-3 md:space-x-4">
-                  <div className="text-center">
-                    <p className="text-xs md:text-sm text-gray-600">
-                      Avg. Response Time
-                    </p>
-                    <p className="text-sm md:text-base font-semibold text-gray-900">
-                      15min
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs md:text-sm text-gray-600">
-                      Completion Rate
-                    </p>
-                    <p className="text-sm md:text-base font-semibold text-green-600">
-                      98.5%
-                    </p>
-                  </div>
-                  <button
-                    onClick={loadVitalRequests}
-                    className="flex items-center space-x-2 px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <RefreshCw className="w-3 h-3 md:w-4 md:h-4 text-gray-600" />
-                    <span className="text-xs md:text-sm font-medium">
-                      Refresh
-                    </span>
-                  </button>
-                </div>
+            {filtered.length===0?(
+              <div style={{padding:"60px 24px",textAlign:"center"}}>
+                <I.Activity style={{width:38,height:38,color:"#dce7f5",margin:"0 auto 10px"}}/><div style={{fontSize:15,fontWeight:600,color:C.muted}}>No vital requests found</div>
+                <div style={{fontSize:12.5,color:"#b0bec5",marginTop:4}}>{q?`No results for "${q}"`:"Try changing the filter above"}</div>
               </div>
-            </div>
-
-            {/* Vital Requests List */}
-            <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-4 py-3 md:px-6 md:py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0">
-                  <div>
-                    <h3 className="text-lg md:text-xl font-semibold text-gray-900">
-                      Vital Sign Requests
-                    </h3>
-                    <p className="text-xs md:text-sm text-gray-600 mt-1">
-                      {filteredRequests.length} vital requests • Last updated:
-                      Just now
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="relative">
-                      <Filter className="w-3 h-3 md:w-4 md:h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                      <select
-                        className="pl-8 pr-3 py-1.5 md:pl-10 md:pr-4 md:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs md:text-sm bg-white"
-                        value={activeTab}
-                        onChange={(e) => setActiveTab(e.target.value as any)}
-                      >
-                        <option value="all">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="divide-y divide-gray-200">
-                {filteredRequests.length === 0 ? (
-                  <div className="px-4 py-8 md:px-6 md:py-12 text-center text-gray-500">
-                    <Activity className="w-10 h-10 md:w-12 md:h-12 text-gray-300 mx-auto mb-3 md:mb-4" />
-                    <p className="text-base md:text-lg font-medium">
-                      No vital requests found
-                    </p>
-                    <p className="text-xs md:text-sm mt-1 max-w-md mx-auto">
-                      {searchQuery.trim()
-                        ? `No vital requests match "${searchQuery}"`
-                        : "No vital requests match the current filter. Try changing filters or check back later."}
-                    </p>
-                    {searchQuery.trim() && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="mt-3 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        Clear search
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  filteredRequests.map((request) => (
-                    <div
-                      key={request.id}
-                      className="px-4 py-4 md:px-6 md:py-6 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-start space-x-3 mb-3">
-                            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                              <span className="text-white text-xs md:text-sm font-medium">
-                                {getPatientInitial(request)}
-                              </span>
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex flex-col md:flex-row md:items-center md:space-x-3 mb-1">
-                                <h3 className="text-base md:text-lg font-semibold text-gray-900">
-                                  {getPatientName(request)}
-                                </h3>
-                                <div className="flex items-center space-x-2 mt-1 md:mt-0">
-                                  {getStatusIcon(request.status)}
-                                  <span
-                                    className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-medium ${getStatusColor(
-                                      request.status
-                                    )}`}
-                                  >
-                                    {request.status.replace("_", " ")}
-                                  </span>
-                                </div>
-                              </div>
-                              <p className="text-gray-600 text-xs md:text-sm">
-                                Age: {getPatientAge(request)} | Gender:{" "}
-                                {getPatientGender(request)} | ID:{" "}
-                                {request.appointment?.id || "N/A"}
-                              </p>
-                            </div>
-                          </div>
-
-                          {request.note && (
-                            <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                              <p className="text-xs md:text-sm font-medium text-blue-700">
-                                Doctor's Note
-                              </p>
-                              <p className="text-xs md:text-sm text-blue-600 mt-1">
-                                {request.note}
-                              </p>
-                            </div>
-                          )}
-
-                          <p className="text-xs text-gray-500">
-                            Requested:{" "}
-                            {new Date(request.created_at).toLocaleDateString(
-                              "en-US",
-                              {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
-                            )}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end space-y-2 sm:space-y-0 sm:space-x-2 lg:space-x-0 lg:space-y-3">
-                          {(request.status === "PENDING" ||
-                            request.status === "IN_PROGRESS") && (
-                            <>
-                              {request.status === "PENDING" && (
-                                <button
-                                  onClick={() =>
-                                    handleMarkInProgress(request.id)
-                                  }
-                                  className="px-3 py-1.5 md:px-4 md:py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors shadow-sm flex items-center justify-center space-x-1.5 text-xs md:text-sm"
-                                >
-                                  <Clock className="w-3 h-3 md:w-4 md:h-4" />
-                                  <span>Start Assessment</span>
-                                </button>
-                              )}
-                              <button
-                                onClick={() => {
-                                  setSelectedRequest(request);
-                                  setShowVitalsForm(true);
-                                }}
-                                className={`px-3 py-1.5 md:px-4 md:py-2 text-white rounded-lg transition-colors shadow-sm flex items-center justify-center space-x-1.5 text-xs md:text-sm ${
-                                  request.status === "PENDING"
-                                    ? "bg-blue-600 hover:bg-blue-700"
-                                    : "bg-orange-600 hover:bg-orange-700"
-                                }`}
-                              >
-                                <Activity className="w-3 h-3 md:w-4 md:h-4" />
-                                <span>
-                                  {request.status === "PENDING"
-                                    ? "Record Vitals"
-                                    : "Update Vitals"}
-                                </span>
-                              </button>
-                            </>
-                          )}
-                          {request.status === "IN_PROGRESS" && (
-                            <button
-                              onClick={() => handleMarkComplete(request.id)}
-                              className="px-3 py-1.5 md:px-4 md:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm flex items-center justify-center space-x-1.5 text-xs md:text-sm"
-                            >
-                              <CheckCircle className="w-3 h-3 md:w-4 md:h-4" />
-                              <span>Mark Complete</span>
-                            </button>
-                          )}
-                          {request.status === "DONE" && (
-                            <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg border border-green-200">
-                              <CheckCircle className="w-3 h-3 md:w-4 md:h-4" />
-                              <span className="text-xs md:text-sm font-medium">
-                                Completed
-                              </span>
-                            </div>
-                          )}
-                        </div>
+            ):filtered.map((r,i)=>{
+              const st=ST[r.status]||ST.PENDING;
+              return(
+                <div key={r.id} className="rh fi" style={{padding:"18px 22px",borderBottom:i<filtered.length-1?`1px solid ${C.soft}`:"none",transition:"background 0.15s"}}>
+                  <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+                    <div style={{width:42,height:42,borderRadius:"50%",background:`linear-gradient(135deg,${C.teal},#0f766e)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:15,fontWeight:700,color:C.white}}>{pName(r).charAt(0)}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
+                        <span style={{fontSize:14.5,fontWeight:700,color:C.text}}>{pName(r)}</span>
+                        <span style={{fontSize:11.5,fontWeight:600,padding:"2px 10px",borderRadius:20,background:st.bg,color:st.color,display:"flex",alignItems:"center",gap:5}}>
+                          <span style={{width:5,height:5,borderRadius:"50%",background:st.dot,flexShrink:0}}/>{st.label}
+                        </span>
                       </div>
+                      <div style={{fontSize:12.5,color:C.muted,marginBottom:6}}>Age {pAge(r)} · {pSex(r)} · Appt #{r.appointment?.id||"N/A"}</div>
+                      {r.note&&<div style={{background:`${C.teal}0e`,borderRadius:8,padding:"8px 12px",marginBottom:7,fontSize:12.5,color:C.muted,borderLeft:`3px solid ${C.teal}50`}}><b style={{color:C.text}}>Doctor's Note:</b> {r.note}</div>}
+                      <div style={{fontSize:11.5,color:"#b0bec5"}}>Requested {new Date(r.created_at).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:7,flexShrink:0}}>
+                      {(r.status==="PENDING"||r.status==="IN_PROGRESS")&&<>
+                        {r.status==="PENDING"&&<button className="bth" onClick={()=>markInProgress(r.id)} style={{padding:"7px 13px",background:C.amber,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}><I.Clock style={{width:13,height:13}}/>Start</button>}
+                        <button className={r.status==="PENDING"?"bth":"boh"} onClick={()=>{setSelected(r);setShowForm(true);}} style={{padding:"7px 13px",background:r.status==="PENDING"?C.teal:C.orange,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}><I.Activity style={{width:13,height:13}}/>{r.status==="PENDING"?"Record Vitals":"Update Vitals"}</button>
+                        {r.status==="IN_PROGRESS"&&<button className="bph" onClick={()=>markDone(r.id)} style={{padding:"7px 13px",background:C.green,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}><I.Check style={{width:13,height:13}}/>Mark Done</button>}
+                      </>}
+                      {r.status==="DONE"&&<div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 13px",background:"#ecfdf5",borderRadius:8,border:"1px solid #bbf7d0",color:"#059669",fontSize:12.5,fontWeight:600}}><I.Check style={{width:13,height:13}}/>Completed</div>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </main>
       </div>
 
-      {/* Vitals Form Modal */}
-      {showVitalsForm && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 md:p-4 z-50">
-          <div className="bg-white rounded-xl md:rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="sticky top-0 bg-white border-b px-4 py-3 md:px-6 md:py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Record Vital Signs
-              </h3>
-              <button
-                onClick={() => setShowVitalsForm(false)}
-                className="p-1 rounded-lg hover:bg-gray-100"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="p-4 md:p-6">
-              <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm font-medium text-blue-800">
-                  Patient: {getPatientName(selectedRequest)}
-                </p>
-                <p className="text-sm text-blue-700">
-                  Age: {getPatientAge(selectedRequest)} | Gender:{" "}
-                  {getPatientGender(selectedRequest)}
-                </p>
-                {selectedRequest.note && (
-                  <p className="text-sm text-blue-600 mt-1">
-                    <span className="font-medium">Doctor's Note:</span>{" "}
-                    {selectedRequest.note}
-                  </p>
-                )}
-              </div>
-
-              <form onSubmit={handleSubmitVitals} className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2 p-3 bg-red-50 rounded-lg border border-red-200">
-                      <Heart className="w-4 h-4 text-red-500" />
-                      <span className="text-sm font-semibold text-gray-700">
-                        Cardiovascular
-                      </span>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Blood Pressure *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={vitalsData.blood_pressure}
-                        onChange={(e) =>
-                          setVitalsData({
-                            ...vitalsData,
-                            blood_pressure: e.target.value,
-                          })
-                        }
-                        placeholder="e.g., 120/80"
-                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Pulse Rate (bpm) *
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        min="40"
-                        max="200"
-                        value={vitalsData.pulse_rate}
-                        onChange={(e) =>
-                          setVitalsData({
-                            ...vitalsData,
-                            pulse_rate: e.target.value,
-                          })
-                        }
-                        placeholder="e.g., 72"
-                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
-                      <Thermometer className="w-4 h-4 text-orange-500" />
-                      <span>Respiratory & Temperature</span>
-                    </h4>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Respiration Rate
-                      </label>
-                      <input
-                        type="number"
-                        value={vitalsData.respiration_rate}
-                        onChange={(e) =>
-                          setVitalsData({
-                            ...vitalsData,
-                            respiration_rate: e.target.value,
-                          })
-                        }
-                        placeholder="breaths/min"
-                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Body Temperature
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={vitalsData.body_temperature}
-                        onChange={(e) =>
-                          setVitalsData({
-                            ...vitalsData,
-                            body_temperature: e.target.value,
-                          })
-                        }
-                        placeholder="°C"
-                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 md:col-span-2">
-                    <h4 className="text-sm font-semibold text-gray-700">
-                      Anthropometric Measurements
-                    </h4>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Height (cm)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={vitalsData.height_cm}
-                          onChange={(e) =>
-                            setVitalsData({
-                              ...vitalsData,
-                              height_cm: e.target.value,
-                            })
-                          }
-                          className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Weight (kg)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={vitalsData.weight_kg}
-                          onChange={(e) =>
-                            setVitalsData({
-                              ...vitalsData,
-                              weight_kg: e.target.value,
-                            })
-                          }
-                          className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 sm:pt-6 border-t border-gray-200">
-                  <button
-                    type="button"
-                    onClick={() => setShowVitalsForm(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm sm:text-base"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center space-x-2 text-sm sm:text-base"
-                  >
-                    <Activity className="w-4 h-4" />
-                    <span>Submit Vitals</span>
-                  </button>
-                </div>
-              </form>
-            </div>
+      {/* VITALS FORM MODAL */}
+      {showForm&&selected&&(
+        <Modal title="Record Vital Signs" onClose={()=>setShowForm(false)} wide>
+          <div style={{marginBottom:16,padding:"10px 14px",background:`${C.teal}0e`,borderRadius:10,border:`1px solid ${C.teal}30`}}>
+            <div style={{fontSize:13,fontWeight:600,color:C.teal}}>Patient: {pName(selected)}</div>
+            <div style={{fontSize:12.5,color:C.muted,marginTop:2}}>Age {pAge(selected)} · {pSex(selected)}</div>
+            {selected.note&&<div style={{fontSize:12.5,color:C.muted,marginTop:4}}><b>Note:</b> {selected.note}</div>}
           </div>
-        </div>
+          <form onSubmit={submitVitals}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12,padding:"8px 12px",background:"#fff1f2",borderRadius:8,border:"1px solid #fecdd3"}}>
+                  <I.Heart style={{width:14,height:14,color:"#e11d48"}}/><span style={{fontSize:12.5,fontWeight:700,color:C.text}}>Cardiovascular</span>
+                </div>
+                <label style={ls}>Blood Pressure *</label>
+                <input required type="text" value={vitals.blood_pressure} onChange={e=>setVitals({...vitals,blood_pressure:e.target.value})} placeholder="e.g. 120/80" style={is}/>
+                <label style={ls}>Pulse Rate (bpm) *</label>
+                <input required type="number" min="40" max="200" value={vitals.pulse_rate} onChange={e=>setVitals({...vitals,pulse_rate:e.target.value})} placeholder="72" style={is}/>
+              </div>
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12,padding:"8px 12px",background:"#fff7ed",borderRadius:8,border:"1px solid #fed7aa"}}>
+                  <I.Thermometer style={{width:14,height:14,color:C.orange}}/><span style={{fontSize:12.5,fontWeight:700,color:C.text}}>Respiratory & Temp</span>
+                </div>
+                <label style={ls}>Respiration Rate</label>
+                <input type="number" value={vitals.respiration_rate} onChange={e=>setVitals({...vitals,respiration_rate:e.target.value})} placeholder="breaths/min" style={is}/>
+                <label style={ls}>Body Temperature (°C)</label>
+                <input type="number" step="0.1" value={vitals.body_temperature} onChange={e=>setVitals({...vitals,body_temperature:e.target.value})} placeholder="37.0" style={is}/>
+              </div>
+            </div>
+            <div style={{padding:"14px",background:C.slate,borderRadius:10,marginBottom:16}}>
+              <div style={{fontSize:12.5,fontWeight:700,color:C.text,marginBottom:12}}>Anthropometric Measurements</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div><label style={ls}>Height (cm)</label><input type="number" step="0.1" value={vitals.height_cm} onChange={e=>setVitals({...vitals,height_cm:e.target.value})} style={{...is,marginBottom:0}}/></div>
+                <div><label style={ls}>Weight (kg)</label><input type="number" step="0.1" value={vitals.weight_kg} onChange={e=>setVitals({...vitals,weight_kg:e.target.value})} style={{...is,marginBottom:0}}/></div>
+              </div>
+            </div>
+            <Actions onCancel={()=>setShowForm(false)} label="Submit Vitals" color={C.teal}/>
+          </form>
+        </Modal>
       )}
     </div>
   );

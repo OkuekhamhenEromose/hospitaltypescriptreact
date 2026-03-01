@@ -1,1165 +1,348 @@
 // components/dashboards/DoctorDashboard.tsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiService } from "../../services/api";
-import {
-  Users,
-  FileText,
-  Activity,
-  Menu,
-  Calendar,
-  CheckCircle,
-  Clock,
-  Eye,
-  Search,
-  Bell,
-  ChevronDown,
-  X,
-  Filter,
-  Stethoscope,
-  Heart,
-  Thermometer,
-  Beaker,
-  Download,
-} from "lucide-react";
+
+// ─── HOSPITAL BRAND PALETTE ───────────────────────────────────────────────
+const C = {
+  blue1: "#1378e5", blue2: "#177fed", blue3: "#0f5fc4",
+  red: "#e53935", white: "#ffffff", slate: "#f0f4fa",
+  muted: "#8aa0ba", text: "#0d1b2e", soft: "#e8f0fc",
+  green: "#12b76a", amber: "#f59e0b", purple: "#7c3aed",
+};
+
+// ─── SVG ICON LIBRARY ─────────────────────────────────────────────────────
+const I: Record<string, (p: React.SVGProps<SVGSVGElement>) => JSX.Element> = {
+  Logo: p => <svg viewBox="0 0 32 32" {...p}><rect width="32" height="32" rx="8" fill="#177fed"/><path d="M16 6v20M6 16h20" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"/></svg>,
+  Stethoscope: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4.5 7.5a3 3 0 003 3M4.5 7.5H3M7.5 10.5c0 5 4 8 7 8a5 5 0 005-5"/><circle cx="19.5" cy="13.5" r="1.5"/><path d="M4.5 7.5V5a1.5 1.5 0 013 0v2.5"/><path d="M4.5 5a1.5 1.5 0 00-3 0v2.5"/></svg>,
+  Calendar: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
+  Clock: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>,
+  Eye: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  Check: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="20 6 9 17 4 12"/></svg>,
+  Users: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
+  Activity: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+  FileText: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+  Bell: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
+  Search: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>,
+  Menu: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" {...p}><path d="M3 12h18M3 6h18M3 18h12"/></svg>,
+  ChevDown: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M6 9l6 6 6-6"/></svg>,
+  ChevLeft: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M15 18l-6-6 6-6"/></svg>,
+  X: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" {...p}><path d="M18 6L6 18M6 6l12 12"/></svg>,
+  Filter: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
+  Download: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>,
+  Heart: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>,
+  Beaker: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 3h6M10 3v7L6.5 16.5A3 3 0 009.5 21h5a3 3 0 003-4.5L14 10V3"/><path d="M7.5 16h9" strokeWidth="1.4"/></svg>,
+};
 
 interface Appointment {
-  id: number;
-  patient: any;
-  name: string;
-  age: number;
-  sex: string;
-  address: string;
-  message: string;
-  status: string;
-  booked_at: string;
-  medical_report?: any;
-  vitals?: any;
-  lab_results?: any[];
-  test_requests?: any;
-  vital_requests?: any;
+  id: number; patient: any; name: string; age: number; sex: string;
+  address: string; message: string; status: string; booked_at: string;
+  medical_report?: any; vitals?: any; lab_results?: any[]; test_requests?: any; vital_requests?: any;
+}
+
+const ST: Record<string, { label: string; bg: string; color: string; dot: string }> = {
+  COMPLETED:        { label: "Completed",       bg: "#ecfdf5", color: "#059669", dot: "#12b76a" },
+  IN_REVIEW:        { label: "In Review",        bg: "#eff6ff", color: "#1378e5", dot: "#177fed" },
+  AWAITING_RESULTS: { label: "Awaiting Results", bg: "#fffbeb", color: "#b45309", dot: "#f59e0b" },
+  PENDING:          { label: "Pending",          bg: "#f8fafc", color: "#64748b", dot: "#94a3b8" },
+};
+
+const ls: React.CSSProperties = { display: "block", fontSize: 12.5, fontWeight: 600, color: C.text, marginBottom: 6 };
+const is: React.CSSProperties = { width: "100%", height: 40, padding: "0 12px", border: `1.5px solid ${C.soft}`, borderRadius: 10, fontSize: 13, color: C.text, background: C.slate, outline: "none", fontFamily: "inherit", marginBottom: 16 };
+const ts: React.CSSProperties = { width: "100%", padding: "10px 12px", border: `1.5px solid ${C.soft}`, borderRadius: 10, fontSize: 13, color: C.text, background: C.slate, outline: "none", fontFamily: "inherit", resize: "vertical" as const, marginBottom: 16 };
+
+function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(13,27,46,0.55)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(3px)" }}>
+      <div style={{ background: C.white, borderRadius: 18, width: "100%", maxWidth: wide ? 580 : 440, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(23,127,237,0.2)", fontFamily: "'DM Sans',sans-serif" }}>
+        <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.soft}`, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: C.white, borderRadius: "18px 18px 0 0", zIndex: 1 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{title}</span>
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: C.slate, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <I.X style={{ width: 14, height: 14, color: C.muted }} />
+          </button>
+        </div>
+        <div style={{ padding: "20px 24px" }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Actions({ onCancel, label, color = C.blue2 }: { onCancel: () => void; label: string; color?: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, paddingTop: 4 }}>
+      <button type="button" onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: `1.5px solid ${C.soft}`, background: C.white, color: C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+      <button type="submit" style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: color, color: C.white, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: `0 4px 12px ${color}55` }}>{label}</button>
+    </div>
+  );
 }
 
 const DoctorDashboard: React.FC = () => {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [activeTab, setActiveTab] = useState<"all" | "awaiting" | "in_review" | "completed">("all");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [showTestRequest, setShowTestRequest] = useState(false);
-  const [showVitalRequest, setShowVitalRequest] = useState(false);
-  const [showMedicalReport, setShowMedicalReport] = useState(false);
+  const [filtered, setFiltered] = useState<Appointment[]>([]);
+  const [selected, setSelected] = useState<Appointment | null>(null);
+  const [tab, setTab] = useState<"all"|"awaiting"|"in_review"|"completed">("all");
+  const [collapsed, setCollapsed] = useState(false);
+  const [showTest, setShowTest] = useState(false);
+  const [showVital, setShowVital] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isMobile, setIsMobile] = useState(false);
+  const [q, setQ] = useState("");
+  const [testData, setTestData] = useState({ tests: "", note: "" });
+  const [vitalData, setVitalData] = useState({ note: "" });
+  const [reportData, setReportData] = useState({ medical_condition: "", drug_prescription: "", advice: "", next_appointment: "" });
 
-  // Form states
-  const [testRequestData, setTestRequestData] = useState({
-    tests: "",
-    note: "",
-  });
-  const [vitalRequestData, setVitalRequestData] = useState({
-    note: "",
-  });
-  const [medicalReportData, setMedicalReportData] = useState({
-    medical_condition: "",
-    drug_prescription: "",
-    advice: "",
-    next_appointment: "",
-  });
+  const testOptions = ["Glucose","Blood Test","Blood Count","Urinalysis","Electrolyte","HIV","Tumour Marker","Protein","Serum","Lipid Panel","Blood Lead"];
 
-  const testOptions = [
-    "Glucose",
-    "Blood Test",
-    "Blood Count",
-    "Urinalysis",
-    "Electrolyte",
-    "HIV",
-    "Tumour Marker",
-    "Protein",
-    "Serum",
-    "Lipid Panel",
-    "Blood Lead",
+  const imgUrl = (p: any) => p?.profile_pix ? (p.profile_pix.startsWith("http") ? p.profile_pix : `https://dhospitalback.onrender.com${p.profile_pix}`) : null;
+
+  const navItems = [
+    { id: "all",       label: "All Appointments", icon: "Calendar", count: appointments.length },
+    { id: "awaiting",  label: "Awaiting Results",  icon: "Clock",    count: appointments.filter(a=>a.status==="AWAITING_RESULTS").length },
+    { id: "in_review", label: "In Review",         icon: "Eye",      count: appointments.filter(a=>a.status==="IN_REVIEW").length },
+    { id: "completed", label: "Completed",         icon: "Check",    count: appointments.filter(a=>a.status==="COMPLETED").length },
   ];
 
-  // Check screen size for responsive behavior
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
-      if (window.innerWidth < 1024) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  const getProfileImageUrl = (profile: any) => {
-    if (!profile?.profile_pix) return null;
-
-    if (profile.profile_pix.startsWith("http")) {
-      return profile.profile_pix;
-    }
-
-    return `https://dhospitalback.onrender.com${profile.profile_pix}`;
-  };
-
-  const navigationItems = [
-    {
-      id: "all" as const,
-      name: "All Appointments",
-      icon: <Calendar className="w-5 h-5" />,
-      color: "text-blue-600",
-      count: appointments.length,
-    },
-    {
-      id: "awaiting" as const,
-      name: "Awaiting Results",
-      icon: <Clock className="w-5 h-5" />,
-      color: "text-yellow-600",
-      count: appointments.filter((a) => a.status === "AWAITING_RESULTS").length,
-    },
-    {
-      id: "in_review" as const,
-      name: "In Review",
-      icon: <Eye className="w-5 h-5" />,
-      color: "text-blue-600",
-      count: appointments.filter((a) => a.status === "IN_REVIEW").length,
-    },
-    {
-      id: "completed" as const,
-      name: "Completed",
-      icon: <CheckCircle className="w-5 h-5" />,
-      color: "text-green-600",
-      count: appointments.filter((a) => a.status === "COMPLETED").length,
-    },
+  const stats = [
+    { label: "Total",    value: appointments.length,                                                   sub: `+${appointments.filter(a=>a.status==="PENDING").length} new`, grad: `135deg,${C.blue1},${C.blue2}`, icon: "Users" },
+    { label: "In Review",value: appointments.filter(a=>a.status==="IN_REVIEW").length,                 sub: "Under assessment",    grad: "135deg,#059669,#10b981",          icon: "Eye" },
+    { label: "Awaiting", value: appointments.filter(a=>a.status==="AWAITING_RESULTS").length,          sub: "Pending results",     grad: `135deg,#d97706,${C.amber}`,       icon: "Clock" },
+    { label: "Completed",value: appointments.filter(a=>a.status==="COMPLETED").length,                 sub: "Fully resolved",      grad: `135deg,${C.purple},#9333ea`,     icon: "Check" },
   ];
 
+  useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, []);
   useEffect(() => {
-    loadAppointments();
-    const interval = setInterval(() => {
-      loadAppointments();
-    }, 30000); // Reduced to 30 seconds to minimize API calls
-    return () => clearInterval(interval);
-  }, []);
+    let f = appointments;
+    if (tab === "awaiting")  f = f.filter(a=>a.status==="AWAITING_RESULTS");
+    if (tab === "in_review") f = f.filter(a=>a.status==="IN_REVIEW");
+    if (tab === "completed") f = f.filter(a=>a.status==="COMPLETED");
+    if (q.trim()) { const lq=q.toLowerCase(); f=f.filter(a=>a.name.toLowerCase().includes(lq)||a.address?.toLowerCase().includes(lq)||a.status.toLowerCase().includes(lq)); }
+    setFiltered(f);
+  }, [appointments, tab, q]);
 
-  useEffect(() => {
-    filterAppointments();
-  }, [appointments, activeTab, searchQuery]);
-
-  const loadAppointments = async () => {
-    try {
-      const data = await apiService.getAppointments();
-      setAppointments(data);
-    } catch (error) {
-      console.error("Failed to load appointments:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterAppointments = () => {
-    let filtered = appointments;
-
-    // Apply active tab filter
-    switch (activeTab) {
-      case "awaiting":
-        filtered = filtered.filter((a) => a.status === "AWAITING_RESULTS");
-        break;
-      case "in_review":
-        filtered = filtered.filter((a) => a.status === "IN_REVIEW");
-        break;
-      case "completed":
-        filtered = filtered.filter((a) => a.status === "COMPLETED");
-        break;
-      default:
-        // All appointments
-        break;
-    }
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(appointment =>
-        appointment.name.toLowerCase().includes(query) ||
-        appointment.address?.toLowerCase().includes(query) ||
-        appointment.message?.toLowerCase().includes(query) ||
-        appointment.status.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredAppointments(filtered);
-  };
-
-  const handleTestRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedAppointment) return;
-
-    try {
-      await apiService.createTestRequest({
-        appointment: selectedAppointment.id,
-        tests: testRequestData.tests,
-        note: testRequestData.note,
-      });
-      setShowTestRequest(false);
-      setTestRequestData({ tests: "", note: "" });
-      loadAppointments();
-      alert("Test request submitted successfully!");
-    } catch (error) {
-      console.error("Failed to create test request:", error);
-      alert("Failed to create test request. Please try again.");
-    }
-  };
-
-  const handleVitalRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedAppointment) return;
-
-    try {
-      await apiService.createVitalRequest({
-        appointment: selectedAppointment.id,
-        note: vitalRequestData.note,
-      });
-      setShowVitalRequest(false);
-      setVitalRequestData({ note: "" });
-      loadAppointments();
-      alert("Vital request submitted successfully!");
-    } catch (error) {
-      console.error("Failed to create vital request:", error);
-      alert("Failed to create vital request. Please try again.");
-    }
-  };
-
-  const handleMedicalReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedAppointment) return;
-
-    try {
-      await apiService.createMedicalReport({
-        appointment: selectedAppointment.id,
-        ...medicalReportData,
-      });
-      setShowMedicalReport(false);
-      setMedicalReportData({
-        medical_condition: "",
-        drug_prescription: "",
-        advice: "",
-        next_appointment: "",
-      });
-      loadAppointments();
-      alert("Medical report created successfully!");
-    } catch (error) {
-      console.error("Failed to create medical report:", error);
-      alert("Failed to create medical report. Please try again.");
-    }
-  };
-
-  const getStatusColor = useCallback((status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return "bg-green-100 text-green-800 border border-green-200";
-      case "IN_REVIEW":
-        return "bg-blue-100 text-blue-800 border border-blue-200";
-      case "AWAITING_RESULTS":
-        return "bg-yellow-100 text-yellow-800 border border-yellow-200";
-      case "PENDING":
-        return "bg-gray-100 text-gray-800 border border-gray-200";
-      default:
-        return "bg-gray-100 text-gray-800 border border-gray-200";
-    }
-  }, []);
-
-  const getStatusIcon = useCallback((status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case "IN_REVIEW":
-        return <Eye className="w-4 h-4 text-blue-600" />;
-      case "AWAITING_RESULTS":
-        return <Clock className="w-4 h-4 text-yellow-600" />;
-      case "PENDING":
-        return <Clock className="w-4 h-4 text-gray-600" />;
-      default:
-        return <Clock className="w-4 h-4 text-gray-600" />;
-    }
-  }, []);
-
-  const exportPatientData = (appointment: Appointment) => {
-    const data = {
-      'Patient Name': appointment.name,
-      'Age': appointment.age,
-      'Gender': appointment.sex === "M" ? "Male" : appointment.sex === "F" ? "Female" : "Other",
-      'Address': appointment.address,
-      'Status': appointment.status,
-      'Booked Date': new Date(appointment.booked_at).toLocaleDateString(),
-      'Message': appointment.message || 'N/A',
-      'Vitals': appointment.vitals ? JSON.stringify(appointment.vitals) : 'N/A',
-      'Lab Results': appointment.lab_results ? JSON.stringify(appointment.lab_results) : 'N/A',
-      'Medical Report': appointment.medical_report ? JSON.stringify(appointment.medical_report) : 'N/A'
-    };
-
-    const csv = Object.entries(data)
-      .map(([key, value]) => `"${key}","${String(value).replace(/"/g, '""')}"`)
-      .join('\n');
-    
-    const blob = new Blob([`${Object.keys(data).join(',')}\n${csv}`], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `patient_${appointment.id}_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading doctor dashboard...</p>
-        </div>
-      </div>
-    );
+  async function load() {
+    try { const d = await apiService.getAppointments(); setAppointments(d); } catch {} finally { setLoading(false); }
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar Overlay for Mobile */}
-      {mobileSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setMobileSidebarOpen(false)}
-        />
-      )}
+  async function submitTest(e: React.FormEvent) {
+    e.preventDefault(); if (!selected) return;
+    try { await apiService.createTestRequest({ appointment: selected.id, ...testData }); setShowTest(false); setTestData({tests:"",note:""}); load(); alert("Test request sent!"); } catch { alert("Failed to send test request."); }
+  }
+  async function submitVital(e: React.FormEvent) {
+    e.preventDefault(); if (!selected) return;
+    try { await apiService.createVitalRequest({ appointment: selected.id, ...vitalData }); setShowVital(false); setVitalData({note:""}); load(); alert("Vital request sent!"); } catch { alert("Failed to send vital request."); }
+  }
+  async function submitReport(e: React.FormEvent) {
+    e.preventDefault(); if (!selected) return;
+    try { await apiService.createMedicalReport({ appointment: selected.id, ...reportData }); setShowReport(false); setReportData({medical_condition:"",drug_prescription:"",advice:"",next_appointment:""}); load(); alert("Report created!"); } catch { alert("Failed to create report."); }
+  }
 
-      {/* Sidebar */}
-      <div
-        className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
-        ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        ${sidebarOpen ? "w-64" : "w-20"}
-        ${isMobile ? 'w-full sm:w-64' : ''}
-      `}
-      >
-        <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div className="flex items-center justify-between p-4 md:p-6 border-b">
-            {sidebarOpen ? (
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Stethoscope className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-gray-900">MediCare</h1>
-                  <p className="text-xs text-gray-500">Doctor Panel</p>
-                </div>
-              </div>
-            ) : (
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mx-auto"></div>
-            )}
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 rounded-lg hover:bg-gray-100 hidden lg:block"
-              >
-                <Menu className="w-5 h-5 text-gray-600" />
-              </button>
-              {isMobile && (
-                <button
-                  onClick={() => setMobileSidebarOpen(false)}
-                  className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"
-                >
-                  <X className="w-5 h-5 text-gray-600" />
-                </button>
-              )}
-            </div>
-          </div>
+  function exportCSV(a: Appointment) {
+    const rows = { "Patient":a.name,"Age":a.age,"Gender":a.sex==="M"?"Male":"Female","Status":a.status,"Booked":new Date(a.booked_at).toLocaleDateString() };
+    const csv = Object.entries(rows).map(([k,v])=>`"${k}","${v}"`).join("\n");
+    const blob = new Blob([csv],{type:"text/csv"});
+    const url = URL.createObjectURL(blob); const el = document.createElement("a");
+    el.href=url; el.download=`patient_${a.id}.csv`; el.click(); URL.revokeObjectURL(url);
+  }
 
-          {/* Navigation */}
-          <nav className="flex-1 px-2 md:px-4 py-4 md:py-6 space-y-2 overflow-y-auto">
-            {navigationItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  if (isMobile) setMobileSidebarOpen(false);
-                }}
-                className={`
-                  w-full flex items-center space-x-3 px-3 md:px-4 py-3 rounded-xl transition-all duration-200 font-medium
-                  ${
-                    activeTab === item.id
-                      ? "bg-blue-50 text-blue-700 border border-blue-200"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  }
-                `}
-              >
-                <div
-                  className={`${activeTab === item.id ? item.color : "text-gray-400"}`}
-                >
-                  {item.icon}
-                </div>
-                {sidebarOpen && (
-                  <div className="flex-1 flex justify-between items-center min-w-0">
-                    <span className="truncate text-sm md:text-base">{item.name}</span>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
-                        activeTab === item.id
-                          ? "bg-blue-200 text-blue-800"
-                          : "bg-gray-200 text-gray-600"
-                      }`}
-                    >
-                      {item.count}
-                    </span>
-                  </div>
-                )}
-              </button>
-            ))}
-          </nav>
+  const sw = collapsed ? 72 : 248;
 
-          {/* User Section */}
-          <div className="p-3 md:p-4 border-t">
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
-              {user?.profile?.profile_pix ? (
-                <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300 flex-shrink-0">
-                  <img
-                    src={getProfileImageUrl(user.profile)}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm font-medium">
-                    Dr. {user?.profile?.fullname?.charAt(0) ||
-                      user?.username?.charAt(0) ||
-                      "D"}
-                  </span>
-                </div>
-              )}
-              {sidebarOpen && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    Dr. {user?.profile?.fullname || user?.username}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">Doctor</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+  if (loading) return (
+    <div style={{ fontFamily:"'DM Sans',sans-serif", minHeight:"100vh", background:C.slate, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{textAlign:"center"}}>
+        <div style={{width:44,height:44,border:`3px solid ${C.soft}`,borderTopColor:C.blue2,borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 14px"}}/>
+        <p style={{color:C.muted,fontSize:13}}>Loading doctor dashboard…</p>
       </div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header */}
-        <header className="bg-white border-b shadow-sm sticky top-0 z-30">
-          <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4">
-            <div className="flex items-center space-x-2 md:space-x-4">
-              <button
-                onClick={() => setMobileSidebarOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"
-              >
-                <Menu className="w-5 h-5 text-gray-600" />
-              </button>
-              <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 truncate">
-                {navigationItems.find((item) => item.id === activeTab)?.name}
-              </h1>
+  return (
+    <div style={{ fontFamily:"'DM Sans',sans-serif", WebkitFontSmoothing:"antialiased", minHeight:"100vh", background:C.slate, display:"flex" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        *{box-sizing:border-box}
+        ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:${C.soft};border-radius:4px}
+        .nh:hover{background:${C.soft}!important}.rh:hover{background:${C.slate}!important}
+        .bp:hover{background:${C.blue3}!important}.gh:hover{background:#059669!important}.ph:hover{background:#6d28d9!important}
+        .xh:hover{background:${C.soft}!important}.ch:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(23,127,237,0.12)!important}
+        @keyframes spin{to{transform:rotate(360deg)}}@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        .fi{animation:fi 0.2s ease forwards}
+      `}</style>
+
+      {/* SIDEBAR */}
+      <aside style={{ width:sw, minHeight:"100vh", background:C.white, display:"flex", flexDirection:"column", borderRight:`1px solid ${C.soft}`, position:"sticky", top:0, height:"100vh", overflow:"hidden", flexShrink:0, transition:"width 0.25s cubic-bezier(.4,0,.2,1)", boxShadow:"2px 0 10px rgba(23,127,237,0.05)" }}>
+        <div style={{ padding:"18px 14px 14px", borderBottom:`1px solid ${C.soft}`, display:"flex", alignItems:"center", gap:10, minHeight:62 }}>
+          <I.Logo style={{ width:30,height:30,flexShrink:0 }}/>
+          {!collapsed && <div><div style={{fontWeight:700,fontSize:14,color:C.text,lineHeight:1.2,whiteSpace:"nowrap"}}>Etha-Atlantic</div><div style={{fontSize:11,color:C.muted}}>Doctor Panel</div></div>}
+        </div>
+        <nav style={{ flex:1, padding:"10px 8px", display:"flex", flexDirection:"column", gap:3 }}>
+          {navItems.map(n => { const A = I[n.icon]; const act = tab===n.id; return (
+            <button key={n.id} className="nh" onClick={() => setTab(n.id as any)} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:collapsed?"10px":"10px 12px", borderRadius:10, border:"none", cursor:"pointer", background:act?C.soft:"transparent", justifyContent:collapsed?"center":"flex-start", transition:"all 0.15s" }}>
+              <A style={{ width:17,height:17,color:act?C.blue2:C.muted,flexShrink:0 }}/>
+              {!collapsed && <><span style={{flex:1,textAlign:"left",fontSize:13,fontWeight:act?600:400,color:act?C.text:C.muted,whiteSpace:"nowrap"}}>{n.label}</span><span style={{fontSize:11,fontWeight:600,minWidth:20,height:20,borderRadius:10,background:act?C.blue2:"#eef2f7",color:act?C.white:C.muted,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 6px"}}>{n.count}</span></>}
+            </button>
+          );})}
+        </nav>
+        <div style={{ borderTop:`1px solid ${C.soft}`, padding:"10px 8px" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 10px", borderRadius:10, background:C.slate }}>
+            <div style={{ width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.blue1},${C.blue2})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden" }}>
+              {imgUrl(user?.profile)?<img src={imgUrl(user?.profile)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"D"}</span>}
             </div>
+            {!collapsed && <div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:12.5,fontWeight:600,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>Dr. {user?.profile?.fullname||user?.username}</div><div style={{fontSize:11,color:C.muted}}>Doctor</div></div>}
+          </div>
+          <button className="nh" onClick={() => setCollapsed(!collapsed)} style={{ marginTop:6,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"7px",borderRadius:8,border:"none",background:"transparent",cursor:"pointer",color:C.muted,fontSize:12,transition:"all 0.15s" }}>
+            <I.ChevLeft style={{width:13,height:13,transition:"transform 0.25s",transform:collapsed?"rotate(180deg)":"none"}}/>{!collapsed&&<span>Collapse</span>}
+          </button>
+        </div>
+      </aside>
 
-            <div className="flex items-center space-x-2 md:space-x-4">
-              {/* Mobile Search */}
-              <div className="relative md:hidden">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-36 text-sm"
-                />
+      {/* MAIN */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0 }}>
+        {/* Topbar */}
+        <header style={{ background:C.white, borderBottom:`1px solid ${C.soft}`, padding:"0 28px", height:64, display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:30, boxShadow:"0 1px 8px rgba(23,127,237,0.05)" }}>
+          <div><div style={{fontSize:17,fontWeight:700,color:C.text}}>{navItems.find(n=>n.id===tab)?.label}</div><div style={{fontSize:12,color:C.muted}}>{filtered.length} appointments</div></div>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ position:"relative" }}>
+              <I.Search style={{width:14,height:14,color:C.muted,position:"absolute",left:11,top:"50%",transform:"translateY(-50%)"}}/>
+              <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search…" style={{paddingLeft:32,paddingRight:14,height:37,border:`1.5px solid ${C.soft}`,borderRadius:10,fontSize:13,color:C.text,background:C.slate,outline:"none",width:210,fontFamily:"inherit"}}/>
+            </div>
+            <button className="xh" style={{width:37,height:37,borderRadius:10,border:`1.5px solid ${C.soft}`,background:C.white,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",transition:"all 0.15s"}}>
+              <I.Bell style={{width:16,height:16,color:C.muted}}/><span style={{position:"absolute",top:8,right:8,width:6,height:6,borderRadius:"50%",background:C.red,border:`1.5px solid ${C.white}`}}/>
+            </button>
+            <div style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 12px 5px 5px", borderRadius:10, background:C.slate, border:`1.5px solid ${C.soft}` }}>
+              <div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${C.blue1},${C.blue2})`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                {imgUrl(user?.profile)?<img src={imgUrl(user?.profile)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"D"}</span>}
               </div>
-
-              {/* Desktop Search */}
-              <div className="relative hidden md:block">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search appointments..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48 lg:w-64"
-                />
-              </div>
-
-              {/* Notifications */}
-              <button className="p-1.5 md:p-2 rounded-lg hover:bg-gray-100 relative">
-                <Bell className="w-4 md:w-5 h-4 md:h-5 text-gray-600" />
-                <span className="absolute top-1 right-1 w-1.5 h-1.5 md:w-2 md:h-2 bg-red-500 rounded-full"></span>
-              </button>
-
-              {/* User Menu */}
-              <div className="flex items-center space-x-2 md:space-x-3">
-                {user?.profile?.profile_pix ? (
-                  <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300 flex-shrink-0">
-                    <img
-                      src={getProfileImageUrl(user.profile)}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-sm font-medium">
-                      Dr. {user?.profile?.fullname?.charAt(0) ||
-                        user?.username?.charAt(0) ||
-                        "D"}
-                    </span>
-                  </div>
-                )}
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium text-gray-900 truncate max-w-[120px]">
-                    Dr. {user?.profile?.fullname || user?.username}
-                  </p>
-                  <p className="text-xs text-gray-500">Doctor</p>
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-400 hidden md:block" />
-              </div>
+              <span style={{fontSize:13,fontWeight:600,color:C.text}}>Dr. {user?.profile?.fullname?.split(" ")[0]||user?.username}</span>
+              <I.ChevDown style={{width:13,height:13,color:C.muted}}/>
             </div>
           </div>
         </header>
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-auto">
-          <div className="p-4 md:p-6">
-            {/* Stats Cards - Responsive Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 mb-6 md:mb-8">
-              {/* Total Appointments */}
-              <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg">
-                    <Users className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                  </div>
-                  <span className="text-xs md:text-sm font-medium text-green-600 bg-green-50 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full">
-                    +{appointments.filter((a) => a.status === "PENDING").length} new
-                  </span>
+        <main style={{ flex:1, padding:"26px 28px", overflowY:"auto" }}>
+          {/* Stats */}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:22 }}>
+            {stats.map((s,i) => { const IC = I[s.icon]; return (
+              <div key={i} className="ch" style={{ background:C.white, borderRadius:16, padding:"18px 20px", border:`1px solid ${C.soft}`, boxShadow:"0 1px 4px rgba(23,127,237,0.05)", transition:"all 0.2s" }}>
+                <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12 }}>
+                  <div style={{width:40,height:40,borderRadius:12,background:`linear-gradient(${s.grad})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 10px rgba(0,0,0,0.1)"}}><IC style={{width:17,height:17,color:C.white}}/></div>
+                  <span style={{fontSize:11,fontWeight:600,color:C.green,background:"#ecfdf5",padding:"2px 8px",borderRadius:20}}>{s.sub}</span>
                 </div>
-                <div className="mt-3 md:mt-4">
-                  <p className="text-xs md:text-sm font-medium text-gray-600">
-                    Total Appointments
-                  </p>
-                  <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-1">
-                    {appointments.length}
-                  </p>
-                </div>
+                <div style={{fontSize:28,fontWeight:700,color:C.text,lineHeight:1}}>{s.value}</div>
+                <div style={{fontSize:12.5,color:C.muted,marginTop:4}}>{s.label}</div>
               </div>
+            );})}
+          </div>
 
-              {/* In Review */}
-              <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="bg-gradient-to-r from-green-500 to-green-600 text-white w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg">
-                    <Activity className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                  </div>
-                </div>
-                <div className="mt-3 md:mt-4">
-                  <p className="text-xs md:text-sm font-medium text-gray-600">In Review</p>
-                  <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-1">
-                    {appointments.filter((a) => a.status === "IN_REVIEW").length}
-                  </p>
-                </div>
-              </div>
+          {/* Summary bar */}
+          <div style={{ background:`linear-gradient(135deg,${C.blue1}08,${C.blue2}14)`, border:`1px solid ${C.soft}`, borderRadius:14, padding:"14px 20px", marginBottom:22, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <div><div style={{fontSize:14,fontWeight:600,color:C.text}}>Patient Overview</div><div style={{fontSize:12.5,color:C.muted,marginTop:2}}>{filtered.length} records{q&&` · "${q}"`}</div></div>
+            <div style={{display:"flex",gap:24}}>
+              <div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,color:C.blue2}}>{appointments.filter(a=>new Date(a.booked_at).toDateString()===new Date().toDateString()).length}</div><div style={{fontSize:11,color:C.muted}}>Today's Patients</div></div>
+              <div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,color:C.text}}>20 min</div><div style={{fontSize:11,color:C.muted}}>Avg. Consult</div></div>
+            </div>
+          </div>
 
-              {/* Awaiting Results */}
-              <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg">
-                    <FileText className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                  </div>
-                </div>
-                <div className="mt-3 md:mt-4">
-                  <p className="text-xs md:text-sm font-medium text-gray-600">
-                    Awaiting Results
-                  </p>
-                  <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-1">
-                    {appointments.filter((a) => a.status === "AWAITING_RESULTS").length}
-                  </p>
-                </div>
-              </div>
-
-              {/* Completed */}
-              <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg">
-                    <CheckCircle className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                  </div>
-                </div>
-                <div className="mt-3 md:mt-4">
-                  <p className="text-xs md:text-sm font-medium text-gray-600">Completed</p>
-                  <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-1">
-                    {appointments.filter((a) => a.status === "COMPLETED").length}
-                  </p>
+          {/* Appointments list */}
+          <div style={{ background:C.white, borderRadius:16, border:`1px solid ${C.soft}`, overflow:"hidden", boxShadow:"0 1px 6px rgba(23,127,237,0.05)" }}>
+            <div style={{ padding:"16px 22px", borderBottom:`1px solid ${C.soft}`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <div><div style={{fontSize:15,fontWeight:700,color:C.text}}>Patient Appointments</div><div style={{fontSize:12,color:C.muted,marginTop:2}}>{filtered.length} records</div></div>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                {q&&<button onClick={()=>setQ("")} className="xh" style={{fontSize:12,color:C.blue1,padding:"4px 10px",borderRadius:6,border:"none",background:C.soft,cursor:"pointer",transition:"all 0.15s"}}>Clear</button>}
+                <div style={{position:"relative",display:"flex",alignItems:"center"}}>
+                  <I.Filter style={{width:12,height:12,color:C.muted,position:"absolute",left:9,pointerEvents:"none"}}/>
+                  <select value={tab} onChange={e=>setTab(e.target.value as any)} style={{paddingLeft:26,paddingRight:10,height:34,border:`1.5px solid ${C.soft}`,borderRadius:8,fontSize:12.5,background:C.white,color:C.text,cursor:"pointer",outline:"none",fontFamily:"inherit"}}>
+                    <option value="all">All Status</option><option value="in_review">In Review</option><option value="awaiting">Awaiting</option><option value="completed">Completed</option>
+                  </select>
                 </div>
               </div>
             </div>
 
-            {/* Quick Stats Bar */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl md:rounded-2xl p-3 md:p-4 mb-6 md:mb-8 border border-blue-100">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0">
-                <div>
-                  <h3 className="text-base md:text-lg font-semibold text-gray-900">
-                    Patient Overview
-                  </h3>
-                  <p className="text-xs md:text-sm text-gray-600 mt-1">
-                    {filteredAppointments.length} appointments match current filters
-                    {searchQuery && ` for "${searchQuery}"`}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-center">
-                    <p className="text-xs md:text-sm text-gray-600">Avg. Consultation</p>
-                    <p className="text-sm md:text-base font-semibold text-gray-900">20min</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs md:text-sm text-gray-600">Today's Patients</p>
-                    <p className="text-sm md:text-base font-semibold text-blue-600">
-                      {appointments.filter(a => 
-                        new Date(a.booked_at).toDateString() === new Date().toDateString()
-                      ).length}
-                    </p>
-                  </div>
-                </div>
+            {filtered.length===0 ? (
+              <div style={{padding:"60px 24px",textAlign:"center"}}>
+                <I.Calendar style={{width:38,height:38,color:"#dce7f5",margin:"0 auto 10px"}}/><div style={{fontSize:15,fontWeight:600,color:C.muted}}>No appointments found</div>
+                <div style={{fontSize:12.5,color:"#b0bec5",marginTop:4}}>{q?`No results for "${q}"`:"Try changing the filter above"}</div>
               </div>
-            </div>
-
-            {/* Appointments List */}
-            <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-4 py-3 md:px-6 md:py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0">
-                  <div>
-                    <h3 className="text-lg md:text-xl font-semibold text-gray-900">
-                      Patient Appointments
-                    </h3>
-                    <p className="text-xs md:text-sm text-gray-600 mt-1">
-                      {filteredAppointments.length} appointments • Last updated: Just now
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="text-xs md:text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        Clear search
-                      </button>
-                    )}
-                    <div className="relative">
-                      <Filter className="w-3 h-3 md:w-4 md:h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                      <select 
-                        className="pl-8 pr-3 py-1.5 md:pl-10 md:pr-4 md:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs md:text-sm bg-white"
-                        value={activeTab}
-                        onChange={(e) => setActiveTab(e.target.value as any)}
-                      >
-                        <option value="all">All Status</option>
-                        <option value="in_review">In Review</option>
-                        <option value="awaiting">Awaiting Results</option>
-                        <option value="completed">Completed</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="divide-y divide-gray-200">
-                {filteredAppointments.length === 0 ? (
-                  <div className="px-4 py-8 md:px-6 md:py-12 text-center text-gray-500">
-                    <Calendar className="w-10 h-10 md:w-12 md:h-12 text-gray-300 mx-auto mb-3 md:mb-4" />
-                    <p className="text-base md:text-lg font-medium">
-                      No appointments found
-                    </p>
-                    <p className="text-xs md:text-sm mt-1 max-w-md mx-auto">
-                      {searchQuery.trim() 
-                        ? `No appointments match "${searchQuery}"`
-                        : "No appointments match the current filter. Try changing filters or check back later."}
-                    </p>
-                  </div>
-                ) : (
-                  filteredAppointments.map((appointment) => (
-                    <div
-                      key={appointment.id}
-                      className="px-4 py-4 md:px-6 md:py-6 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-start space-x-3 mb-3">
-                            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                              <span className="text-white text-xs md:text-sm font-medium">
-                                {appointment.name.charAt(0)}
-                              </span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex flex-col md:flex-row md:items-center md:space-x-3 mb-1">
-                                <h3 className="text-base md:text-lg font-semibold text-gray-900 truncate">
-                                  {appointment.name}
-                                </h3>
-                                <div className="flex items-center space-x-2 mt-1 md:mt-0">
-                                  {getStatusIcon(appointment.status)}
-                                  <span
-                                    className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-medium ${getStatusColor(
-                                      appointment.status
-                                    )}`}
-                                  >
-                                    {appointment.status.replace("_", " ")}
-                                  </span>
-                                </div>
-                              </div>
-                              <p className="text-gray-600 text-xs md:text-sm">
-                                Age: {appointment.age} • Gender:{" "}
-                                {appointment.sex === "M"
-                                  ? "Male"
-                                  : appointment.sex === "F"
-                                  ? "Female"
-                                  : "Other"}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-3">
-                            {appointment.address && (
-                              <p className="text-xs md:text-sm text-gray-600">
-                                <span className="font-medium">Address:</span> {appointment.address}
-                              </p>
-                            )}
-
-                            {appointment.message && (
-                              <div className="bg-gray-50 p-2 md:p-3 rounded-lg">
-                                <p className="text-xs md:text-sm font-medium text-gray-700 mb-1">
-                                  Patient Message
-                                </p>
-                                <p className="text-xs md:text-sm text-gray-600 line-clamp-2">
-                                  {appointment.message}
-                                </p>
-                              </div>
-                            )}
-
-                            <p className="text-xs text-gray-500">
-                              Booked:{" "}
-                              {new Date(appointment.booked_at).toLocaleDateString(
-                                "en-US",
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }
-                              )}
-                            </p>
-                          </div>
-
-                          {/* Additional Information Sections */}
-                          <div className="mt-4 space-y-3">
-                            {/* Test Requests */}
-                            {appointment.test_requests && (
-                              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                <h4 className="font-semibold text-blue-800 text-xs md:text-sm mb-2">
-                                  Test Requests
-                                </h4>
-                                <div className="text-xs md:text-sm">
-                                  <p className="mb-1">
-                                    <span className="font-medium">Tests:</span>{" "}
-                                    {appointment.test_requests.tests}
-                                  </p>
-                                  {appointment.test_requests.note && (
-                                    <p>
-                                      <span className="font-medium">Note:</span>{" "}
-                                      {appointment.test_requests.note}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Vitals */}
-                            {appointment.vitals && (
-                              <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                                <h4 className="font-semibold text-emerald-800 text-xs md:text-sm mb-2">
-                                  Vital Signs
-                                </h4>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs md:text-sm">
-                                  <div className="flex items-center space-x-1">
-                                    <Heart className="w-3 h-3 text-red-500" />
-                                    <span>BP: {appointment.vitals.blood_pressure}</span>
-                                  </div>
-                                  <div className="flex items-center space-x-1">
-                                    <Activity className="w-3 h-3 text-blue-500" />
-                                    <span>Pulse: {appointment.vitals.pulse_rate}</span>
-                                  </div>
-                                  <div className="flex items-center space-x-1">
-                                    <Thermometer className="w-3 h-3 text-orange-500" />
-                                    <span>Temp: {appointment.vitals.body_temperature}°C</span>
-                                  </div>
-                                  <div>
-                                    <span>Respiration: {appointment.vitals.respiration_rate}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Lab Results */}
-                            {appointment.lab_results &&
-                              appointment.lab_results.length > 0 && (
-                                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                                  <h4 className="font-semibold text-purple-800 text-xs md:text-sm mb-2">
-                                    Lab Results
-                                  </h4>
-                                  <div className="space-y-2">
-                                    {appointment.lab_results.slice(0, 2).map((result, index) => (
-                                      <div key={index} className="text-xs md:text-sm">
-                                        <p className="font-medium text-purple-700">
-                                          <Beaker className="w-3 h-3 inline mr-1" />
-                                          {result.test_name}
-                                        </p>
-                                        <p>
-                                          Result: {result.result} {result.units}
-                                        </p>
-                                      </div>
-                                    ))}
-                                    {appointment.lab_results.length > 2 && (
-                                      <p className="text-xs text-purple-600">
-                                            +{appointment.lab_results.length - 2} more results
-                                          </p>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end space-y-2 sm:space-y-0 sm:space-x-2 lg:space-x-0 lg:space-y-3">
-                          {/* Action Buttons */}
-                          <div className="flex flex-col sm:flex-row lg:flex-col gap-2">
-                            {appointment.status !== "COMPLETED" && (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setSelectedAppointment(appointment);
-                                    setShowTestRequest(true);
-                                  }}
-                                  className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg text-xs md:text-sm hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center space-x-1.5"
-                                >
-                                  <FileText className="w-3 h-3 md:w-4 md:h-4" />
-                                  <span>Request Tests</span>
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setSelectedAppointment(appointment);
-                                    setShowVitalRequest(true);
-                                  }}
-                                  className="px-3 py-1.5 md:px-4 md:py-2 bg-green-600 text-white rounded-lg text-xs md:text-sm hover:bg-green-700 transition-colors shadow-sm flex items-center justify-center space-x-1.5"
-                                >
-                                  <Activity className="w-3 h-3 md:w-4 md:h-4" />
-                                  <span>Request Vitals</span>
-                                </button>
-                                {(appointment.vitals ||
-                                  (appointment.lab_results &&
-                                    appointment.lab_results.length > 0)) && (
-                                  <button
-                                    onClick={() => {
-                                      setSelectedAppointment(appointment);
-                                      setShowMedicalReport(true);
-                                    }}
-                                    className="px-3 py-1.5 md:px-4 md:py-2 bg-purple-600 text-white rounded-lg text-xs md:text-sm hover:bg-purple-700 transition-colors shadow-sm flex items-center justify-center space-x-1.5"
-                                  >
-                                    <Stethoscope className="w-3 h-3 md:w-4 md:h-4" />
-                                    <span>Create Report</span>
-                                  </button>
-                                )}
-                              </>
-                            )}
-                          </div>
-                          
-                          {/* Export Button */}
-                          <button
-                            onClick={() => exportPatientData(appointment)}
-                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-xs md:text-sm flex items-center justify-center space-x-1.5"
-                          >
-                            <Download className="w-3 h-3 md:w-4 md:h-4" />
-                            <span>Export Data</span>
-                          </button>
-                        </div>
+            ) : filtered.map((a,i) => {
+              const st = ST[a.status]||ST.PENDING;
+              return (
+                <div key={a.id} className="rh fi" style={{padding:"18px 22px",borderBottom:i<filtered.length-1?`1px solid ${C.soft}`:"none",transition:"background 0.15s"}}>
+                  <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+                    <div style={{width:42,height:42,borderRadius:"50%",background:`linear-gradient(135deg,${C.blue1},${C.blue2})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:15,fontWeight:700,color:C.white}}>{a.name.charAt(0)}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
+                        <span style={{fontSize:14.5,fontWeight:700,color:C.text}}>{a.name}</span>
+                        <span style={{fontSize:11.5,fontWeight:600,padding:"2px 10px",borderRadius:20,background:st.bg,color:st.color,display:"flex",alignItems:"center",gap:5}}>
+                          <span style={{width:5,height:5,borderRadius:"50%",background:st.dot,flexShrink:0}}/>{st.label}
+                        </span>
                       </div>
+                      <div style={{fontSize:12.5,color:C.muted,marginBottom:6}}>Age {a.age} · {a.sex==="M"?"Male":a.sex==="F"?"Female":"Other"} · #{a.id}</div>
+                      {a.address&&<div style={{fontSize:12.5,color:C.muted,marginBottom:5}}><b>Address:</b> {a.address}</div>}
+                      {a.message&&<div style={{background:C.slate,borderRadius:8,padding:"8px 12px",marginBottom:7,fontSize:12.5,color:C.muted,borderLeft:`3px solid ${C.blue2}40`}}><b style={{color:C.text}}>Message:</b> {a.message}</div>}
+                      <div style={{fontSize:11.5,color:"#b0bec5"}}>Booked {new Date(a.booked_at).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+                      {a.test_requests&&<div style={{marginTop:10,padding:"9px 13px",background:`${C.blue2}08`,borderRadius:10,border:`1px solid ${C.soft}`}}><div style={{fontSize:12,fontWeight:700,color:C.blue1,marginBottom:3}}>Test Requests</div><div style={{fontSize:12.5,color:C.muted}}>Tests: {a.test_requests.tests}</div>{a.test_requests.note&&<div style={{fontSize:12.5,color:C.muted}}>Note: {a.test_requests.note}</div>}</div>}
+                      {a.vitals&&<div style={{marginTop:8,padding:"9px 13px",background:"#ecfdf5",borderRadius:10,border:"1px solid #bbf7d0"}}><div style={{fontSize:12,fontWeight:700,color:"#059669",marginBottom:4}}>Vital Signs</div><div style={{display:"flex",gap:14,flexWrap:"wrap"}}>{[["BP",a.vitals.blood_pressure],["Pulse",a.vitals.pulse_rate],["Temp",`${a.vitals.body_temperature}°C`],["Resp",a.vitals.respiration_rate]].filter(v=>v[1]).map((v,vi)=><span key={vi} style={{fontSize:12.5,color:C.muted}}><b style={{color:C.text}}>{v[0]}:</b> {v[1]}</span>)}</div></div>}
+                      {a.lab_results&&a.lab_results.length>0&&<div style={{marginTop:8,padding:"9px 13px",background:"#faf5ff",borderRadius:10,border:"1px solid #e9d5ff"}}><div style={{fontSize:12,fontWeight:700,color:C.purple,marginBottom:3}}>Lab Results</div>{a.lab_results.slice(0,2).map((r,ri)=><div key={ri} style={{fontSize:12.5,color:C.muted}}><b style={{color:C.text}}>{r.test_name}:</b> {r.result} {r.units}</div>)}{a.lab_results.length>2&&<div style={{fontSize:11.5,color:C.purple}}>+{a.lab_results.length-2} more</div>}</div>}
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:7,flexShrink:0}}>
+                      {a.status!=="COMPLETED"&&<>
+                        <button className="bp" onClick={()=>{setSelected(a);setShowTest(true);}} style={{padding:"7px 13px",background:C.blue2,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s",boxShadow:`0 2px 8px ${C.blue2}44`}}><I.FileText style={{width:13,height:13}}/>Request Tests</button>
+                        <button className="gh" onClick={()=>{setSelected(a);setShowVital(true);}} style={{padding:"7px 13px",background:C.green,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}><I.Activity style={{width:13,height:13}}/>Request Vitals</button>
+                        {(a.vitals||(a.lab_results&&a.lab_results.length>0))&&<button className="ph" onClick={()=>{setSelected(a);setShowReport(true);}} style={{padding:"7px 13px",background:C.purple,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}><I.Stethoscope style={{width:13,height:13}}/>Create Report</button>}
+                      </>}
+                      <button className="xh" onClick={()=>exportCSV(a)} style={{padding:"7px 13px",background:C.white,color:C.muted,borderRadius:8,border:`1.5px solid ${C.soft}`,cursor:"pointer",fontSize:12.5,fontWeight:500,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}><I.Download style={{width:13,height:13}}/>Export</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </main>
       </div>
 
-      {/* Modals */}
-      {showTestRequest && selectedAppointment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 md:p-4 z-50">
-          <div className="bg-white rounded-xl md:rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="sticky top-0 bg-white border-b px-4 py-3 md:px-6 md:py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Request Lab Tests</h3>
-              <button
-                onClick={() => setShowTestRequest(false)}
-                className="p-1 rounded-lg hover:bg-gray-100"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            <div className="p-4 md:p-6">
-              <form onSubmit={handleTestRequest} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Tests
-                  </label>
-                  <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3">
-                    {testOptions.map((test) => (
-                      <label
-                        key={test}
-                        className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded"
-                      >
-                        <input
-                          type="checkbox"
-                          value={test}
-                          onChange={(e) => {
-                            const selectedTests = testRequestData.tests
-                              .split(",")
-                              .filter((t) => t.trim())
-                              .filter((t) => t !== test);
-
-                            if (e.target.checked) {
-                              selectedTests.push(test);
-                            }
-
-                            setTestRequestData({
-                              ...testRequestData,
-                              tests: selectedTests.join(", "),
-                            });
-                          }}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm">{test}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Note (Optional)
-                  </label>
-                  <textarea
-                    value={testRequestData.note}
-                    onChange={(e) =>
-                      setTestRequestData({
-                        ...testRequestData,
-                        note: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    rows={3}
-                  />
-                </div>
-                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowTestRequest(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm"
-                  >
-                    Send Request
-                  </button>
-                </div>
-              </form>
-            </div>
+      {/* TEST REQUEST MODAL */}
+      {showTest&&selected&&<Modal title="Request Lab Tests" onClose={()=>setShowTest(false)}>
+        <form onSubmit={submitTest}>
+          <label style={ls}>Select Tests</label>
+          <div style={{border:`1.5px solid ${C.soft}`,borderRadius:10,padding:"8px 12px",maxHeight:170,overflowY:"auto",marginBottom:16,background:C.slate}}>
+            {testOptions.map(t=><label key={t} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 4px",cursor:"pointer"}}>
+              <input type="checkbox" value={t} style={{accentColor:C.blue2}} onChange={e=>{const sel=testData.tests.split(",").filter(x=>x.trim()).filter(x=>x!==t);if(e.target.checked)sel.push(t);setTestData({...testData,tests:sel.join(", ")});}}/>
+              <span style={{fontSize:13,color:C.text}}>{t}</span>
+            </label>)}
           </div>
-        </div>
-      )}
+          <label style={ls}>Note (Optional)</label>
+          <textarea value={testData.note} onChange={e=>setTestData({...testData,note:e.target.value})} rows={3} style={ts} placeholder="Notes for the lab…"/>
+          <Actions onCancel={()=>setShowTest(false)} label="Send Request"/>
+        </form>
+      </Modal>}
 
-      {/* Vital Request Modal */}
-      {showVitalRequest && selectedAppointment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 md:p-4 z-50">
-          <div className="bg-white rounded-xl md:rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="sticky top-0 bg-white border-b px-4 py-3 md:px-6 md:py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Request Vital Signs</h3>
-              <button
-                onClick={() => setShowVitalRequest(false)}
-                className="p-1 rounded-lg hover:bg-gray-100"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            <div className="p-4 md:p-6">
-              <form onSubmit={handleVitalRequest} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Note (Optional)
-                  </label>
-                  <textarea
-                    value={vitalRequestData.note}
-                    onChange={(e) =>
-                      setVitalRequestData({
-                        ...vitalRequestData,
-                        note: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                    rows={3}
-                  />
-                </div>
-                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowVitalRequest(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm text-sm"
-                  >
-                    Send Request
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* VITAL REQUEST MODAL */}
+      {showVital&&selected&&<Modal title="Request Vital Signs" onClose={()=>setShowVital(false)}>
+        <form onSubmit={submitVital}>
+          <label style={ls}>Note (Optional)</label>
+          <textarea value={vitalData.note} onChange={e=>setVitalData({note:e.target.value})} rows={4} style={ts} placeholder="Notes for the nurse…"/>
+          <Actions onCancel={()=>setShowVital(false)} label="Send Request" color={C.green}/>
+        </form>
+      </Modal>}
 
-      {/* Medical Report Modal */}
-      {showMedicalReport && selectedAppointment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 md:p-4 z-50">
-          <div className="bg-white rounded-xl md:rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="sticky top-0 bg-white border-b px-4 py-3 md:px-6 md:py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Create Medical Report
-              </h3>
-              <button
-                onClick={() => setShowMedicalReport(false)}
-                className="p-1 rounded-lg hover:bg-gray-100"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            <div className="p-4 md:p-6">
-              <form onSubmit={handleMedicalReport} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Medical Condition/Diagnosis
-                  </label>
-                  <select
-                    value={medicalReportData.medical_condition}
-                    onChange={(e) =>
-                      setMedicalReportData({
-                        ...medicalReportData,
-                        medical_condition: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                    required
-                  >
-                    <option value="">Select Condition</option>
-                    <option value="HIV">HIV</option>
-                    <option value="Cancer">Cancer</option>
-                    <option value="Kidney Stone">Kidney Stone</option>
-                    <option value="Chronic Heart Failure">
-                      Chronic Heart Failure
-                    </option>
-                    <option value="Leukaemia">Leukaemia</option>
-                    <option value="Diabetes">Diabetes</option>
-                    <option value="Liver Disease">Liver Disease</option>
-                    <option value="Tuberculosis">Tuberculosis</option>
-                    <option value="Hernia">Hernia</option>
-                    <option value="Hypertension">Hypertension</option>
-                    <option value="Asthma">Asthma</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Drug Prescription
-                  </label>
-                  <textarea
-                    value={medicalReportData.drug_prescription}
-                    onChange={(e) =>
-                      setMedicalReportData({
-                        ...medicalReportData,
-                        drug_prescription: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                    rows={3}
-                    placeholder="Prescribe medications and dosage..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Health Advice & Diet Recommendations
-                  </label>
-                  <textarea
-                    value={medicalReportData.advice}
-                    onChange={(e) =>
-                      setMedicalReportData({
-                        ...medicalReportData,
-                        advice: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                    rows={4}
-                    placeholder="Provide health advice, lifestyle changes, diet recommendations..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Next Appointment (Optional)
-                  </label>
-                  <input
-                    type="date"
-                    value={medicalReportData.next_appointment}
-                    onChange={(e) =>
-                      setMedicalReportData({
-                        ...medicalReportData,
-                        next_appointment: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                  />
-                </div>
-                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowMedicalReport(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm text-sm"
-                  >
-                    Create Report
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* MEDICAL REPORT MODAL */}
+      {showReport&&selected&&<Modal title="Create Medical Report" onClose={()=>setShowReport(false)} wide>
+        <form onSubmit={submitReport}>
+          <label style={ls}>Medical Condition / Diagnosis *</label>
+          <select required value={reportData.medical_condition} onChange={e=>setReportData({...reportData,medical_condition:e.target.value})} style={is}>
+            <option value="">Select condition…</option>
+            {["HIV","Cancer","Kidney Stone","Chronic Heart Failure","Leukaemia","Diabetes","Liver Disease","Tuberculosis","Hernia","Hypertension","Asthma","Other"].map(c=><option key={c} value={c}>{c}</option>)}
+          </select>
+          <label style={ls}>Drug Prescription</label>
+          <textarea value={reportData.drug_prescription} onChange={e=>setReportData({...reportData,drug_prescription:e.target.value})} rows={3} style={ts} placeholder="Medications and dosage…"/>
+          <label style={ls}>Health Advice & Recommendations</label>
+          <textarea value={reportData.advice} onChange={e=>setReportData({...reportData,advice:e.target.value})} rows={3} style={ts} placeholder="Lifestyle changes, diet…"/>
+          <label style={ls}>Next Appointment (Optional)</label>
+          <input type="date" value={reportData.next_appointment} onChange={e=>setReportData({...reportData,next_appointment:e.target.value})} style={is}/>
+          <Actions onCancel={()=>setShowReport(false)} label="Create Report" color={C.purple}/>
+        </form>
+      </Modal>}
     </div>
   );
 };
