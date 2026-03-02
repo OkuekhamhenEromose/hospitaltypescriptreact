@@ -785,13 +785,13 @@ const AdminDashboard: React.FC = () => {
       id: "assignments",
       label: "Staff Assignments",
       icon: "UserPlus",
-      count: appointments.filter((a) => a.status !== "COMPLETED").length,
+      count: appointments.filter((a) => a.status !== "COMPLETED").length || 0,
     },
     {
       id: "blog",
       label: "Blog Management",
       icon: "FileText",
-      count: blogPosts.length,
+      count: blogPosts.length || 0,
     },
   ];
 
@@ -1500,28 +1500,28 @@ const AdminDashboard: React.FC = () => {
                 {[
                   {
                     label: "Total Patients",
-                    value: stats.totalPatients,
+                    value: stats?.totalPatients ?? 0,
                     sub: "All registered",
                     grad: `135deg,${C.blue1},${C.blue2}`,
                     icon: "User",
                   },
                   {
                     label: "Doctors",
-                    value: stats.totalDoctors,
+                    value: stats?.totalDoctors ?? 0,
                     sub: "Active physicians",
                     grad: "135deg,#059669,#10b981",
                     icon: "Stethoscope",
                   },
                   {
                     label: "Nurses",
-                    value: stats.totalNurses,
+                    value: stats?.totalNurses ?? 0,
                     sub: "Care staff",
                     grad: `135deg,${C.teal},#14b8a6`,
                     icon: "Shield",
                   },
                   {
                     label: "Lab Scientists",
-                    value: stats.totalLabScientists,
+                    value: stats?.totalLabScientists ?? 0,
                     sub: "Laboratory staff",
                     grad: `135deg,${C.orange},#f97316`,
                     icon: "Flask",
@@ -1564,7 +1564,6 @@ const AdminDashboard: React.FC = () => {
                             style={{ width: 18, height: 18, color: C.white }}
                           />
                         </div>
-                        {/* PATCH 3: was Math.random() — now stable STAT_DELTAS[i] */}
                         <span
                           style={{
                             fontSize: 11,
@@ -1608,224 +1607,235 @@ const AdminDashboard: React.FC = () => {
                 })}
               </div>
 
-              {/* Second row */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                }}
-              >
-                {/* Blog stats */}
+              {/* Blog stats section - add safe guards */}
+              {stats?.blogStats && (
                 <div
                   style={{
-                    background: C.white,
-                    borderRadius: 14,
-                    border: `1px solid ${C.soft}`,
-                    padding: "20px 22px",
-                    boxShadow: "0 2px 12px rgba(23,127,237,0.04)",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 16,
                   }}
                 >
+                  {/* Blog stats */}
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 18,
+                      background: C.white,
+                      borderRadius: 14,
+                      border: `1px solid ${C.soft}`,
+                      padding: "20px 22px",
+                      boxShadow: "0 2px 12px rgba(23,127,237,0.04)",
                     }}
                   >
                     <div
                       style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 9,
-                        background: `linear-gradient(135deg,${C.purple},#9333ea)`,
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
+                        gap: 8,
+                        marginBottom: 18,
                       }}
                     >
-                      <I.BarChart
-                        style={{ width: 15, height: 15, color: C.white }}
-                      />
-                    </div>
-                    <span
-                      style={{ fontSize: 14, fontWeight: 700, color: C.text }}
-                    >
-                      Blog Statistics
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: 10,
-                    }}
-                  >
-                    {[
-                      {
-                        label: "Total Posts",
-                        value: stats.blogStats.total_posts,
-                        bg: "#eff6ff",
-                        color: C.blue2,
-                      },
-                      {
-                        label: "Published",
-                        value: stats.blogStats.published_posts,
-                        bg: "#ecfdf5",
-                        color: "#059669",
-                      },
-                      {
-                        label: "Drafts",
-                        value: stats.blogStats.draft_posts,
-                        bg: "#fffbeb",
-                        color: "#b45309",
-                      },
-                      {
-                        label: "With TOC",
-                        value: stats.blogStats.posts_with_toc,
-                        bg: "#f5f3ff",
-                        color: C.purple,
-                      },
-                    ].map((b, i) => (
                       <div
-                        key={i}
                         style={{
-                          background: b.bg,
-                          borderRadius: 10,
-                          padding: "12px 14px",
-                          textAlign: "center",
+                          width: 32,
+                          height: 32,
+                          borderRadius: 9,
+                          background: `linear-gradient(135deg,${C.purple},#9333ea)`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                       >
-                        <div
-                          style={{
-                            fontSize: 22,
-                            fontWeight: 700,
-                            color: b.color,
-                          }}
-                        >
-                          {b.value}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 11.5,
-                            color: C.muted,
-                            marginTop: 3,
-                          }}
-                        >
-                          {b.label}
-                        </div>
+                        <I.BarChart
+                          style={{ width: 15, height: 15, color: C.white }}
+                        />
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Quick actions */}
-                <div
-                  style={{
-                    background: C.white,
-                    borderRadius: 14,
-                    border: `1px solid ${C.soft}`,
-                    padding: "20px 22px",
-                    boxShadow: "0 2px 12px rgba(23,127,237,0.04)",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: C.text,
-                      marginBottom: 14,
-                    }}
-                  >
-                    Quick Actions
-                  </div>
-                  <div
-                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                  >
-                    {[
-                      {
-                        label: "Assign Staff to Patient",
-                        icon: "UserPlus",
-                        color: C.blue2,
-                        cls: "bp",
-                        tab: "assignments",
-                      },
-                      {
-                        label: "View All Patients",
-                        icon: "User",
-                        color: C.green,
-                        cls: "gp",
-                        tab: "patients",
-                      },
-                      {
-                        label: "Create Blog Post",
-                        icon: "FileText",
-                        color: C.purple,
-                        cls: "pp",
-                        tab: "blog",
-                      },
-                    ].map((a, i) => {
-                      const A = I[a.icon];
-                      return (
-                        <button
+                      <span
+                        style={{ fontSize: 14, fontWeight: 700, color: C.text }}
+                      >
+                        Blog Statistics
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 10,
+                      }}
+                    >
+                      {[
+                        {
+                          label: "Total Posts",
+                          value: stats.blogStats.total_posts ?? 0,
+                          bg: "#eff6ff",
+                          color: C.blue2,
+                        },
+                        {
+                          label: "Published",
+                          value: stats.blogStats.published_posts ?? 0,
+                          bg: "#ecfdf5",
+                          color: "#059669",
+                        },
+                        {
+                          label: "Drafts",
+                          value: stats.blogStats.draft_posts ?? 0,
+                          bg: "#fffbeb",
+                          color: "#b45309",
+                        },
+                        {
+                          label: "With TOC",
+                          value: stats.blogStats.posts_with_toc ?? 0,
+                          bg: "#f5f3ff",
+                          color: C.purple,
+                        },
+                      ].map((b, i) => (
+                        <div
                           key={i}
-                          className={a.cls}
-                          onClick={() =>
-                            a.tab === "blog"
-                              ? (setActiveTab("blog"), setShowCreateModal(true))
-                              : setActiveTab(a.tab as any)
-                          }
                           style={{
-                            width: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "12px 14px",
+                            background: b.bg,
                             borderRadius: 10,
-                            border: "none",
-                            background: a.color + "12",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                            transition: "all 0.15s",
+                            padding: "12px 14px",
+                            textAlign: "center",
                           }}
                         >
                           <div
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 10,
+                              fontSize: 22,
+                              fontWeight: 700,
+                              color: b.color,
                             }}
                           >
-                            <A
-                              style={{ width: 15, height: 15, color: a.color }}
-                            />
-                            <span
+                            {b.value}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 11.5,
+                              color: C.muted,
+                              marginTop: 3,
+                            }}
+                          >
+                            {b.label}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Quick actions section - keep as is */}
+                  <div
+                    style={{
+                      background: C.white,
+                      borderRadius: 14,
+                      border: `1px solid ${C.soft}`,
+                      padding: "20px 22px",
+                      boxShadow: "0 2px 12px rgba(23,127,237,0.04)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: C.text,
+                        marginBottom: 14,
+                      }}
+                    >
+                      Quick Actions
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                      }}
+                    >
+                      {[
+                        {
+                          label: "Assign Staff to Patient",
+                          icon: "UserPlus",
+                          color: C.blue2,
+                          cls: "bp",
+                          tab: "assignments",
+                        },
+                        {
+                          label: "View All Patients",
+                          icon: "User",
+                          color: C.green,
+                          cls: "gp",
+                          tab: "patients",
+                        },
+                        {
+                          label: "Create Blog Post",
+                          icon: "FileText",
+                          color: C.purple,
+                          cls: "pp",
+                          tab: "blog",
+                        },
+                      ].map((a, i) => {
+                        const A = I[a.icon];
+                        return (
+                          <button
+                            key={i}
+                            className={a.cls}
+                            onClick={() =>
+                              a.tab === "blog"
+                                ? (setActiveTab("blog"),
+                                  setShowCreateModal(true))
+                                : setActiveTab(a.tab as any)
+                            }
+                            style={{
+                              width: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              padding: "12px 14px",
+                              borderRadius: 10,
+                              border: "none",
+                              background: a.color + "12",
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                              transition: "all 0.15s",
+                            }}
+                          >
+                            <div
                               style={{
-                                fontSize: 13,
-                                fontWeight: 600,
-                                color: a.color,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
                               }}
                             >
-                              {a.label}
-                            </span>
-                          </div>
-                          <I.ChevLeft
-                            style={{
-                              width: 13,
-                              height: 13,
-                              color: a.color,
-                              transform: "rotate(180deg)",
-                            }}
-                          />
-                        </button>
-                      );
-                    })}
+                              <A
+                                style={{
+                                  width: 15,
+                                  height: 15,
+                                  color: a.color,
+                                }}
+                              />
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                  color: a.color,
+                                }}
+                              >
+                                {a.label}
+                              </span>
+                            </div>
+                            <I.ChevLeft
+                              style={{
+                                width: 13,
+                                height: 13,
+                                color: a.color,
+                                transform: "rotate(180deg)",
+                              }}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Appointment summary */}
+              {/* Appointment summary - add safe guards */}
               <div
                 style={{
                   background: C.white,
@@ -1846,7 +1856,7 @@ const AdminDashboard: React.FC = () => {
                     Appointment Overview
                   </div>
                   <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
-                    {stats.totalAppointments} total appointments
+                    {stats?.totalAppointments ?? 0} total appointments
                   </div>
                 </div>
                 <div
@@ -1859,29 +1869,31 @@ const AdminDashboard: React.FC = () => {
                   {[
                     {
                       label: "Pending",
-                      value: appointments.filter((a) => a.status === "PENDING")
-                        .length,
+                      value:
+                        appointments?.filter((a) => a?.status === "PENDING")
+                          ?.length ?? 0,
                       color: "#64748b",
                     },
                     {
                       label: "In Review",
-                      value: appointments.filter(
-                        (a) => a.status === "IN_REVIEW",
-                      ).length,
+                      value:
+                        appointments?.filter((a) => a?.status === "IN_REVIEW")
+                          ?.length ?? 0,
                       color: C.blue2,
                     },
                     {
                       label: "Awaiting",
-                      value: appointments.filter(
-                        (a) => a.status === "AWAITING_RESULTS",
-                      ).length,
+                      value:
+                        appointments?.filter(
+                          (a) => a?.status === "AWAITING_RESULTS",
+                        )?.length ?? 0,
                       color: C.amber,
                     },
                     {
                       label: "Completed",
-                      value: appointments.filter(
-                        (a) => a.status === "COMPLETED",
-                      ).length,
+                      value:
+                        appointments?.filter((a) => a?.status === "COMPLETED")
+                          ?.length ?? 0,
                       color: C.green,
                     },
                   ].map((m, i) => (
