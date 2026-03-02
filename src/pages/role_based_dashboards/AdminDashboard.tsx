@@ -324,8 +324,6 @@ const AdminDashboard: React.FC = () => {
   const totalNurses = stats?.totalNurses ?? 0;
   const totalLabScientists = stats?.totalLabScientists ?? 0;
   const totalPatients = stats?.totalPatients ?? 0;
-  const totalAppointments = stats?.totalAppointments ?? 0;
-
   const navItems = [
     { id: "overview", label: "Overview", icon: "Home", count: null },
     { id: "patients", label: "Patients", icon: "User", count: totalPatients },
