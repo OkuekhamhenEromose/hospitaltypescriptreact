@@ -445,10 +445,14 @@ class ApiService {
     return this.request("/hospital/blog/", { method: "POST", body: data });
   }
 
-  async updateBlogPost(slug: string, data: FormData): Promise<unknown> {
-    this.invalidateCache("/hospital/blog/");
-    return this.request(`/hospital/blog/${slug}/`, { method: "PUT", body: data });
-  }
+  // In ApiService class — replace updateBlogPost
+async updateBlogPost(slug: string, data: FormData): Promise<unknown> {
+  this.invalidateCache("/hospital/blog/");
+  // FIX: PUT requires ALL fields — any omitted field is set to null/blank.
+  // When editing without changing an image, the image field is absent from
+  // FormData, causing Django to clear it. PATCH only updates provided fields.
+  return this.request(`/hospital/blog/${slug}/`, { method: "PATCH", body: data });
+}
 
   async deleteBlogPost(slug: string): Promise<void> {
     this.invalidateCache("/hospital/blog/");
