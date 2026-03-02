@@ -96,7 +96,7 @@ const PatientDashboard: React.FC = () => {
     setFiltered(f);
   },[appointments,tab,statusFilter,q]);
 
-  async function load(){try{const d=await apiService.getAppointments();setAppointments(d||[]);}catch{setAppointments([]);}finally{setLoading(false);}}
+  async function load(){try{const d=await apiService.getAppointments();setAppointments((d||[]) as Appointment[]);}catch{setAppointments([]);}finally{setLoading(false);}}
 
   async function submitAppt(e:React.FormEvent){
     e.preventDefault();

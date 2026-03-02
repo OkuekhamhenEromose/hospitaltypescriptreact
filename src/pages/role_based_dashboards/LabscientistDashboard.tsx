@@ -14,7 +14,6 @@ const I: Record<string, (p: React.SVGProps<SVGSVGElement>) => React.ReactElement
   Beaker: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 3h6M10 3v7L6.5 16.5A3 3 0 009.5 21h5a3 3 0 003-4.5L14 10V3"/><path d="M7.5 16h9" strokeWidth="1.4"/></svg>,
   Clipboard: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>,
   Clock: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>,
-  Check: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="20 6 9 17 4 12"/></svg>,
   Alert: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
   FileText: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
   Bell: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
@@ -98,7 +97,8 @@ const LabScientistDashboard: React.FC = () => {
     {label:"Completed",     value:requests.filter(r=>r.status==="DONE").length,             sub:"Results delivered",                                          grad:`135deg,#059669,${C.green}`,      icon:"Check"},
   ];
 
-  useEffect(()=>{load();const t=setInterval(load,30000);return()=>clearInterval(t);},[]);
+  useEffect(()=>{load();// FIX: removed 30s polling — click Refresh button instead
+        return undefined;},[]);
   useEffect(()=>{
     let f=requests;
     if(tab==="pending")     f=f.filter(r=>r.status==="PENDING");
@@ -108,7 +108,16 @@ const LabScientistDashboard: React.FC = () => {
     setFiltered(f);
   },[requests,tab,q]);
 
-  async function load(){try{const d=await apiService.getTestRequests();setRequests(d||[]);}catch{setRequests([]);}finally{setLoading(false);}}
+  async function load(){
+  try{
+    const d = await apiService.getTestRequests();
+    setRequests((d || []) as TestRequest[]);
+  } catch {
+    setRequests([]);
+  } finally {
+    setLoading(false);
+  }
+}
 
   async function submitResult(e:React.FormEvent){
     e.preventDefault();if(!selected)return;

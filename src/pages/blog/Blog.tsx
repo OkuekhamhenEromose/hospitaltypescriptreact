@@ -1,116 +1,121 @@
-// pages/blog/Blog.tsx - Cleaned
-import React, { useState, useEffect } from "react";
+// pages/blog/Blog.tsx
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
 import { apiService } from "../../services/api";
 import { useNavigate } from "react-router-dom";
 import slugify from "slugify";
 import EttaLogo from "../../assets/img/etta-replace1-removebg-preview.png";
 
+// ── TOC anchor helper ────────────────────────────────────────────────────────
+// FIX: The original Blog.tsx defined a full normalizeBlogPost() that re-ran
+// after apiService.getBlogPosts() already normalized the post objects.
+// That function overwrote `featured_image`, `image_1`, `image_2` with
+// `post.featured_image_url`, but api.ts had *already* mapped those fields
+// to `featured_image`/`image_1`/`image_2`. After that second pass the _url
+// fields no longer existed, so all three image fields became `undefined` —
+// breaking every image on the blog listing.
+//
+// The ONLY thing Blog.tsx needs beyond what api.ts provides is:
+//   1. anchor slugs on TOC items (for smooth-scroll links)
+//   2. enable_toc derived from the data
+//
+// Everything else (images, description, subheadings) is already handled by
+// the service layer. We apply a minimal TOC-only post-process here.
+function addTocAnchors(post: any): any {
+  const rawTOC = post.table_of_contents;
+  if (!Array.isArray(rawTOC) || rawTOC.length === 0) return post;
+
+  const normalizedTOC = rawTOC
+    .map((item: any, i: number) => {
+      const title = item.title ?? item.name ?? item.heading ?? `Section ${i + 1}`;
+      return {
+        id:     item.id ?? i + 1,
+        title,
+        level:  item.level ?? item.depth ?? 2,
+        anchor: slugify(title, { lower: true, strict: true }),
+      };
+    })
+    .filter((item) => item.title);
+
+  return {
+    ...post,
+    table_of_contents: normalizedTOC,
+    enable_toc:
+      post.enable_toc                      ??
+      post.enable_table_of_contents        ??
+      normalizedTOC.length > 0,
+  };
+}
+
 const Blog: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [expandedTOC, setExpandedTOC] = useState<{ [key: string]: boolean }>({});
+  const [expandedTOC, setExpandedTOC] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadBlogPosts();
-  }, []);
-
-  const normalizeBlogPost = (post: any, index: number) => {
-    const rawTOC = post.table_of_contents || post.toc || post.toc_items || post.contents || [];
-    const normalizedTOC = Array.isArray(rawTOC)
-      ? rawTOC
-          .map((item: any, index: number) => {
-            const title = item.title || item.name || item.heading || `Section ${index + 1}`;
-            const level = item.level || item.depth || 2;
-            const id = item.id || index + 1;
-            return {
-              id: id,
-              title: title,
-              level: level,
-              anchor: slugify(title, { lower: true, strict: true }),
-            };
-          })
-          .filter((item) => item.title)
-      : [];
-
-    const postId = post.id || `post-${slugify(post.title)}-${index}`;
-
-    return {
-      ...post,
-      id: postId,
-      featured_image: post.featured_image_url,
-      image_1: post.image_1_url,
-      image_2: post.image_2_url,
-      description: post.description || post.short_description || post.excerpt || post.content || "",
-      subheadings: post.subheadings && post.subheadings.length > 0 ? post.subheadings : [],
-      table_of_contents: normalizedTOC,
-      enable_toc: post.enable_toc !== undefined
-        ? post.enable_toc
-        : post.enable_table_of_contents !== undefined
-        ? post.enable_table_of_contents
-        : normalizedTOC.length > 0,
-    };
-  };
-
-  const loadBlogPosts = async () => {
+  const loadBlogPosts = useCallback(async () => {
     try {
       setIsLoading(true);
-      const blogPosts = await apiService.getBlogPosts();
-      const normalizedPosts = blogPosts.map((post: any, index: number) => normalizeBlogPost(post, index));
-      setPosts(normalizedPosts);
+      // apiService.getBlogPosts() already normalizes images, description,
+      // subheadings, etc. We only add TOC anchors on top.
+      const raw = await apiService.getBlogPosts();
+      const normalized = raw.map(addTocAnchors);
+      setPosts(normalized);
 
-      if (normalizedPosts.length > 0) {
-        const initialTOCState: { [key: string]: boolean } = {};
-        normalizedPosts.forEach((post: any) => {
-          if (post.enable_toc && post.table_of_contents && post.table_of_contents.length > 0) {
-            initialTOCState[post.id] = false;
-          }
-        });
-        setExpandedTOC(initialTOCState);
-      }
-    } catch (error) {
-      // Error silently handled - no user impact
+      // Pre-expand TOC state: collapsed by default
+      const initialTOC: Record<string, boolean> = {};
+      normalized.forEach((post: any) => {
+        if (post.enable_toc && post.table_of_contents?.length > 0)
+          initialTOC[post.id] = false;
+      });
+      setExpandedTOC(initialTOC);
+    } catch {
+      // Silent — no user-facing impact; empty state shown below
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const filteredPosts = posts.filter(
-    (post) =>
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.description.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    loadBlogPosts();
+  }, [loadBlogPosts]);
+
+  // FIX: memoized — only recomputes when posts or searchQuery changes
+  const filteredPosts = useMemo(
+    () =>
+      posts.filter(
+        (post) =>
+          post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          post.description.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [posts, searchQuery]
   );
 
-  const toggleTOC = (postId: string) => {
+  const toggleTOC = (postId: string) =>
     setExpandedTOC((prev) => ({ ...prev, [postId]: !prev[postId] }));
-  };
 
-  const shouldShowTOC = (post: any) => {
-    return (
-      post.enable_toc &&
-      post.table_of_contents &&
-      Array.isArray(post.table_of_contents) &&
-      post.table_of_contents.length > 0
-    );
-  };
+  const shouldShowTOC = (post: any) =>
+    post.enable_toc &&
+    Array.isArray(post.table_of_contents) &&
+    post.table_of_contents.length > 0;
 
   const handleShare = (platform: string, post: any) => {
     const url = `${window.location.origin}/blog/${post.slug}`;
-    const shareUrls: { [key: string]: string } = {
+    const shareUrls: Record<string, string> = {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-      twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(post.title)}`,
+      twitter:  `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(post.title)}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
-      google: `https://plus.google.com/share?url=${encodeURIComponent(url)}`,
+      google:   `https://plus.google.com/share?url=${encodeURIComponent(url)}`,
     };
-    if (shareUrls[platform]) window.open(shareUrls[platform], "_blank", "width=600,height=400");
+    if (shareUrls[platform])
+      window.open(shareUrls[platform], "_blank", "width=600,height=400");
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
       </div>
     );
   }
@@ -123,22 +128,31 @@ const Blog: React.FC = () => {
             src="https://images.pexels.com/photos/3376790/pexels-photo-3376790.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
             alt="Medical background"
             className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
           />
         </div>
         <div className="container mx-auto px-4 md:px-8 lg:px-12 relative z-10">
           <h1 className="text-6xl mt-4 md:text-5xl lg:text-6xl font-bold text-white">Our Blog</h1>
         </div>
       </section>
+
       <div className="min-h-screen bg-white px-12">
         <div className="container mx-auto px-4 py-24 max-w-7xl">
           <div className="flex flex-col lg:flex-row gap-8">
+            {/* ── Main column ── */}
             <div className="lg:w-2/3">
               {filteredPosts.map((post) => (
                 <div key={post.id} className="mb-16">
                   <div className="flex gap-6 mb-8">
+                    {/* Author / date sidebar */}
                     <div className="flex flex-col items-center space-y-3 flex-shrink-0">
                       <div className="w-16 h-16 overflow-hidden">
-                        <img src={EttaLogo} alt="Etta-Atlantic Memorial Hospital" className="w-full h-full object-cover" />
+                        <img
+                          src={EttaLogo}
+                          alt="Etha-Atlantic Memorial Hospital"
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <div className="text-center">
                         <div className="flex items-center justify-center mb-1">
@@ -153,18 +167,24 @@ const Blog: React.FC = () => {
                           </svg>
                           <span className="text-xs">
                             {new Date(post.created_at).toLocaleDateString("en-US", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
+                              day: "numeric", month: "short", year: "numeric",
                             })}
                           </span>
                         </div>
                       </div>
                     </div>
+
+                    {/* Featured image */}
                     <div className="flex-1">
                       {post.featured_image ? (
                         <div className="relative w-full h-[400px] shadow-lg overflow-hidden">
-                          <img src={post.featured_image} alt={post.title} className="w-full h-full object-cover" />
+                          <img
+                            src={post.featured_image}
+                            alt={post.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                          />
                         </div>
                       ) : (
                         <div className="relative w-full h-[400px] bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 rounded-lg shadow-lg flex items-center justify-center overflow-hidden">
@@ -175,7 +195,7 @@ const Blog: React.FC = () => {
                                 backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)",
                                 backgroundSize: "40px 40px",
                               }}
-                            ></div>
+                            />
                           </div>
                           <div className="relative z-10 text-center">
                             <div className="mb-4">
@@ -202,8 +222,10 @@ const Blog: React.FC = () => {
                   </div>
 
                   <div className="max-w-4xl mx-auto">
-                    <h1 className="text-4xl md:text-5xl font-bold text-blue-600 mb-8 leading-tight">{post.title}</h1>
-                    
+                    <h1 className="text-4xl md:text-5xl font-bold text-blue-600 mb-8 leading-tight">
+                      {post.title}
+                    </h1>
+
                     {shouldShowTOC(post) && (
                       <div className="mb-8 border w-[450px] border-gray-300 rounded-lg bg-white shadow-sm overflow-hidden">
                         <button
@@ -217,13 +239,11 @@ const Blog: React.FC = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                               </svg>
                             </div>
-                            <div className="text-left">
-                              <h3 className="text-lg font-medium text-gray-900">Table of Contents</h3>
-                            </div>
+                            <h3 className="text-lg font-medium text-gray-900">Table of Contents</h3>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {expandedTOC[post.id] ? <ChevronUp className="w-6 h-6 text-gray-600" /> : <ChevronDown className="w-6 h-6 text-gray-600" />}
-                          </div>
+                          {expandedTOC[post.id]
+                            ? <ChevronUp className="w-6 h-6 text-gray-600" />
+                            : <ChevronDown className="w-6 h-6 text-gray-600" />}
                         </button>
 
                         {expandedTOC[post.id] && (
@@ -237,10 +257,11 @@ const Blog: React.FC = () => {
                                       className="flex items-start gap-1 px-3 rounded-lg"
                                       onClick={(e) => {
                                         e.preventDefault();
-                                        const element = document.getElementById(item.anchor);
-                                        if (element) {
-                                          element.scrollIntoView({ behavior: "smooth", block: "start" });
-                                          if (window.innerWidth < 768) setExpandedTOC((prev) => ({ ...prev, [post.id]: false }));
+                                        const el = document.getElementById(item.anchor);
+                                        if (el) {
+                                          el.scrollIntoView({ behavior: "smooth", block: "start" });
+                                          if (window.innerWidth < 768)
+                                            setExpandedTOC((prev) => ({ ...prev, [post.id]: false }));
                                         }
                                       }}
                                     >
@@ -251,18 +272,17 @@ const Blog: React.FC = () => {
                                         <span className="text-gray-800 group-hover:text-blue-600 font-medium leading-normal block">
                                           {item.title}
                                         </span>
-                                        {item.children && item.children.length > 0 && (
+                                        {item.children?.length > 0 && (
                                           <ul className="mt-2 ml-4 space-y-2">
-                                            {item.children.map((child: any, childIndex: number) => (
-                                              <li key={childIndex} className="flex items-start gap-3">
+                                            {item.children.map((child: any, ci: number) => (
+                                              <li key={ci} className="flex items-start gap-3">
                                                 <span className="text-blue-400 text-sm mt-1">•</span>
                                                 <a
                                                   href={`#${child.anchor}`}
                                                   className="text-gray-600 hover:text-blue-500 text-sm leading-relaxed"
                                                   onClick={(e) => {
                                                     e.preventDefault();
-                                                    const element = document.getElementById(child.anchor);
-                                                    if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
+                                                    document.getElementById(child.anchor)?.scrollIntoView({ behavior: "smooth", block: "start" });
                                                   }}
                                                 >
                                                   {child.title}
@@ -291,7 +311,8 @@ const Blog: React.FC = () => {
                       <p className="text-gray-700 font-light text-sm leading-relaxed">{post.description}</p>
                     </div>
 
-                    <div className="border-t border-gray-300 my-6"></div>
+                    <div className="border-t border-gray-300 my-6" />
+
                     <div className="flex flex-col sm:flex-row items-center lg:items-start sm:items-center justify-between gap-6">
                       <button
                         onClick={() => navigate(`/blog/${post.slug}`)}
@@ -306,7 +327,7 @@ const Blog: React.FC = () => {
                             <button
                               key={platform}
                               onClick={() => handleShare(platform, post)}
-                              className={`w-10 h-10 flex items-center justify-center rounded-full border-2 transition-all border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white`}
+                              className="w-10 h-10 flex items-center justify-center rounded-full border-2 transition-all border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
                               title={`Share on ${platform}`}
                             >
                               <span className="text-sm font-bold">
@@ -338,11 +359,12 @@ const Blog: React.FC = () => {
               )}
             </div>
 
+            {/* ── Sidebar ── */}
             <div className="lg:w-1/3">
               <div className="space-y-6 lg:sticky lg:top-8">
                 <div className="bg-white">
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">Search</h3>
-                  <div className="w-12 h-0.5 bg-blue-500 mb-4"></div>
+                  <div className="w-12 h-0.5 bg-blue-500 mb-4" />
                   <div className="flex items-center">
                     <input
                       type="text"
@@ -363,14 +385,16 @@ const Blog: React.FC = () => {
                 <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
                   <h3 className="text-xl font-bold text-gray-900 mb-4">Categories</h3>
                   <div className="space-y-2">
-                    {["General Health", "Mental Wellness", "Preventive Care", "Medical Updates", "Healthy Living"].map((category) => (
-                      <button
-                        key={category}
-                        className="block w-full text-left px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-sm"
-                      >
-                        {category}
-                      </button>
-                    ))}
+                    {["General Health", "Mental Wellness", "Preventive Care", "Medical Updates", "Healthy Living"].map(
+                      (category) => (
+                        <button
+                          key={category}
+                          className="block w-full text-left px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-sm"
+                        >
+                          {category}
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
 

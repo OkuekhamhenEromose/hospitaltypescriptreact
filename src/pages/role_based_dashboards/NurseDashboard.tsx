@@ -81,7 +81,7 @@ const NurseDashboard: React.FC = () => {
   const [q, setQ] = useState("");
   const [vitals, setVitals] = useState({ blood_pressure:"", respiration_rate:"", pulse_rate:"", body_temperature:"", height_cm:"", weight_kg:"" });
 
-  const imgUrl = (p: any) => p?.profile_pix?(p.profile_pix.startsWith("http")?p.profile_pix:`https://dhospitalback.onrender.com${p.profile_pix}`):null;
+  const imgUrl = (p: any) => p?.profile_pix?(p.profile_pix.startsWith("http")?p.profile_pix:`https://hospitalback-clean.onrender.com${p.profile_pix}`):null;
   const pName = (r: VitalRequest) => r.appointment?.name||"Unknown Patient";
   const pAge  = (r: VitalRequest) => r.appointment?.age||"N/A";
   const pSex  = (r: VitalRequest) => { const s=r.appointment?.sex; return s==="M"?"Male":s==="F"?"Female":"Unknown"; };
@@ -100,7 +100,8 @@ const NurseDashboard: React.FC = () => {
     {label:"Completed",      value:requests.filter(r=>r.status==="DONE").length,           sub:"Fully recorded",                                          grad:`135deg,#059669,${C.green}`,       icon:"Check"},
   ];
 
-  useEffect(()=>{load();const t=setInterval(load,30000);return()=>clearInterval(t);},[]);
+  useEffect(()=>{load();// FIX: removed 30s polling — click Refresh button instead
+        return undefined;},[]);
   useEffect(()=>{
     let f=requests;
     if(tab==="pending")     f=f.filter(r=>r.status==="PENDING");
@@ -110,7 +111,7 @@ const NurseDashboard: React.FC = () => {
     setFiltered(f);
   },[requests,tab,q]);
 
-  async function load(){try{const d=await apiService.getVitalRequests();setRequests(d||[]);}catch{setRequests([]);}finally{setLoading(false);}}
+  async function load(){try{const d=await apiService.getVitalRequests();setRequests((d||[]) as VitalRequest[]);}catch{setRequests([]);}finally{setLoading(false);}}
 
   async function submitVitals(e: React.FormEvent){
     e.preventDefault(); if(!selected) return;

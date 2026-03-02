@@ -110,7 +110,8 @@ const DoctorDashboard: React.FC = () => {
     { label: "Completed",value: appointments.filter(a=>a.status==="COMPLETED").length,                 sub: "Fully resolved",      grad: `135deg,${C.purple},#9333ea`,     icon: "Check" },
   ];
 
-  useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, []);
+  useEffect(() => { load(); // FIX: removed 30s polling — click Refresh button instead
+        return undefined; }, []);
   useEffect(() => {
     let f = appointments;
     if (tab === "awaiting")  f = f.filter(a=>a.status==="AWAITING_RESULTS");
@@ -121,7 +122,7 @@ const DoctorDashboard: React.FC = () => {
   }, [appointments, tab, q]);
 
   async function load() {
-    try { const d = await apiService.getAppointments(); setAppointments(d); } catch {} finally { setLoading(false); }
+    try { const d = await apiService.getAppointments(); setAppointments(d as Appointment[]); } catch {} finally { setLoading(false); }
   }
 
   async function submitTest(e: React.FormEvent) {
