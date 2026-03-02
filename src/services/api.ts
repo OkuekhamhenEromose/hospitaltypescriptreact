@@ -27,11 +27,8 @@ const unwrapList = (data: unknown): unknown[] => {
 // Only job remaining: ensure http→https for S3 URLs.
 export const normalizeMediaUrl = (url: string | null | undefined): string | null => {
   if (!url || url.trim() === "") return null;
-  if (url.includes("s3.amazonaws.com") && url.startsWith("http://"))
-    return url.replace("http://", "https://");
   return url;
 };
-
 // ── Blog post normalizer ──────────────────────────────────────────────────────
 const normalizeBlogPost = (post: any) => {
   const rawSubs = post.subheadings ?? post.sub_headings;
