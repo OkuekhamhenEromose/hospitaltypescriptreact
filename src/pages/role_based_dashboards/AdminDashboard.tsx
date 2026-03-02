@@ -1,5 +1,5 @@
 // components/dashboards/AdminDashboard.tsx
-import React, { useState, useEffect, useMemo } from "react"; // PATCH 5: added useMemo
+import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiService } from "../../services/api";
 
@@ -22,11 +22,7 @@ const C = {
   orange: "#ea580c",
 };
 
-// ─── PATCH 1: BACKEND_ORIGIN + module-level imgUrl + STAT_DELTAS ──────────
-// FIX: imgUrl was declared inline inside AdminDashboard component body,
-// creating a new function reference on every render and pointing to the
-// wrong backend URL "dhospitalback.onrender.com".
-// Now module-level: stable reference, reads VITE_API_URL like apiService does.
+// ─── BACKEND ORIGIN ───────────────────────────────────────────────────────
 const BACKEND_ORIGIN = (
   (import.meta as any).env?.VITE_API_URL ??
   "https://hospitalback-clean.onrender.com/api"
@@ -39,50 +35,24 @@ function imgUrl(p: any): string | null {
     : `${BACKEND_ORIGIN}${p.profile_pix}`;
 }
 
-// FIX: Math.random() was called inside JSX .map() — new value every render.
-// Use stable constants so the UI doesn't flicker on every state update.
 const STAT_DELTAS = [7, 4, 9, 3];
 
 // ─── SVG ICON LIBRARY ─────────────────────────────────────────────────────
-const I: Record<
-  string,
-  (p: React.SVGProps<SVGSVGElement>) => React.ReactElement
-> = {
+const I: Record<string, (p: React.SVGProps<SVGSVGElement>) => React.ReactElement> = {
   Logo: (p) => (
     <svg viewBox="0 0 32 32" {...p}>
       <rect width="32" height="32" rx="8" fill="#177fed" />
-      <path
-        d="M16 6v20M6 16h20"
-        stroke="#fff"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-      />
+      <path d="M16 6v20M6 16h20" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" />
     </svg>
   ),
   Home: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
       <polyline points="9 22 9 12 15 12 15 22" />
     </svg>
   ),
   Users: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
       <circle cx="9" cy="7" r="4" />
       <path d="M23 21v-2a4 4 0 00-3-3.87" />
@@ -90,29 +60,13 @@ const I: Record<
     </svg>
   ),
   User: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
       <circle cx="12" cy="7" r="4" />
     </svg>
   ),
   UserPlus: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
       <circle cx="8.5" cy="7" r="4" />
       <line x1="20" y1="8" x2="20" y2="14" />
@@ -120,15 +74,7 @@ const I: Record<
     </svg>
   ),
   FileText: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
       <polyline points="14 2 14 8 20 8" />
       <line x1="16" y1="13" x2="8" y2="13" />
@@ -136,15 +82,7 @@ const I: Record<
     </svg>
   ),
   BarChart: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <line x1="18" y1="20" x2="18" y2="10" />
       <line x1="12" y1="20" x2="12" y2="4" />
       <line x1="6" y1="20" x2="6" y2="14" />
@@ -152,260 +90,110 @@ const I: Record<
     </svg>
   ),
   Bell: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 01-3.46 0" />
     </svg>
   ),
   Search: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21l-4.35-4.35" />
     </svg>
   ),
   ChevDown: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M6 9l6 6 6-6" />
     </svg>
   ),
   ChevLeft: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M15 18l-6-6 6-6" />
     </svg>
   ),
   X: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" {...p}>
       <path d="M18 6L6 18M6 6l12 12" />
     </svg>
   ),
   Filter: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
     </svg>
   ),
   Download: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
     </svg>
   ),
   Plus: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" {...p}>
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
   ),
   Edit: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
       <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
     </svg>
   ),
   Trash: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <polyline points="3 6 5 6 21 6" />
       <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2" />
     </svg>
   ),
   Eye: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
   ),
   Calendar: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <rect x="3" y="4" width="18" height="18" rx="2" />
       <path d="M16 2v4M8 2v4M3 10h18" />
     </svg>
   ),
   Clock: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <circle cx="12" cy="12" r="9" />
       <polyline points="12 7 12 12 15 15" />
     </svg>
   ),
   Shield: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
   ),
   Stethoscope: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M4.5 7.5a3 3 0 003 3M4.5 7.5H3M7.5 10.5c0 5 4 8 7 8a5 5 0 005-5" />
       <circle cx="19.5" cy="13.5" r="1.5" />
       <path d="M4.5 7.5V5a1.5 1.5 0 013 0v2.5M4.5 5a1.5 1.5 0 00-3 0v2.5" />
     </svg>
   ),
   Flask: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M9 3h6M10 3v7L6.5 16.5A3 3 0 009.5 21h5a3 3 0 003-4.5L14 10V3" />
       <path d="M7.5 16h9" strokeWidth="1.4" />
     </svg>
   ),
   RefreshCw: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <polyline points="23 4 23 10 17 10" />
       <polyline points="1 20 1 14 7 14" />
       <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
     </svg>
   ),
   Activity: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
     </svg>
   ),
   Check: (p) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...p}
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <polyline points="20 6 9 17 4 12" />
     </svg>
   ),
@@ -439,103 +227,24 @@ interface StaffAssignment {
 }
 
 // ─── STATUS MAP ────────────────────────────────────────────────────────────
-const ST: Record<
-  string,
-  { label: string; bg: string; color: string; dot: string }
-> = {
-  COMPLETED: {
-    label: "Completed",
-    bg: "#ecfdf5",
-    color: "#059669",
-    dot: "#12b76a",
-  },
-  IN_REVIEW: {
-    label: "In Review",
-    bg: "#eff6ff",
-    color: "#1378e5",
-    dot: "#177fed",
-  },
-  AWAITING_RESULTS: {
-    label: "Awaiting Results",
-    bg: "#fffbeb",
-    color: "#b45309",
-    dot: "#f59e0b",
-  },
-  PENDING: {
-    label: "Pending",
-    bg: "#f8fafc",
-    color: "#64748b",
-    dot: "#94a3b8",
-  },
-  IN_PROGRESS: {
-    label: "In Progress",
-    bg: "#f0fdf4",
-    color: "#16a34a",
-    dot: "#22c55e",
-  },
+const ST: Record<string, { label: string; bg: string; color: string; dot: string }> = {
+  COMPLETED: { label: "Completed", bg: "#ecfdf5", color: "#059669", dot: "#12b76a" },
+  IN_REVIEW: { label: "In Review", bg: "#eff6ff", color: "#1378e5", dot: "#177fed" },
+  AWAITING_RESULTS: { label: "Awaiting Results", bg: "#fffbeb", color: "#b45309", dot: "#f59e0b" },
+  PENDING: { label: "Pending", bg: "#f8fafc", color: "#64748b", dot: "#94a3b8" },
+  IN_PROGRESS: { label: "In Progress", bg: "#f0fdf4", color: "#16a34a", dot: "#22c55e" },
 };
 
 // ─── SHARED STYLES ────────────────────────────────────────────────────────
-const ls: React.CSSProperties = {
-  display: "block",
-  fontSize: 12.5,
-  fontWeight: 600,
-  color: C.text,
-  marginBottom: 6,
-};
-const is: React.CSSProperties = {
-  width: "100%",
-  height: 40,
-  padding: "0 12px",
-  border: `1.5px solid ${C.soft}`,
-  borderRadius: 10,
-  fontSize: 13,
-  color: C.text,
-  background: C.slate,
-  outline: "none",
-  fontFamily: "inherit",
-  marginBottom: 16,
-};
-const ts: React.CSSProperties = {
-  width: "100%",
-  padding: "10px 12px",
-  border: `1.5px solid ${C.soft}`,
-  borderRadius: 10,
-  fontSize: 13,
-  color: C.text,
-  background: C.slate,
-  outline: "none",
-  fontFamily: "inherit",
-  resize: "vertical" as const,
-  marginBottom: 16,
-};
+const ls: React.CSSProperties = { display: "block", fontSize: 12.5, fontWeight: 600, color: C.text, marginBottom: 6 };
+const is: React.CSSProperties = { width: "100%", height: 40, padding: "0 12px", border: `1.5px solid ${C.soft}`, borderRadius: 10, fontSize: 13, color: C.text, background: C.slate, outline: "none", fontFamily: "inherit", marginBottom: 16 };
+const ts: React.CSSProperties = { width: "100%", padding: "10px 12px", border: `1.5px solid ${C.soft}`, borderRadius: 10, fontSize: 13, color: C.text, background: C.slate, outline: "none", fontFamily: "inherit", resize: "vertical" as const, marginBottom: 16 };
 
 // ─── SHARED UI PRIMITIVES ─────────────────────────────────────────────────
-function Avatar({
-  name,
-  size = 32,
-  grad = `135deg,${C.blue1},${C.blue2}`,
-}: {
-  name: string;
-  size?: number;
-  grad?: string;
-}) {
+function Avatar({ name, size = 32, grad = `135deg,${C.blue1},${C.blue2}` }: { name: string; size?: number; grad?: string }) {
   return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: `linear-gradient(${grad})`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-      }}
-    >
-      <span style={{ color: C.white, fontSize: size * 0.38, fontWeight: 600 }}>
-        {name?.charAt(0)?.toUpperCase() || "?"}
-      </span>
+    <div style={{ width: size, height: size, borderRadius: "50%", background: `linear-gradient(${grad})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <span style={{ color: C.white, fontSize: size * 0.38, fontWeight: 600 }}>{name?.charAt(0)?.toUpperCase() || "?"}</span>
     </div>
   );
 }
@@ -543,104 +252,22 @@ function Avatar({
 function Pill({ status }: { status: string }) {
   const s = ST[status] || ST.PENDING;
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        padding: "3px 10px",
-        borderRadius: 20,
-        background: s.bg,
-        color: s.color,
-        fontSize: 11.5,
-        fontWeight: 600,
-      }}
-    >
-      <span
-        style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot }}
-      />
-      {s.label}
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: s.bg, color: s.color, fontSize: 11.5, fontWeight: 600 }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot }} />{s.label}
     </span>
   );
 }
 
-function Modal({
-  title,
-  subtitle,
-  onClose,
-  children,
-  wide,
-}: {
-  title: string;
-  subtitle?: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  wide?: boolean;
-}) {
+function Modal({ title, subtitle, onClose, children, wide }: { title: string; subtitle?: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(13,27,46,0.55)",
-        zIndex: 50,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-        backdropFilter: "blur(3px)",
-      }}
-    >
-      <div
-        style={{
-          background: C.white,
-          borderRadius: 18,
-          width: "100%",
-          maxWidth: wide ? 640 : 480,
-          maxHeight: "90vh",
-          overflowY: "auto",
-          boxShadow: "0 24px 64px rgba(23,127,237,0.2)",
-          fontFamily: "'DM Sans',sans-serif",
-        }}
-      >
-        <div
-          style={{
-            padding: "20px 24px",
-            borderBottom: `1px solid ${C.soft}`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            position: "sticky",
-            top: 0,
-            background: C.white,
-            borderRadius: "18px 18px 0 0",
-            zIndex: 1,
-          }}
-        >
+    <div style={{ position: "fixed", inset: 0, background: "rgba(13,27,46,0.55)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(3px)" }}>
+      <div style={{ background: C.white, borderRadius: 18, width: "100%", maxWidth: wide ? 640 : 480, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(23,127,237,0.2)", fontFamily: "'DM Sans',sans-serif" }}>
+        <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.soft}`, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: C.white, borderRadius: "18px 18px 0 0", zIndex: 1 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>
-              {title}
-            </div>
-            {subtitle && (
-              <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
-                {subtitle}
-              </div>
-            )}
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{title}</div>
+            {subtitle && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{subtitle}</div>}
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 8,
-              border: "none",
-              background: C.slate,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: C.slate, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <I.X style={{ width: 14, height: 14, color: C.muted }} />
           </button>
         </div>
@@ -650,88 +277,19 @@ function Modal({
   );
 }
 
-function Actions({
-  onCancel,
-  label,
-  color = C.blue2,
-  disabled = false,
-}: {
-  onCancel: () => void;
-  label: string;
-  color?: string;
-  disabled?: boolean;
-}) {
+function Actions({ onCancel, label, color = C.blue2, disabled = false }: { onCancel: () => void; label: string; color?: string; disabled?: boolean }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "flex-end",
-        gap: 10,
-        paddingTop: 4,
-      }}
-    >
-      <button
-        type="button"
-        onClick={onCancel}
-        style={{
-          padding: "9px 20px",
-          borderRadius: 9,
-          border: `1.5px solid ${C.soft}`,
-          background: C.white,
-          color: C.muted,
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: "pointer",
-          fontFamily: "inherit",
-        }}
-      >
-        Cancel
-      </button>
-      <button
-        type="submit"
-        disabled={disabled}
-        style={{
-          padding: "9px 20px",
-          borderRadius: 9,
-          border: "none",
-          background: disabled ? C.muted : color,
-          color: C.white,
-          fontSize: 13,
-          fontWeight: 700,
-          cursor: disabled ? "not-allowed" : "pointer",
-          fontFamily: "inherit",
-          boxShadow: disabled ? "none" : `0 4px 12px ${color}55`,
-          opacity: disabled ? 0.6 : 1,
-        }}
-      >
-        {label}
-      </button>
+    <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, paddingTop: 4 }}>
+      <button type="button" onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: `1.5px solid ${C.soft}`, background: C.white, color: C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+      <button type="submit" disabled={disabled} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: disabled ? C.muted : color, color: C.white, fontSize: 13, fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: disabled ? "none" : `0 4px 12px ${color}55`, opacity: disabled ? 0.6 : 1 }}>{label}</button>
     </div>
   );
 }
 
-function TableCard({
-  header,
-  children,
-}: {
-  header: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function TableCard({ header, children }: { header: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        background: C.white,
-        borderRadius: 16,
-        border: `1px solid ${C.soft}`,
-        overflow: "hidden",
-        boxShadow: "0 2px 12px rgba(23,127,237,0.05)",
-      }}
-    >
-      <div
-        style={{ padding: "18px 22px", borderBottom: `1px solid ${C.soft}` }}
-      >
-        {header}
-      </div>
+    <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.soft}`, overflow: "hidden", boxShadow: "0 2px 12px rgba(23,127,237,0.05)" }}>
+      <div style={{ padding: "18px 22px", borderBottom: `1px solid ${C.soft}` }}>{header}</div>
       <div style={{ overflowX: "auto" as const }}>{children}</div>
     </div>
   );
@@ -740,9 +298,7 @@ function TableCard({
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "patients" | "staff" | "assignments" | "blog"
-  >("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "patients" | "staff" | "assignments" | "blog">("overview");
   const [collapsed, setCollapsed] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [staff, setStaff] = useState<any[]>([]);
@@ -761,38 +317,21 @@ const AdminDashboard: React.FC = () => {
   const [q, setQ] = useState("");
 
   const isAdmin = user?.profile?.role === "ADMIN";
-  // PATCH 2: imgUrl is now module-level — just call it directly, no re-declaration here
   const sw = collapsed ? 72 : 248;
+
+  // Safe counts with fallbacks
+  const totalDoctors = stats?.totalDoctors ?? 0;
+  const totalNurses = stats?.totalNurses ?? 0;
+  const totalLabScientists = stats?.totalLabScientists ?? 0;
+  const totalPatients = stats?.totalPatients ?? 0;
+  const totalAppointments = stats?.totalAppointments ?? 0;
 
   const navItems = [
     { id: "overview", label: "Overview", icon: "Home", count: null },
-    {
-      id: "patients",
-      label: "Patients",
-      icon: "User",
-      count: stats?.totalPatients || 0,
-    },
-    {
-      id: "staff",
-      label: "Staff",
-      icon: "Users",
-      count:
-        (stats?.totalDoctors || 0) +
-        (stats?.totalNurses || 0) +
-        (stats?.totalLabScientists || 0),
-    },
-    {
-      id: "assignments",
-      label: "Staff Assignments",
-      icon: "UserPlus",
-      count: appointments.filter((a) => a.status !== "COMPLETED").length || 0,
-    },
-    {
-      id: "blog",
-      label: "Blog Management",
-      icon: "FileText",
-      count: blogPosts.length || 0,
-    },
+    { id: "patients", label: "Patients", icon: "User", count: totalPatients },
+    { id: "staff", label: "Staff", icon: "Users", count: totalDoctors + totalNurses + totalLabScientists },
+    { id: "assignments", label: "Staff Assignments", icon: "UserPlus", count: appointments?.filter(a => a?.status !== "COMPLETED").length ?? 0 },
+    { id: "blog", label: "Blog Management", icon: "FileText", count: blogPosts?.length ?? 0 },
   ];
 
   useEffect(() => {
@@ -801,48 +340,51 @@ const AdminDashboard: React.FC = () => {
       loadStaff();
     }
   }, [isAdmin]);
+
   useEffect(() => {
     if (activeTab === "assignments") buildAssignments();
   }, [activeTab, statusFilter, appointments]);
 
   async function loadData() {
     try {
+      setLoading(true);
       const [staffData, apptData, blogStats, posts] = await Promise.all([
-        apiService.getStaffMembers(),
-        apiService.getAppointments(),
-        apiService.getBlogStats(),
-        apiService.getAllBlogPosts(),
+        apiService.getStaffMembers().catch(() => []),
+        apiService.getAppointments().catch(() => []),
+        apiService.getBlogStats().catch(() => ({})),
+        apiService.getAllBlogPosts().catch(() => []),
       ]);
 
-      // Type assertion for blogStats
-      const typedBlogStats = blogStats as {
-        total_posts: number;
-        published_posts: number;
-        draft_posts: number;
-        posts_with_toc: number;
-        toc_usage_rate: number;
+      const typedBlogStats = (blogStats as any) || {
+        total_posts: 0,
+        published_posts: 0,
+        draft_posts: 0,
+        posts_with_toc: 0,
+        toc_usage_rate: 0,
       };
-      setStaff(staffData);
-      setAppointments(apptData);
-      setBlogPosts(posts);
+
+      setStaff(Array.isArray(staffData) ? staffData : []);
+      setAppointments(Array.isArray(apptData) ? apptData : []);
+      setBlogPosts(Array.isArray(posts) ? posts : []);
+
       const pm = new Map<number, any>();
-      apptData.forEach((a: any) => {
-        if (a.patient && !pm.has(a.patient.id))
+      (Array.isArray(apptData) ? apptData : []).forEach((a: any) => {
+        if (a?.patient && !pm.has(a.patient.id)) {
           pm.set(a.patient.id, {
             ...a.patient,
-            appointments_count: apptData.filter(
-              (x: any) => x.patient?.id === a.patient.id,
-            ).length,
+            appointments_count: (Array.isArray(apptData) ? apptData : []).filter((x: any) => x?.patient?.id === a.patient.id).length,
           });
+        }
       });
+
       setPatients(Array.from(pm.values()));
+
       setStats({
         totalPatients: pm.size,
-        totalDoctors: staffData.filter((s: any) => s.role === "DOCTOR").length,
-        totalNurses: staffData.filter((s: any) => s.role === "NURSE").length,
-        totalLabScientists: staffData.filter((s: any) => s.role === "LAB")
-          .length,
-        totalAppointments: apptData.length,
+        totalDoctors: (Array.isArray(staffData) ? staffData : []).filter((s: any) => s?.role === "DOCTOR").length,
+        totalNurses: (Array.isArray(staffData) ? staffData : []).filter((s: any) => s?.role === "NURSE").length,
+        totalLabScientists: (Array.isArray(staffData) ? staffData : []).filter((s: any) => s?.role === "LAB").length,
+        totalAppointments: (Array.isArray(apptData) ? apptData : []).length,
         blogStats: typedBlogStats,
       });
     } catch (e) {
@@ -855,89 +397,66 @@ const AdminDashboard: React.FC = () => {
   async function loadStaff() {
     try {
       const [d, n, l] = await Promise.all([
-        apiService.getAvailableStaff("DOCTOR"),
-        apiService.getAvailableStaff("NURSE"),
-        apiService.getAvailableStaff("LAB"),
+        apiService.getAvailableStaff("DOCTOR").catch(() => []),
+        apiService.getAvailableStaff("NURSE").catch(() => []),
+        apiService.getAvailableStaff("LAB").catch(() => []),
       ]);
-      setAvailableDoctors(d);
-      setAvailableNurses(n);
-      setAvailableLabs(l);
+      setAvailableDoctors(Array.isArray(d) ? d : []);
+      setAvailableNurses(Array.isArray(n) ? n : []);
+      setAvailableLabs(Array.isArray(l) ? l : []);
     } catch (e) {
       console.error(e);
     }
   }
 
   function buildAssignments() {
-    const src =
-      statusFilter === "all"
-        ? appointments
-        : appointments.filter((a) => a.status === statusFilter);
+    const src = statusFilter === "all"
+      ? (appointments || [])
+      : (appointments || []).filter((a) => a?.status === statusFilter);
+    
     setAssignments(
       src.map((a: any) => ({
-        appointmentId: a.id,
-        patientId: a.patient?.id,
-        patientName: a.name,
-        assignedDoctor: a.doctor,
-        assignedNurse: a.vital_requests?.[0]?.assigned_to,
-        assignedLab: a.test_requests?.[0]?.assigned_to,
-        status: a.status,
-        bookedAt: a.booked_at,
+        appointmentId: a?.id ?? 0,
+        patientId: a?.patient?.id ?? 0,
+        patientName: a?.name ?? "Unknown",
+        assignedDoctor: a?.doctor,
+        assignedNurse: a?.vital_requests?.[0]?.assigned_to,
+        assignedLab: a?.test_requests?.[0]?.assigned_to,
+        status: a?.status ?? "PENDING",
+        bookedAt: a?.booked_at ?? new Date().toISOString(),
       })),
     );
   }
 
   async function handleAssign(data: any) {
     const ops = [];
-    if (data.doctor_id)
-      ops.push(
-        apiService.assignStaff({
-          appointment_id: data.appointment_id,
-          staff_id: data.doctor_id,
-          role: "DOCTOR",
-        }),
-      );
-    if (data.nurse_id)
-      ops.push(
-        apiService.assignStaff({
-          appointment_id: data.appointment_id,
-          staff_id: data.nurse_id,
-          role: "NURSE",
-        }),
-      );
-    if (data.lab_id)
-      ops.push(
-        apiService.assignStaff({
-          appointment_id: data.appointment_id,
-          staff_id: data.lab_id,
-          role: "LAB",
-        }),
-      );
+    if (data.doctor_id) ops.push(apiService.assignStaff({ appointment_id: data.appointment_id, staff_id: data.doctor_id, role: "DOCTOR" }));
+    if (data.nurse_id) ops.push(apiService.assignStaff({ appointment_id: data.appointment_id, staff_id: data.nurse_id, role: "NURSE" }));
+    if (data.lab_id) ops.push(apiService.assignStaff({ appointment_id: data.appointment_id, staff_id: data.lab_id, role: "LAB" }));
     await Promise.all(ops);
     loadData();
     buildAssignments();
   }
 
   function exportCSV() {
-    const rows = assignments.map((a) => ({
-      "Appointment ID": a.appointmentId,
-      Patient: a.patientName,
-      Doctor: a.assignedDoctor?.fullname || "Unassigned",
-      Nurse: a.assignedNurse?.fullname || "Unassigned",
-      "Lab Scientist": a.assignedLab?.fullname || "Unassigned",
-      Status: a.status,
-      Booked: new Date(a.bookedAt).toLocaleDateString(),
+    const rows = (assignments || []).map((a) => ({
+      "Appointment ID": a?.appointmentId ?? 0,
+      Patient: a?.patientName ?? "Unknown",
+      Doctor: a?.assignedDoctor?.fullname || "Unassigned",
+      Nurse: a?.assignedNurse?.fullname || "Unassigned",
+      "Lab Scientist": a?.assignedLab?.fullname || "Unassigned",
+      Status: a?.status ?? "PENDING",
+      Booked: a?.bookedAt ? new Date(a.bookedAt).toLocaleDateString() : "Unknown",
     }));
     if (!rows.length) return;
     const hdrs = Object.keys(rows[0]);
     const csv = [
       hdrs.join(","),
       ...rows.map((r) =>
-        hdrs
-          .map((h) => {
-            const v = String((r as any)[h]);
-            return /[,"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-          })
-          .join(","),
+        hdrs.map((h) => {
+          const v = String((r as any)[h]);
+          return /[,"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+        }).join(","),
       ),
     ].join("\n");
     const a = document.createElement("a");
@@ -946,140 +465,66 @@ const AdminDashboard: React.FC = () => {
     a.click();
   }
 
-  // PATCH 5: memoized filter computations — previously computed inline every render
   const filteredPatients = useMemo(
-    () =>
-      q
-        ? patients.filter(
-            (p) =>
-              p.fullname?.toLowerCase().includes(q.toLowerCase()) ||
-              p.user?.email?.toLowerCase().includes(q.toLowerCase()),
-          )
-        : patients,
-    [patients, q],
+    () => q
+      ? (patients || []).filter((p) =>
+          p?.fullname?.toLowerCase().includes(q.toLowerCase()) ||
+          p?.user?.email?.toLowerCase().includes(q.toLowerCase())
+        )
+      : patients || [],
+    [patients, q]
   );
+
   const filteredStaff = useMemo(
-    () =>
-      q
-        ? staff.filter(
-            (s) =>
-              s.fullname?.toLowerCase().includes(q.toLowerCase()) ||
-              s.role?.toLowerCase().includes(q.toLowerCase()),
-          )
-        : staff,
-    [staff, q],
+    () => q
+      ? (staff || []).filter((s) =>
+          s?.fullname?.toLowerCase().includes(q.toLowerCase()) ||
+          s?.role?.toLowerCase().includes(q.toLowerCase())
+        )
+      : staff || [],
+    [staff, q]
   );
+
   const filteredPosts = useMemo(
-    () =>
-      q
-        ? blogPosts.filter((p) =>
-            p.title?.toLowerCase().includes(q.toLowerCase()),
-          )
-        : blogPosts,
-    [blogPosts, q],
+    () => q
+      ? (blogPosts || []).filter((p) =>
+          p?.title?.toLowerCase().includes(q.toLowerCase())
+        )
+      : blogPosts || [],
+    [blogPosts, q]
   );
 
   // ── Access guard ──────────────────────────────────────────────────────
   if (!isAdmin) {
     return (
-      <div
-        style={{
-          fontFamily: "'DM Sans',sans-serif",
-          minHeight: "100vh",
-          background: C.slate,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+      <div style={{ fontFamily: "'DM Sans',sans-serif", minHeight: "100vh", background: C.slate, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');`}</style>
-        <div
-          style={{
-            background: C.white,
-            borderRadius: 18,
-            padding: "40px 48px",
-            textAlign: "center",
-            boxShadow: "0 24px 64px rgba(23,127,237,0.15)",
-          }}
-        >
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: "50%",
-              background: "#fef2f2",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-            }}
-          >
+        <div style={{ background: C.white, borderRadius: 18, padding: "40px 48px", textAlign: "center", boxShadow: "0 24px 64px rgba(23,127,237,0.15)" }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#fef2f2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
             <I.X style={{ width: 24, height: 24, color: C.red }} />
           </div>
-          <div
-            style={{
-              fontSize: 20,
-              fontWeight: 700,
-              color: C.text,
-              marginBottom: 8,
-            }}
-          >
-            Access Denied
-          </div>
-          <div style={{ fontSize: 14, color: C.muted }}>
-            Admin role required to access this dashboard.
-          </div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 8 }}>Access Denied</div>
+          <div style={{ fontSize: 14, color: C.muted }}>Admin role required to access this dashboard.</div>
         </div>
       </div>
     );
   }
 
   // ── Loading ───────────────────────────────────────────────────────────
-  if (loading)
-    return (
-      <div
-        style={{
-          fontFamily: "'DM Sans',sans-serif",
-          minHeight: "100vh",
-          background: C.slate,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        <div style={{ textAlign: "center" }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              border: `3px solid ${C.soft}`,
-              borderTopColor: C.blue2,
-              borderRadius: "50%",
-              animation: "spin 0.8s linear infinite",
-              margin: "0 auto 14px",
-            }}
-          />
-          <p style={{ color: C.muted, fontSize: 13 }}>
-            Loading admin dashboard…
-          </p>
-        </div>
+  if (loading) return (
+    <div style={{ fontFamily: "'DM Sans',sans-serif", minHeight: "100vh", background: C.slate, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 44, height: 44, border: `3px solid ${C.soft}`, borderTopColor: C.blue2, borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 14px" }} />
+        <p style={{ color: C.muted, fontSize: 13 }}>Loading admin dashboard…</p>
       </div>
-    );
+    </div>
+  );
 
-  // Pre-compute image URLs once per render (not inside every JSX expression)
   const adminImg = imgUrl(user?.profile);
 
   return (
-    <div
-      style={{
-        fontFamily: "'DM Sans',sans-serif",
-        WebkitFontSmoothing: "antialiased",
-        minHeight: "100vh",
-        background: C.slate,
-        display: "flex",
-      }}
-    >
+    <div style={{ fontFamily: "'DM Sans',sans-serif", WebkitFontSmoothing: "antialiased", minHeight: "100vh", background: C.slate, display: "flex" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box}
@@ -1098,735 +543,143 @@ const AdminDashboard: React.FC = () => {
       `}</style>
 
       {/* ─── SIDEBAR ─────────────────────────────────────────────────── */}
-      <aside
-        style={{
-          width: sw,
-          minHeight: "100vh",
-          background: C.white,
-          display: "flex",
-          flexDirection: "column",
-          borderRight: `1px solid ${C.soft}`,
-          position: "sticky",
-          top: 0,
-          height: "100vh",
-          overflow: "hidden",
-          flexShrink: 0,
-          transition: "width 0.25s cubic-bezier(.4,0,.2,1)",
-          boxShadow: "2px 0 10px rgba(23,127,237,0.05)",
-        }}
-      >
+      <aside style={{ width: sw, minHeight: "100vh", background: C.white, display: "flex", flexDirection: "column", borderRight: `1px solid ${C.soft}`, position: "sticky", top: 0, height: "100vh", overflow: "hidden", flexShrink: 0, transition: "width 0.25s cubic-bezier(.4,0,.2,1)", boxShadow: "2px 0 10px rgba(23,127,237,0.05)" }}>
         {/* Brand */}
-        <div
-          style={{
-            padding: "18px 14px 14px",
-            borderBottom: `1px solid ${C.soft}`,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            minHeight: 62,
-          }}
-        >
+        <div style={{ padding: "18px 14px 14px", borderBottom: `1px solid ${C.soft}`, display: "flex", alignItems: "center", gap: 10, minHeight: 62 }}>
           <I.Logo style={{ width: 30, height: 30, flexShrink: 0 }} />
-          {!collapsed && (
-            <div>
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: 14,
-                  color: C.text,
-                  lineHeight: 1.2,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Etha-Atlantic
-              </div>
-              <div style={{ fontSize: 11, color: C.muted }}>Admin Panel</div>
-            </div>
-          )}
+          {!collapsed && <div><div style={{ fontWeight: 700, fontSize: 14, color: C.text, lineHeight: 1.2, whiteSpace: "nowrap" }}>Etha-Atlantic</div><div style={{ fontSize: 11, color: C.muted }}>Admin Panel</div></div>}
         </div>
         {/* Nav */}
-        <nav
-          style={{
-            flex: 1,
-            padding: "10px 8px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
-            overflowY: "auto",
-          }}
-        >
+        <nav style={{ flex: 1, padding: "10px 8px", display: "flex", flexDirection: "column", gap: 3, overflowY: "auto" }}>
           {navItems.map((n) => {
             const A = I[n.icon];
             const act = activeTab === n.id;
             return (
-              <button
-                key={n.id}
-                className="nh"
-                onClick={() => setActiveTab(n.id as any)}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: collapsed ? "10px" : "10px 12px",
-                  borderRadius: 10,
-                  border: "none",
-                  cursor: "pointer",
-                  background: act ? C.soft : "transparent",
-                  justifyContent: collapsed ? "center" : "flex-start",
-                  transition: "all 0.15s",
-                }}
-              >
-                <A
-                  style={{
-                    width: 17,
-                    height: 17,
-                    color: act ? C.blue2 : C.muted,
-                    flexShrink: 0,
-                  }}
-                />
-                {!collapsed && (
-                  <>
-                    <span
-                      style={{
-                        flex: 1,
-                        textAlign: "left",
-                        fontSize: 13,
-                        fontWeight: act ? 600 : 400,
-                        color: act ? C.text : C.muted,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {n.label}
-                    </span>
-                    {n.count !== null && (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          minWidth: 20,
-                          height: 20,
-                          borderRadius: 10,
-                          background: act ? C.blue2 : "#eef2f7",
-                          color: act ? C.white : C.muted,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          padding: "0 6px",
-                        }}
-                      >
-                        {n.count}
-                      </span>
-                    )}
-                  </>
-                )}
+              <button key={n.id} className="nh" onClick={() => setActiveTab(n.id as any)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: collapsed ? "10px" : "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", background: act ? C.soft : "transparent", justifyContent: collapsed ? "center" : "flex-start", transition: "all 0.15s" }}>
+                <A style={{ width: 17, height: 17, color: act ? C.blue2 : C.muted, flexShrink: 0 }} />
+                {!collapsed && <><span style={{ flex: 1, textAlign: "left", fontSize: 13, fontWeight: act ? 600 : 400, color: act ? C.text : C.muted, whiteSpace: "nowrap" }}>{n.label}</span>{n.count !== null && <span style={{ fontSize: 11, fontWeight: 600, minWidth: 20, height: 20, borderRadius: 10, background: act ? C.blue2 : "#eef2f7", color: act ? C.white : C.muted, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>{n.count}</span>}</>}
               </button>
             );
           })}
         </nav>
         {/* User card */}
         <div style={{ borderTop: `1px solid ${C.soft}`, padding: "10px 8px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "8px 10px",
-              borderRadius: 10,
-              background: C.slate,
-            }}
-          >
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: "50%",
-                background: `linear-gradient(135deg,${C.purple},#9333ea)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                overflow: "hidden",
-              }}
-            >
-              {adminImg ? (
-                <img
-                  src={adminImg}
-                  alt=""
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              ) : (
-                <span style={{ color: C.white, fontSize: 12, fontWeight: 600 }}>
-                  {user?.profile?.fullname?.charAt(0) || "A"}
-                </span>
-              )}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: C.slate }}>
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: `linear-gradient(135deg,${C.purple},#9333ea)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+              {adminImg ? <img src={adminImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: C.white, fontSize: 12, fontWeight: 600 }}>{user?.profile?.fullname?.charAt(0) || "A"}</span>}
             </div>
-            {!collapsed && (
-              <div style={{ flex: 1, overflow: "hidden" }}>
-                <div
-                  style={{
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    color: C.text,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {user?.profile?.fullname || "Admin"}
-                </div>
-                <div style={{ fontSize: 11, color: C.muted }}>
-                  Administrator
-                </div>
-              </div>
-            )}
+            {!collapsed && <div style={{ flex: 1, overflow: "hidden" }}><div style={{ fontSize: 12.5, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.profile?.fullname || "Admin"}</div><div style={{ fontSize: 11, color: C.muted }}>Administrator</div></div>}
           </div>
-          <button
-            className="nh"
-            onClick={() => setCollapsed(!collapsed)}
-            style={{
-              marginTop: 6,
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              padding: "7px",
-              borderRadius: 8,
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-              color: C.muted,
-              fontSize: 12,
-              transition: "all 0.15s",
-            }}
-          >
-            <I.ChevLeft
-              style={{
-                width: 13,
-                height: 13,
-                transition: "transform 0.25s",
-                transform: collapsed ? "rotate(180deg)" : "none",
-              }}
-            />
-            {!collapsed && <span>Collapse</span>}
+          <button className="nh" onClick={() => setCollapsed(!collapsed)} style={{ marginTop: 6, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px", borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.muted, fontSize: 12, transition: "all 0.15s" }}>
+            <I.ChevLeft style={{ width: 13, height: 13, transition: "transform 0.25s", transform: collapsed ? "rotate(180deg)" : "none" }} />{!collapsed && <span>Collapse</span>}
           </button>
         </div>
       </aside>
 
       {/* ─── MAIN ────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          minWidth: 0,
-          minHeight: "100vh",
-        }}
-      >
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: "100vh" }}>
+
         {/* Topbar */}
-        <header
-          style={{
-            height: 64,
-            background: C.white,
-            borderBottom: `1px solid ${C.soft}`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 24px",
-            position: "sticky",
-            top: 0,
-            zIndex: 30,
-            boxShadow: "0 2px 10px rgba(23,127,237,0.04)",
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>
-            {navItems.find((n) => n.id === activeTab)?.label}
-          </div>
+        <header style={{ height: 64, background: C.white, borderBottom: `1px solid ${C.soft}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", position: "sticky", top: 0, zIndex: 30, boxShadow: "0 2px 10px rgba(23,127,237,0.04)" }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{navItems.find(n => n.id === activeTab)?.label}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ position: "relative" }}>
-              <I.Search
-                style={{
-                  width: 14,
-                  height: 14,
-                  color: C.muted,
-                  position: "absolute",
-                  left: 10,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                }}
-              />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search…"
-                style={{
-                  paddingLeft: 30,
-                  paddingRight: 12,
-                  height: 36,
-                  border: `1.5px solid ${C.soft}`,
-                  borderRadius: 10,
-                  fontSize: 13,
-                  color: C.text,
-                  background: C.slate,
-                  outline: "none",
-                  fontFamily: "inherit",
-                  width: 210,
-                }}
-              />
+              <I.Search style={{ width: 14, height: 14, color: C.muted, position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…" style={{ paddingLeft: 30, paddingRight: 12, height: 36, border: `1.5px solid ${C.soft}`, borderRadius: 10, fontSize: 13, color: C.text, background: C.slate, outline: "none", fontFamily: "inherit", width: 210 }} />
             </div>
-            <button
-              className="xh"
-              onClick={loadData}
-              title="Refresh"
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 9,
-                border: `1.5px solid ${C.soft}`,
-                background: C.white,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "all 0.15s",
-              }}
-            >
+            <button className="xh" onClick={loadData} title="Refresh" style={{ width: 36, height: 36, borderRadius: 9, border: `1.5px solid ${C.soft}`, background: C.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
               <I.RefreshCw style={{ width: 15, height: 15, color: C.muted }} />
             </button>
-            <button
-              className="xh"
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 9,
-                border: `1.5px solid ${C.soft}`,
-                background: C.white,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                position: "relative",
-                transition: "all 0.15s",
-              }}
-            >
+            <button className="xh" style={{ width: 36, height: 36, borderRadius: 9, border: `1.5px solid ${C.soft}`, background: C.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", transition: "all 0.15s" }}>
               <I.Bell style={{ width: 15, height: 15, color: C.muted }} />
-              <span
-                style={{
-                  position: "absolute",
-                  top: 6,
-                  right: 6,
-                  width: 7,
-                  height: 7,
-                  borderRadius: "50%",
-                  background: C.red,
-                  border: `1.5px solid ${C.white}`,
-                }}
-              />
+              <span style={{ position: "absolute", top: 6, right: 6, width: 7, height: 7, borderRadius: "50%", background: C.red, border: `1.5px solid ${C.white}` }} />
             </button>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "5px 12px 5px 5px",
-                borderRadius: 24,
-                background: C.slate,
-                border: `1.5px solid ${C.soft}`,
-                cursor: "pointer",
-              }}
-            >
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: "50%",
-                  background: `linear-gradient(135deg,${C.purple},#9333ea)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                }}
-              >
-                {adminImg ? (
-                  <img
-                    src={adminImg}
-                    alt=""
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : (
-                  <span
-                    style={{ color: C.white, fontSize: 11, fontWeight: 600 }}
-                  >
-                    {user?.profile?.fullname?.charAt(0) || "A"}
-                  </span>
-                )}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 12px 5px 5px", borderRadius: 24, background: C.slate, border: `1.5px solid ${C.soft}`, cursor: "pointer" }}>
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: `linear-gradient(135deg,${C.purple},#9333ea)`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                {adminImg ? <img src={adminImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: C.white, fontSize: 11, fontWeight: 600 }}>{user?.profile?.fullname?.charAt(0) || "A"}</span>}
               </div>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>
-                {user?.profile?.fullname?.split(" ")[0] || "Admin"}
-              </span>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>{user?.profile?.fullname?.split(" ")[0] || "Admin"}</span>
               <I.ChevDown style={{ width: 13, height: 13, color: C.muted }} />
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <main
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: 24,
-            display: "flex",
-            flexDirection: "column",
-            gap: 20,
-          }}
-        >
+        <main style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
+
           {/* ── OVERVIEW ──────────────────────────────────────────────── */}
           {activeTab === "overview" && stats && (
             <div className="fi">
               {/* Stats row */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4,1fr)",
-                  gap: 16,
-                  marginBottom: 20,
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 20 }}>
                 {[
-                  {
-                    label: "Total Patients",
-                    value: stats?.totalPatients ?? 0,
-                    sub: "All registered",
-                    grad: `135deg,${C.blue1},${C.blue2}`,
-                    icon: "User",
-                  },
-                  {
-                    label: "Doctors",
-                    value: stats?.totalDoctors ?? 0,
-                    sub: "Active physicians",
-                    grad: "135deg,#059669,#10b981",
-                    icon: "Stethoscope",
-                  },
-                  {
-                    label: "Nurses",
-                    value: stats?.totalNurses ?? 0,
-                    sub: "Care staff",
-                    grad: `135deg,${C.teal},#14b8a6`,
-                    icon: "Shield",
-                  },
-                  {
-                    label: "Lab Scientists",
-                    value: stats?.totalLabScientists ?? 0,
-                    sub: "Laboratory staff",
-                    grad: `135deg,${C.orange},#f97316`,
-                    icon: "Flask",
-                  },
+                  { label: "Total Patients", value: stats.totalPatients, sub: "All registered", grad: `135deg,${C.blue1},${C.blue2}`, icon: "User" },
+                  { label: "Doctors", value: stats.totalDoctors, sub: "Active physicians", grad: "135deg,#059669,#10b981", icon: "Stethoscope" },
+                  { label: "Nurses", value: stats.totalNurses, sub: "Care staff", grad: `135deg,${C.teal},#14b8a6`, icon: "Shield" },
+                  { label: "Lab Scientists", value: stats.totalLabScientists, sub: "Laboratory staff", grad: `135deg,${C.orange},#f97316`, icon: "Flask" },
                 ].map((s, i) => {
                   const A = I[s.icon];
                   return (
-                    <div
-                      key={i}
-                      className="ch"
-                      style={{
-                        background: C.white,
-                        borderRadius: 14,
-                        border: `1px solid ${C.soft}`,
-                        padding: "18px 20px",
-                        transition: "all 0.18s",
-                        boxShadow: "0 2px 12px rgba(23,127,237,0.04)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          justifyContent: "space-between",
-                          marginBottom: 14,
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 11,
-                            background: `linear-gradient(${s.grad})`,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <A
-                            style={{ width: 18, height: 18, color: C.white }}
-                          />
+                    <div key={i} className="ch" style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.soft}`, padding: "18px 20px", transition: "all 0.18s", boxShadow: "0 2px 12px rgba(23,127,237,0.04)" }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 11, background: `linear-gradient(${s.grad})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <A style={{ width: 18, height: 18, color: C.white }} />
                         </div>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: C.green,
-                            background: "#ecfdf5",
-                            padding: "2px 8px",
-                            borderRadius: 10,
-                          }}
-                        >
-                          +{STAT_DELTAS[i]}%
-                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: C.green, background: "#ecfdf5", padding: "2px 8px", borderRadius: 10 }}>+{STAT_DELTAS[i]}%</span>
                       </div>
-                      <div
-                        style={{
-                          fontSize: 28,
-                          fontWeight: 700,
-                          color: C.text,
-                          lineHeight: 1,
-                        }}
-                      >
-                        {s.value}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12.5,
-                          fontWeight: 600,
-                          color: C.text,
-                          marginTop: 4,
-                        }}
-                      >
-                        {s.label}
-                      </div>
-                      <div
-                        style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}
-                      >
-                        {s.sub}
-                      </div>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: C.text, lineHeight: 1 }}>{s.value}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: C.text, marginTop: 4 }}>{s.label}</div>
+                      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>{s.sub}</div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Blog stats section - add safe guards */}
-              {stats?.blogStats && (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 16,
-                  }}
-                >
+              {/* Second row */}
+              {stats.blogStats && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                   {/* Blog stats */}
-                  <div
-                    style={{
-                      background: C.white,
-                      borderRadius: 14,
-                      border: `1px solid ${C.soft}`,
-                      padding: "20px 22px",
-                      boxShadow: "0 2px 12px rgba(23,127,237,0.04)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        marginBottom: 18,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 9,
-                          background: `linear-gradient(135deg,${C.purple},#9333ea)`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <I.BarChart
-                          style={{ width: 15, height: 15, color: C.white }}
-                        />
+                  <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.soft}`, padding: "20px 22px", boxShadow: "0 2px 12px rgba(23,127,237,0.04)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 9, background: `linear-gradient(135deg,${C.purple},#9333ea)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <I.BarChart style={{ width: 15, height: 15, color: C.white }} />
                       </div>
-                      <span
-                        style={{ fontSize: 14, fontWeight: 700, color: C.text }}
-                      >
-                        Blog Statistics
-                      </span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Blog Statistics</span>
                     </div>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 10,
-                      }}
-                    >
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                       {[
-                        {
-                          label: "Total Posts",
-                          value: stats.blogStats.total_posts ?? 0,
-                          bg: "#eff6ff",
-                          color: C.blue2,
-                        },
-                        {
-                          label: "Published",
-                          value: stats.blogStats.published_posts ?? 0,
-                          bg: "#ecfdf5",
-                          color: "#059669",
-                        },
-                        {
-                          label: "Drafts",
-                          value: stats.blogStats.draft_posts ?? 0,
-                          bg: "#fffbeb",
-                          color: "#b45309",
-                        },
-                        {
-                          label: "With TOC",
-                          value: stats.blogStats.posts_with_toc ?? 0,
-                          bg: "#f5f3ff",
-                          color: C.purple,
-                        },
+                        { label: "Total Posts", value: stats.blogStats.total_posts, bg: "#eff6ff", color: C.blue2 },
+                        { label: "Published", value: stats.blogStats.published_posts, bg: "#ecfdf5", color: "#059669" },
+                        { label: "Drafts", value: stats.blogStats.draft_posts, bg: "#fffbeb", color: "#b45309" },
+                        { label: "With TOC", value: stats.blogStats.posts_with_toc, bg: "#f5f3ff", color: C.purple },
                       ].map((b, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            background: b.bg,
-                            borderRadius: 10,
-                            padding: "12px 14px",
-                            textAlign: "center",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 22,
-                              fontWeight: 700,
-                              color: b.color,
-                            }}
-                          >
-                            {b.value}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 11.5,
-                              color: C.muted,
-                              marginTop: 3,
-                            }}
-                          >
-                            {b.label}
-                          </div>
+                        <div key={i} style={{ background: b.bg, borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
+                          <div style={{ fontSize: 22, fontWeight: 700, color: b.color }}>{b.value}</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>{b.label}</div>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Quick actions section - keep as is */}
-                  <div
-                    style={{
-                      background: C.white,
-                      borderRadius: 14,
-                      border: `1px solid ${C.soft}`,
-                      padding: "20px 22px",
-                      boxShadow: "0 2px 12px rgba(23,127,237,0.04)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: C.text,
-                        marginBottom: 14,
-                      }}
-                    >
-                      Quick Actions
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 8,
-                      }}
-                    >
+                  {/* Quick actions */}
+                  <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.soft}`, padding: "20px 22px", boxShadow: "0 2px 12px rgba(23,127,237,0.04)" }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 14 }}>Quick Actions</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {[
-                        {
-                          label: "Assign Staff to Patient",
-                          icon: "UserPlus",
-                          color: C.blue2,
-                          cls: "bp",
-                          tab: "assignments",
-                        },
-                        {
-                          label: "View All Patients",
-                          icon: "User",
-                          color: C.green,
-                          cls: "gp",
-                          tab: "patients",
-                        },
-                        {
-                          label: "Create Blog Post",
-                          icon: "FileText",
-                          color: C.purple,
-                          cls: "pp",
-                          tab: "blog",
-                        },
+                        { label: "Assign Staff to Patient", icon: "UserPlus", color: C.blue2, cls: "bp", tab: "assignments" },
+                        { label: "View All Patients", icon: "User", color: C.green, cls: "gp", tab: "patients" },
+                        { label: "Create Blog Post", icon: "FileText", color: C.purple, cls: "pp", tab: "blog" },
                       ].map((a, i) => {
                         const A = I[a.icon];
                         return (
-                          <button
-                            key={i}
-                            className={a.cls}
-                            onClick={() =>
-                              a.tab === "blog"
-                                ? (setActiveTab("blog"),
-                                  setShowCreateModal(true))
-                                : setActiveTab(a.tab as any)
-                            }
-                            style={{
-                              width: "100%",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              padding: "12px 14px",
-                              borderRadius: 10,
-                              border: "none",
-                              background: a.color + "12",
-                              cursor: "pointer",
-                              fontFamily: "inherit",
-                              transition: "all 0.15s",
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                              }}
-                            >
-                              <A
-                                style={{
-                                  width: 15,
-                                  height: 15,
-                                  color: a.color,
-                                }}
-                              />
-                              <span
-                                style={{
-                                  fontSize: 13,
-                                  fontWeight: 600,
-                                  color: a.color,
-                                }}
-                              >
-                                {a.label}
-                              </span>
+                          <button key={i} className={a.cls}
+                            onClick={() => a.tab === "blog" ? (setActiveTab("blog"), setShowCreateModal(true)) : setActiveTab(a.tab as any)}
+                            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: 10, border: "none", background: a.color + "12", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <A style={{ width: 15, height: 15, color: a.color }} />
+                              <span style={{ fontSize: 13, fontWeight: 600, color: a.color }}>{a.label}</span>
                             </div>
-                            <I.ChevLeft
-                              style={{
-                                width: 13,
-                                height: 13,
-                                color: a.color,
-                                transform: "rotate(180deg)",
-                              }}
-                            />
+                            <I.ChevLeft style={{ width: 13, height: 13, color: a.color, transform: "rotate(180deg)" }} />
                           </button>
                         );
                       })}
@@ -1835,81 +688,22 @@ const AdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              {/* Appointment summary - add safe guards */}
-              <div
-                style={{
-                  background: C.white,
-                  borderRadius: 14,
-                  border: `1px solid ${C.soft}`,
-                  padding: "18px 22px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  flexWrap: "wrap" as const,
-                  gap: 16,
-                  boxShadow: "0 2px 12px rgba(23,127,237,0.04)",
-                  marginTop: 0,
-                }}
-              >
+              {/* Appointment summary */}
+              <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.soft}`, padding: "18px 22px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" as const, gap: 16, boxShadow: "0 2px 12px rgba(23,127,237,0.04)", marginTop: 0 }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                    Appointment Overview
-                  </div>
-                  <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
-                    {stats?.totalAppointments ?? 0} total appointments
-                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Appointment Overview</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{stats.totalAppointments} total appointments</div>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 20,
-                    flexWrap: "wrap" as const,
-                  }}
-                >
+                <div style={{ display: "flex", gap: 20, flexWrap: "wrap" as const }}>
                   {[
-                    {
-                      label: "Pending",
-                      value:
-                        appointments?.filter((a) => a?.status === "PENDING")
-                          ?.length ?? 0,
-                      color: "#64748b",
-                    },
-                    {
-                      label: "In Review",
-                      value:
-                        appointments?.filter((a) => a?.status === "IN_REVIEW")
-                          ?.length ?? 0,
-                      color: C.blue2,
-                    },
-                    {
-                      label: "Awaiting",
-                      value:
-                        appointments?.filter(
-                          (a) => a?.status === "AWAITING_RESULTS",
-                        )?.length ?? 0,
-                      color: C.amber,
-                    },
-                    {
-                      label: "Completed",
-                      value:
-                        appointments?.filter((a) => a?.status === "COMPLETED")
-                          ?.length ?? 0,
-                      color: C.green,
-                    },
+                    { label: "Pending", value: (appointments || []).filter(a => a?.status === "PENDING").length, color: "#64748b" },
+                    { label: "In Review", value: (appointments || []).filter(a => a?.status === "IN_REVIEW").length, color: C.blue2 },
+                    { label: "Awaiting", value: (appointments || []).filter(a => a?.status === "AWAITING_RESULTS").length, color: C.amber },
+                    { label: "Completed", value: (appointments || []).filter(a => a?.status === "COMPLETED").length, color: C.green },
                   ].map((m, i) => (
                     <div key={i} style={{ textAlign: "center" }}>
-                      <div
-                        style={{
-                          fontSize: 22,
-                          fontWeight: 700,
-                          color: m.color,
-                        }}
-                      >
-                        {m.value}
-                      </div>
-                      <div style={{ fontSize: 11, color: C.muted }}>
-                        {m.label}
-                      </div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: m.color }}>{m.value}</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>{m.label}</div>
                     </div>
                   ))}
                 </div>
@@ -1920,172 +714,36 @@ const AdminDashboard: React.FC = () => {
           {/* ── PATIENTS ──────────────────────────────────────────────── */}
           {activeTab === "patients" && (
             <div className="fi">
-              <TableCard
-                header={
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{ fontSize: 15, fontWeight: 700, color: C.text }}
-                      >
-                        Patient Management
-                      </div>
-                      <div
-                        style={{ fontSize: 12, color: C.muted, marginTop: 2 }}
-                      >
-                        {filteredPatients.length} registered patients
-                      </div>
-                    </div>
-                    <button
-                      className="bp"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 7,
-                        padding: "9px 16px",
-                        borderRadius: 10,
-                        border: "none",
-                        background: C.blue2,
-                        color: C.white,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        boxShadow: `0 4px 12px ${C.blue2}44`,
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <I.Plus style={{ width: 14, height: 14 }} />
-                      Add Patient
-                    </button>
+              <TableCard header={
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Patient Management</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{filteredPatients.length} registered patients</div>
                   </div>
-                }
-              >
+                  <button className="bp" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: "none", background: C.blue2, color: C.white, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: `0 4px 12px ${C.blue2}44`, transition: "all 0.15s" }}>
+                    <I.Plus style={{ width: 14, height: 14 }} />Add Patient
+                  </button>
+                </div>
+              }>
                 <table>
-                  <thead>
-                    <tr>
-                      <th>Patient</th>
-                      <th>Contact</th>
-                      <th>Appointments</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
+                  <thead><tr><th>Patient</th><th>Contact</th><th>Appointments</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody>
-                    {filteredPatients.map((p) => (
-                      <tr
-                        key={p.id}
-                        className="rh"
-                        style={{ cursor: "pointer" }}
-                      >
+                    {filteredPatients.map(p => (
+                      <tr key={p?.id ?? Math.random()} className="rh" style={{ cursor: "pointer" }}>
                         <td>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 10,
-                            }}
-                          >
-                            <Avatar
-                              name={p.fullname || "P"}
-                              size={34}
-                              grad={`135deg,${C.blue1},${C.blue2}`}
-                            />
-                            <div>
-                              <div style={{ fontWeight: 600, fontSize: 13 }}>
-                                {p.fullname}
-                              </div>
-                              <div style={{ fontSize: 11.5, color: C.muted }}>
-                                ID: {p.id}
-                              </div>
-                            </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <Avatar name={p?.fullname || "P"} size={34} grad={`135deg,${C.blue1},${C.blue2}`} />
+                            <div><div style={{ fontWeight: 600, fontSize: 13 }}>{p?.fullname ?? "Unknown"}</div><div style={{ fontSize: 11.5, color: C.muted }}>ID: {p?.id ?? "N/A"}</div></div>
                           </div>
                         </td>
-                        <td>
-                          <div style={{ fontSize: 13 }}>{p.user?.email}</div>
-                          <div style={{ fontSize: 11.5, color: C.muted }}>
-                            {p.phone || "No phone"}
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                              padding: "3px 10px",
-                              borderRadius: 20,
-                              background: C.soft,
-                              color: C.blue2,
-                              fontSize: 11.5,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {p.appointments_count} appts
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 5,
-                              padding: "3px 10px",
-                              borderRadius: 20,
-                              background: "#ecfdf5",
-                              color: "#059669",
-                              fontSize: 11.5,
-                              fontWeight: 600,
-                            }}
-                          >
-                            <span
-                              style={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: "50%",
-                                background: C.green,
-                              }}
-                            />
-                            Active
-                          </span>
-                        </td>
+                        <td><div style={{ fontSize: 13 }}>{p?.user?.email ?? "No email"}</div><div style={{ fontSize: 11.5, color: C.muted }}>{p?.phone || "No phone"}</div></td>
+                        <td><span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 20, background: C.soft, color: C.blue2, fontSize: 11.5, fontWeight: 600 }}>{p?.appointments_count ?? 0} appts</span></td>
+                        <td><span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: "#ecfdf5", color: "#059669", fontSize: 11.5, fontWeight: 600 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green }} />Active</span></td>
                         <td>
                           <div style={{ display: "flex", gap: 6 }}>
-                            {[
-                              { ic: "Eye", col: C.blue2 },
-                              { ic: "Edit", col: C.green },
-                              { ic: "Trash", col: C.red },
-                            ].map((b, i) => {
+                            {[{ ic: "Eye", col: C.blue2 }, { ic: "Edit", col: C.green }, { ic: "Trash", col: C.red }].map((b, i) => {
                               const B = I[b.ic];
-                              return (
-                                <button
-                                  key={i}
-                                  style={{
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: 7,
-                                    border: "none",
-                                    background: b.col + "14",
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                  }}
-                                >
-                                  <B
-                                    style={{
-                                      width: 13,
-                                      height: 13,
-                                      color: b.col,
-                                    }}
-                                  />
-                                </button>
-                              );
+                              return <button key={i} style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: b.col + "14", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><B style={{ width: 13, height: 13, color: b.col }} /></button>;
                             })}
                           </div>
                         </td>
@@ -2100,252 +758,56 @@ const AdminDashboard: React.FC = () => {
           {/* ── STAFF ─────────────────────────────────────────────────── */}
           {activeTab === "staff" && (
             <div className="fi">
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3,1fr)",
-                  gap: 14,
-                  marginBottom: 16,
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 16 }}>
                 {[
-                  {
-                    role: "DOCTOR",
-                    label: "Doctors",
-                    grad: `135deg,${C.blue1},${C.blue2}`,
-                    icon: "Stethoscope",
-                  },
-                  {
-                    role: "NURSE",
-                    label: "Nurses",
-                    grad: `135deg,${C.teal},#14b8a6`,
-                    icon: "Shield",
-                  },
-                  {
-                    role: "LAB",
-                    label: "Lab Scientists",
-                    grad: `135deg,${C.orange},#f97316`,
-                    icon: "Flask",
-                  },
+                  { role: "DOCTOR", label: "Doctors", grad: `135deg,${C.blue1},${C.blue2}`, icon: "Stethoscope" },
+                  { role: "NURSE", label: "Nurses", grad: `135deg,${C.teal},#14b8a6`, icon: "Shield" },
+                  { role: "LAB", label: "Lab Scientists", grad: `135deg,${C.orange},#f97316`, icon: "Flask" },
                 ].map((r, i) => {
                   const A = I[r.icon];
-                  const cnt = staff.filter((s) => s.role === r.role).length;
+                  const cnt = (staff || []).filter(s => s?.role === r.role).length;
                   return (
-                    <div
-                      key={i}
-                      style={{
-                        background: C.white,
-                        borderRadius: 12,
-                        border: `1px solid ${C.soft}`,
-                        padding: "14px 18px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 38,
-                          height: 38,
-                          borderRadius: 10,
-                          background: `linear-gradient(${r.grad})`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
+                    <div key={i} style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.soft}`, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(${r.grad})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <A style={{ width: 17, height: 17, color: C.white }} />
                       </div>
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 22,
-                            fontWeight: 700,
-                            color: C.text,
-                          }}
-                        >
-                          {cnt}
-                        </div>
-                        <div style={{ fontSize: 12, color: C.muted }}>
-                          {r.label}
-                        </div>
-                      </div>
+                      <div><div style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{cnt}</div><div style={{ fontSize: 12, color: C.muted }}>{r.label}</div></div>
                     </div>
                   );
                 })}
               </div>
-              <TableCard
-                header={
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{ fontSize: 15, fontWeight: 700, color: C.text }}
-                      >
-                        Staff Management
-                      </div>
-                      <div
-                        style={{ fontSize: 12, color: C.muted, marginTop: 2 }}
-                      >
-                        {filteredStaff.length} staff members
-                      </div>
-                    </div>
-                    <button
-                      className="gp"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 7,
-                        padding: "9px 16px",
-                        borderRadius: 10,
-                        border: "none",
-                        background: C.green,
-                        color: C.white,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        boxShadow: `0 4px 12px ${C.green}44`,
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <I.Plus style={{ width: 14, height: 14 }} />
-                      Add Staff
-                    </button>
+              <TableCard header={
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Staff Management</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{filteredStaff.length} staff members</div>
                   </div>
-                }
-              >
+                  <button className="gp" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: "none", background: C.green, color: C.white, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: `0 4px 12px ${C.green}44`, transition: "all 0.15s" }}>
+                    <I.Plus style={{ width: 14, height: 14 }} />Add Staff
+                  </button>
+                </div>
+              }>
                 <table>
-                  <thead>
-                    <tr>
-                      <th>Staff Member</th>
-                      <th>Role</th>
-                      <th>Contact</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
+                  <thead><tr><th>Staff Member</th><th>Role</th><th>Contact</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody>
-                    {filteredStaff.map((m) => {
-                      const roleColor =
-                        m.role === "DOCTOR"
-                          ? C.blue2
-                          : m.role === "NURSE"
-                            ? C.teal
-                            : C.orange;
+                    {filteredStaff.map(m => {
+                      const roleColor = m?.role === "DOCTOR" ? C.blue2 : m?.role === "NURSE" ? C.teal : C.orange;
                       return (
-                        <tr key={m.id} className="rh">
+                        <tr key={m?.id ?? Math.random()} className="rh">
                           <td>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                              }}
-                            >
-                              <Avatar
-                                name={m.fullname || "S"}
-                                size={34}
-                                grad={
-                                  m.role === "DOCTOR"
-                                    ? `135deg,${C.blue1},${C.blue2}`
-                                    : m.role === "NURSE"
-                                      ? `135deg,${C.teal},#14b8a6`
-                                      : `135deg,${C.orange},#f97316`
-                                }
-                              />
-                              <div>
-                                <div style={{ fontWeight: 600, fontSize: 13 }}>
-                                  {m.fullname}
-                                </div>
-                                <div style={{ fontSize: 11.5, color: C.muted }}>
-                                  ID: {m.id}
-                                </div>
-                              </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <Avatar name={m?.fullname || "S"} size={34} grad={m?.role === "DOCTOR" ? `135deg,${C.blue1},${C.blue2}` : m?.role === "NURSE" ? `135deg,${C.teal},#14b8a6` : `135deg,${C.orange},#f97316`} />
+                              <div><div style={{ fontWeight: 600, fontSize: 13 }}>{m?.fullname ?? "Unknown"}</div><div style={{ fontSize: 11.5, color: C.muted }}>ID: {m?.id ?? "N/A"}</div></div>
                             </div>
                           </td>
-                          <td>
-                            <span
-                              style={{
-                                padding: "3px 10px",
-                                borderRadius: 20,
-                                background: roleColor + "16",
-                                color: roleColor,
-                                fontSize: 11.5,
-                                fontWeight: 600,
-                              }}
-                            >
-                              {m.role}
-                            </span>
-                          </td>
-                          <td>
-                            <div style={{ fontSize: 13 }}>{m.user?.email}</div>
-                            <div style={{ fontSize: 11.5, color: C.muted }}>
-                              {m.phone || "No phone"}
-                            </div>
-                          </td>
-                          <td>
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 5,
-                                padding: "3px 10px",
-                                borderRadius: 20,
-                                background: "#ecfdf5",
-                                color: "#059669",
-                                fontSize: 11.5,
-                                fontWeight: 600,
-                              }}
-                            >
-                              <span
-                                style={{
-                                  width: 6,
-                                  height: 6,
-                                  borderRadius: "50%",
-                                  background: C.green,
-                                }}
-                              />
-                              Active
-                            </span>
-                          </td>
+                          <td><span style={{ padding: "3px 10px", borderRadius: 20, background: roleColor + "16", color: roleColor, fontSize: 11.5, fontWeight: 600 }}>{m?.role ?? "Unknown"}</span></td>
+                          <td><div style={{ fontSize: 13 }}>{m?.user?.email ?? "No email"}</div><div style={{ fontSize: 11.5, color: C.muted }}>{m?.phone || "No phone"}</div></td>
+                          <td><span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: "#ecfdf5", color: "#059669", fontSize: 11.5, fontWeight: 600 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green }} />Active</span></td>
                           <td>
                             <div style={{ display: "flex", gap: 6 }}>
-                              {[
-                                { ic: "Eye", col: C.blue2 },
-                                { ic: "Edit", col: C.green },
-                                { ic: "Trash", col: C.red },
-                              ].map((b, i) => {
+                              {[{ ic: "Eye", col: C.blue2 }, { ic: "Edit", col: C.green }, { ic: "Trash", col: C.red }].map((b, i) => {
                                 const B = I[b.ic];
-                                return (
-                                  <button
-                                    key={i}
-                                    style={{
-                                      width: 28,
-                                      height: 28,
-                                      borderRadius: 7,
-                                      border: "none",
-                                      background: b.col + "14",
-                                      cursor: "pointer",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                    }}
-                                  >
-                                    <B
-                                      style={{
-                                        width: 13,
-                                        height: 13,
-                                        color: b.col,
-                                      }}
-                                    />
-                                  </button>
-                                );
+                                return <button key={i} style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: b.col + "14", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><B style={{ width: 13, height: 13, color: b.col }} /></button>;
                               })}
                             </div>
                           </td>
@@ -2360,397 +822,99 @@ const AdminDashboard: React.FC = () => {
 
           {/* ── ASSIGNMENTS ───────────────────────────────────────────── */}
           {activeTab === "assignments" && (
-            <div
-              className="fi"
-              style={{ display: "flex", flexDirection: "column", gap: 16 }}
-            >
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3,1fr)",
-                  gap: 14,
-                }}
-              >
+            <div className="fi" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
                 {[
-                  {
-                    label: "Doctors Assigned",
-                    icon: "Stethoscope",
-                    color: C.blue2,
-                    count: assignments.filter((a) => a.assignedDoctor).length,
-                    grad: `135deg,${C.blue1},${C.blue2}`,
-                  },
-                  {
-                    label: "Nurses Assigned",
-                    icon: "Shield",
-                    color: C.teal,
-                    count: assignments.filter((a) => a.assignedNurse).length,
-                    grad: `135deg,${C.teal},#14b8a6`,
-                  },
-                  {
-                    label: "Lab Scientists Assigned",
-                    icon: "Flask",
-                    color: C.orange,
-                    count: assignments.filter((a) => a.assignedLab).length,
-                    grad: `135deg,${C.orange},#f97316`,
-                  },
+                  { label: "Doctors Assigned", icon: "Stethoscope", color: C.blue2, count: (assignments || []).filter(a => a?.assignedDoctor).length, grad: `135deg,${C.blue1},${C.blue2}` },
+                  { label: "Nurses Assigned", icon: "Shield", color: C.teal, count: (assignments || []).filter(a => a?.assignedNurse).length, grad: `135deg,${C.teal},#14b8a6` },
+                  { label: "Lab Scientists Assigned", icon: "Flask", color: C.orange, count: (assignments || []).filter(a => a?.assignedLab).length, grad: `135deg,${C.orange},#f97316` },
                 ].map((s, i) => {
                   const A = I[s.icon];
-                  const pct = assignments.length
-                    ? Math.round((s.count / assignments.length) * 100)
-                    : 0;
+                  const total = assignments?.length || 0;
+                  const pct = total ? Math.round((s.count / total) * 100) : 0;
                   return (
-                    <div
-                      key={i}
-                      style={{
-                        background: C.white,
-                        borderRadius: 14,
-                        border: `1px solid ${C.soft}`,
-                        padding: "18px 20px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          marginBottom: 14,
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 10,
-                            background: `linear-gradient(${s.grad})`,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <A
-                            style={{ width: 16, height: 16, color: C.white }}
-                          />
+                    <div key={i} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.soft}`, padding: "18px 20px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(${s.grad})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <A style={{ width: 16, height: 16, color: C.white }} />
                         </div>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: C.text,
-                          }}
-                        >
-                          {s.label}
-                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{s.label}</div>
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "flex-end",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 26,
-                            fontWeight: 700,
-                            color: C.text,
-                          }}
-                        >
-                          {s.count}
-                          <span
-                            style={{
-                              fontSize: 13,
-                              color: C.muted,
-                              fontWeight: 400,
-                            }}
-                          >
-                            /{assignments.length}
-                          </span>
-                        </div>
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: s.color,
-                            background: s.color + "14",
-                            padding: "3px 10px",
-                            borderRadius: 10,
-                          }}
-                        >
-                          {pct}%
-                        </span>
+                      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                        <div style={{ fontSize: 26, fontWeight: 700, color: C.text }}>{s.count}<span style={{ fontSize: 13, color: C.muted, fontWeight: 400 }}>/{total}</span></div>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: s.color, background: s.color + "14", padding: "3px 10px", borderRadius: 10 }}>{pct}%</span>
                       </div>
-                      <div
-                        style={{
-                          height: 4,
-                          borderRadius: 2,
-                          background: C.soft,
-                          marginTop: 12,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: "100%",
-                            borderRadius: 2,
-                            background: `linear-gradient(${s.grad})`,
-                            width: `${pct}%`,
-                            transition: "width 0.6s ease",
-                          }}
-                        />
+                      <div style={{ height: 4, borderRadius: 2, background: C.soft, marginTop: 12, overflow: "hidden" }}>
+                        <div style={{ height: "100%", borderRadius: 2, background: `linear-gradient(${s.grad})`, width: `${pct}%`, transition: "width 0.6s ease" }} />
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              <TableCard
-                header={
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      flexWrap: "wrap" as const,
-                      gap: 10,
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{ fontSize: 15, fontWeight: 700, color: C.text }}
-                      >
-                        Active Appointments
-                      </div>
-                      <div
-                        style={{ fontSize: 12, color: C.muted, marginTop: 2 }}
-                      >
-                        Click any row or press Assign to allocate staff
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 8,
-                        flexWrap: "wrap" as const,
-                      }}
-                    >
-                      <div style={{ position: "relative" }}>
-                        <I.Filter
-                          style={{
-                            width: 13,
-                            height: 13,
-                            color: C.muted,
-                            position: "absolute",
-                            left: 10,
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                          }}
-                        />
-                        <select
-                          onChange={(e) => setStatusFilter(e.target.value)}
-                          style={{
-                            paddingLeft: 28,
-                            paddingRight: 12,
-                            height: 36,
-                            border: `1.5px solid ${C.soft}`,
-                            borderRadius: 10,
-                            fontSize: 12.5,
-                            color: C.text,
-                            background: C.white,
-                            outline: "none",
-                            fontFamily: "inherit",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <option value="all">All Status</option>
-                          <option value="PENDING">Pending</option>
-                          <option value="IN_REVIEW">In Review</option>
-                          <option value="AWAITING_RESULTS">
-                            Awaiting Results
-                          </option>
-                          <option value="COMPLETED">Completed</option>
-                        </select>
-                      </div>
-                      <button
-                        className="ip"
-                        onClick={() => {
-                          loadData();
-                          buildAssignments();
-                        }}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 7,
-                          padding: "0 14px",
-                          height: 36,
-                          borderRadius: 10,
-                          border: "none",
-                          background: C.indigo,
-                          color: C.white,
-                          fontSize: 12.5,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                          transition: "all 0.15s",
-                        }}
-                      >
-                        <I.RefreshCw style={{ width: 13, height: 13 }} />
-                        Refresh
-                      </button>
-                      <button
-                        className="gp"
-                        onClick={exportCSV}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 7,
-                          padding: "0 14px",
-                          height: 36,
-                          borderRadius: 10,
-                          border: "none",
-                          background: C.green,
-                          color: C.white,
-                          fontSize: 12.5,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                          transition: "all 0.15s",
-                        }}
-                      >
-                        <I.Download style={{ width: 13, height: 13 }} />
-                        Export
-                      </button>
-                    </div>
+              <TableCard header={
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" as const, gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Active Appointments</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Click any row or press Assign to allocate staff</div>
                   </div>
-                }
-              >
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+                    <div style={{ position: "relative" }}>
+                      <I.Filter style={{ width: 13, height: 13, color: C.muted, position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+                      <select onChange={e => setStatusFilter(e.target.value)} style={{ paddingLeft: 28, paddingRight: 12, height: 36, border: `1.5px solid ${C.soft}`, borderRadius: 10, fontSize: 12.5, color: C.text, background: C.white, outline: "none", fontFamily: "inherit", cursor: "pointer" }}>
+                        <option value="all">All Status</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="IN_REVIEW">In Review</option>
+                        <option value="AWAITING_RESULTS">Awaiting Results</option>
+                        <option value="COMPLETED">Completed</option>
+                      </select>
+                    </div>
+                    <button className="ip" onClick={() => { loadData(); buildAssignments(); }} style={{ display: "flex", alignItems: "center", gap: 7, padding: "0 14px", height: 36, borderRadius: 10, border: "none", background: C.indigo, color: C.white, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                      <I.RefreshCw style={{ width: 13, height: 13 }} />Refresh
+                    </button>
+                    <button className="gp" onClick={exportCSV} style={{ display: "flex", alignItems: "center", gap: 7, padding: "0 14px", height: 36, borderRadius: 10, border: "none", background: C.green, color: C.white, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                      <I.Download style={{ width: 13, height: 13 }} />Export
+                    </button>
+                  </div>
+                </div>
+              }>
                 <table>
-                  <thead>
-                    <tr>
-                      <th>Patient</th>
-                      <th>Doctor</th>
-                      <th>Nurse</th>
-                      <th>Lab Scientist</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
+                  <thead><tr><th>Patient</th><th>Doctor</th><th>Nurse</th><th>Lab Scientist</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody>
-                    {appointments
-                      .filter(
-                        (a) =>
-                          statusFilter === "all" || a.status === statusFilter,
-                      )
-                      .map((appt) => (
-                        <tr
-                          key={appt.id}
-                          className="rh"
-                          style={{ cursor: "pointer" }}
-                          onClick={() => {
-                            setSelectedAppt(appt);
-                            setShowAssignModal(true);
-                          }}
-                        >
-                          <td>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                              }}
-                            >
-                              <Avatar name={appt.name || "P"} size={32} />
-                              <div>
-                                <div style={{ fontWeight: 600, fontSize: 13 }}>
-                                  {appt.name}
-                                </div>
-                                <div style={{ fontSize: 11.5, color: C.muted }}>
-                                  Age {appt.age} ·{" "}
-                                  {appt.sex === "M" ? "Male" : "Female"}
-                                </div>
+                    {(appointments || []).filter(a => statusFilter === "all" || a?.status === statusFilter).map(appt => (
+                      <tr key={appt?.id ?? Math.random()} className="rh" style={{ cursor: "pointer" }} onClick={() => { setSelectedAppt(appt); setShowAssignModal(true); }}>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <Avatar name={appt?.name || "P"} size={32} />
+                            <div><div style={{ fontWeight: 600, fontSize: 13 }}>{appt?.name ?? "Unknown"}</div><div style={{ fontSize: 11.5, color: C.muted }}>Age {appt?.age ?? "?"} · {appt?.sex === "M" ? "Male" : appt?.sex === "F" ? "Female" : "Other"}</div></div>
+                          </div>
+                        </td>
+                        {[
+                          { person: appt?.doctor, color: C.blue2 },
+                          { person: appt?.vital_requests?.[0]?.assigned_to, color: C.teal },
+                          { person: appt?.test_requests?.[0]?.assigned_to, color: C.orange },
+                        ].map((col, ci) => (
+                          <td key={ci}>
+                            {col.person ? (
+                              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                <Avatar name={col.person?.fullname} size={24} grad={`135deg,${col.color},${col.color}cc`} />
+                                <span style={{ fontSize: 13 }}>{col.person?.fullname ?? "Unknown"}</span>
                               </div>
-                            </div>
+                            ) : (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: "#fffbeb", color: "#b45309", fontSize: 11.5, fontWeight: 600 }}>
+                                <I.Clock style={{ width: 10, height: 10 }} />Unassigned
+                              </span>
+                            )}
                           </td>
-                          {[
-                            { person: appt.doctor, color: C.blue2 },
-                            {
-                              person: appt.vital_requests?.[0]?.assigned_to,
-                              color: C.teal,
-                            },
-                            {
-                              person: appt.test_requests?.[0]?.assigned_to,
-                              color: C.orange,
-                            },
-                          ].map((col, ci) => (
-                            <td key={ci}>
-                              {col.person ? (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 7,
-                                  }}
-                                >
-                                  <Avatar
-                                    name={col.person.fullname}
-                                    size={24}
-                                    grad={`135deg,${col.color},${col.color}cc`}
-                                  />
-                                  <span style={{ fontSize: 13 }}>
-                                    {col.person.fullname}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span
-                                  style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 5,
-                                    padding: "3px 10px",
-                                    borderRadius: 20,
-                                    background: "#fffbeb",
-                                    color: "#b45309",
-                                    fontSize: 11.5,
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  <I.Clock style={{ width: 10, height: 10 }} />
-                                  Unassigned
-                                </span>
-                              )}
-                            </td>
-                          ))}
-                          <td>
-                            <Pill status={appt.status} />
-                          </td>
-                          <td onClick={(e) => e.stopPropagation()}>
-                            <button
-                              className="ip"
-                              onClick={() => {
-                                setSelectedAppt(appt);
-                                setShowAssignModal(true);
-                              }}
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 6,
-                                padding: "6px 12px",
-                                borderRadius: 8,
-                                border: "none",
-                                background: C.indigo,
-                                color: C.white,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                fontFamily: "inherit",
-                                transition: "all 0.15s",
-                              }}
-                            >
-                              <I.UserPlus style={{ width: 12, height: 12 }} />
-                              Assign
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                        ))}
+                        <td><Pill status={appt?.status ?? "PENDING"} /></td>
+                        <td onClick={e => e.stopPropagation()}>
+                          <button className="ip" onClick={() => { setSelectedAppt(appt); setShowAssignModal(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "none", background: C.indigo, color: C.white, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                            <I.UserPlus style={{ width: 12, height: 12 }} />Assign
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </TableCard>
@@ -2760,215 +924,44 @@ const AdminDashboard: React.FC = () => {
           {/* ── BLOG ──────────────────────────────────────────────────── */}
           {activeTab === "blog" && (
             <div className="fi">
-              <TableCard
-                header={
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{ fontSize: 15, fontWeight: 700, color: C.text }}
-                      >
-                        Blog Management
-                      </div>
-                      <div
-                        style={{ fontSize: 12, color: C.muted, marginTop: 2 }}
-                      >
-                        {filteredPosts.length} posts
-                      </div>
-                    </div>
-                    <button
-                      className="op"
-                      onClick={() => setShowCreateModal(true)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 7,
-                        padding: "9px 16px",
-                        borderRadius: 10,
-                        border: "none",
-                        background: C.orange,
-                        color: C.white,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        boxShadow: `0 4px 12px ${C.orange}44`,
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <I.Plus style={{ width: 14, height: 14 }} />
-                      New Post
-                    </button>
+              <TableCard header={
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Blog Management</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{filteredPosts.length} posts</div>
                   </div>
-                }
-              >
+                  <button className="op" onClick={() => setShowCreateModal(true)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: "none", background: C.orange, color: C.white, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: `0 4px 12px ${C.orange}44`, transition: "all 0.15s" }}>
+                    <I.Plus style={{ width: 14, height: 14 }} />New Post
+                  </button>
+                </div>
+              }>
                 <table>
-                  <thead>
-                    <tr>
-                      <th>Title</th>
-                      <th>Author</th>
-                      <th>Status</th>
-                      <th>Date</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
+                  <thead><tr><th>Title</th><th>Author</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
                   <tbody>
-                    {filteredPosts.map((post) => (
-                      <tr key={post.id} className="rh">
+                    {filteredPosts.map(post => (
+                      <tr key={post?.id ?? Math.random()} className="rh">
                         <td style={{ maxWidth: 280 }}>
-                          <div
-                            style={{
-                              fontWeight: 600,
-                              fontSize: 13,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {post.title}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 11.5,
-                              color: C.muted,
-                              marginTop: 2,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {post.description?.substring(0, 80)}…
+                          <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{post?.title ?? "Untitled"}</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{post?.description?.substring(0, 80) ?? ""}…</div>
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                            <Avatar name={post?.author?.fullname || "A"} size={26} grad={`135deg,${C.purple},#9333ea`} />
+                            <span style={{ fontSize: 13 }}>{post?.author?.fullname || "Unknown"}</span>
                           </div>
                         </td>
                         <td>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 7,
-                            }}
-                          >
-                            <Avatar
-                              name={post.author?.fullname || "A"}
-                              size={26}
-                              grad={`135deg,${C.purple},#9333ea`}
-                            />
-                            <span style={{ fontSize: 13 }}>
-                              {post.author?.fullname || "Unknown"}
-                            </span>
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 5,
-                              padding: "3px 10px",
-                              borderRadius: 20,
-                              background: post.published
-                                ? "#ecfdf5"
-                                : "#fffbeb",
-                              color: post.published ? "#059669" : "#b45309",
-                              fontSize: 11.5,
-                              fontWeight: 600,
-                            }}
-                          >
-                            <span
-                              style={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: "50%",
-                                background: post.published ? C.green : C.amber,
-                              }}
-                            />
-                            {post.published ? "Published" : "Draft"}
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: post?.published ? "#ecfdf5" : "#fffbeb", color: post?.published ? "#059669" : "#b45309", fontSize: 11.5, fontWeight: 600 }}>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: post?.published ? C.green : C.amber }} />
+                            {post?.published ? "Published" : "Draft"}
                           </span>
                         </td>
-                        <td style={{ fontSize: 12.5, color: C.muted }}>
-                          {new Date(post.created_at).toLocaleDateString(
-                            "en-US",
-                            { year: "numeric", month: "short", day: "numeric" },
-                          )}
-                        </td>
+                        <td style={{ fontSize: 12.5, color: C.muted }}>{post?.created_at ? new Date(post.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "Unknown"}</td>
                         <td>
                           <div style={{ display: "flex", gap: 6 }}>
-                            <button
-                              onClick={() =>
-                                window.open(`/blog/${post.slug}`, "_blank")
-                              }
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 7,
-                                border: "none",
-                                background: C.blue2 + "14",
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <I.Eye
-                                style={{
-                                  width: 13,
-                                  height: 13,
-                                  color: C.blue2,
-                                }}
-                              />
-                            </button>
-                            <button
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 7,
-                                border: "none",
-                                background: C.green + "14",
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <I.Edit
-                                style={{
-                                  width: 13,
-                                  height: 13,
-                                  color: C.green,
-                                }}
-                              />
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (!confirm("Delete this post?")) return;
-                                try {
-                                  await apiService.deleteBlogPost(post.slug);
-                                  loadData();
-                                } catch {
-                                  alert("Failed to delete.");
-                                }
-                              }}
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 7,
-                                border: "none",
-                                background: C.red + "14",
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <I.Trash
-                                style={{ width: 13, height: 13, color: C.red }}
-                              />
-                            </button>
+                            <button onClick={() => window.open(`/blog/${post?.slug}`, "_blank")} style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: C.blue2 + "14", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><I.Eye style={{ width: 13, height: 13, color: C.blue2 }} /></button>
+                            <button style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: C.green + "14", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><I.Edit style={{ width: 13, height: 13, color: C.green }} /></button>
+                            <button onClick={async () => { if (!confirm("Delete this post?")) return; try { await apiService.deleteBlogPost(post?.slug); loadData(); } catch { alert("Failed to delete."); } }} style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: C.red + "14", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><I.Trash style={{ width: 13, height: 13, color: C.red }} /></button>
                           </div>
                         </td>
                       </tr>
@@ -2988,20 +981,14 @@ const AdminDashboard: React.FC = () => {
           doctors={availableDoctors}
           nurses={availableNurses}
           labs={availableLabs}
-          onClose={() => {
-            setShowAssignModal(false);
-            setSelectedAppt(null);
-          }}
+          onClose={() => { setShowAssignModal(false); setSelectedAppt(null); }}
           onAssign={handleAssign}
         />
       )}
       {showCreateModal && (
         <CreateBlogModal
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            loadData();
-          }}
+          onSuccess={() => { setShowCreateModal(false); loadData(); }}
         />
       )}
     </div>
@@ -3011,215 +998,68 @@ const AdminDashboard: React.FC = () => {
 // ─── ASSIGN MODAL ─────────────────────────────────────────────────────────
 const AssignModal: React.FC<{
   appointment: any;
-  doctors: any[];
-  nurses: any[];
-  labs: any[];
+  doctors: any[]; nurses: any[]; labs: any[];
   onClose: () => void;
   onAssign: (data: any) => Promise<void>;
 }> = ({ appointment, doctors, nurses, labs, onClose, onAssign }) => {
-  const [selDoctor, setSelDoctor] = useState(
-    appointment?.doctor?.id?.toString() || "",
-  );
-  const [selNurse, setSelNurse] = useState(
-    appointment?.vital_requests?.[0]?.assigned_to?.id?.toString() || "",
-  );
-  const [selLab, setSelLab] = useState(
-    appointment?.test_requests?.[0]?.assigned_to?.id?.toString() || "",
-  );
+  const [selDoctor, setSelDoctor] = useState(appointment?.doctor?.id?.toString() || "");
+  const [selNurse, setSelNurse] = useState(appointment?.vital_requests?.[0]?.assigned_to?.id?.toString() || "");
+  const [selLab, setSelLab] = useState(appointment?.test_requests?.[0]?.assigned_to?.id?.toString() || "");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selDoctor && !selNurse && !selLab) {
-      alert("Please select at least one staff member.");
-      return;
-    }
+    if (!selDoctor && !selNurse && !selLab) { alert("Please select at least one staff member."); return; }
     setSaving(true);
     try {
-      await onAssign({
-        appointment_id: appointment.id,
-        doctor_id: selDoctor,
-        nurse_id: selNurse,
-        lab_id: selLab,
-        notes,
-      });
+      await onAssign({ appointment_id: appointment?.id, doctor_id: selDoctor, nurse_id: selNurse, lab_id: selLab, notes });
       onClose();
-    } catch (err: any) {
-      alert(`Assignment failed: ${err.message}`);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err: any) { alert(`Assignment failed: ${err.message}`); } finally { setSaving(false); }
   }
 
   const rows = [
-    {
-      label: "Assign Doctor",
-      icon: (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ width: 14, height: 14, color: C.blue2 }}
-        >
-          <path d="M4.5 7.5a3 3 0 003 3M4.5 7.5H3M7.5 10.5c0 5 4 8 7 8a5 5 0 005-5" />
-          <circle cx="19.5" cy="13.5" r="1.5" />
-          <path d="M4.5 7.5V5a1.5 1.5 0 013 0v2.5M4.5 5a1.5 1.5 0 00-3 0v2.5" />
-        </svg>
-      ),
-      color: C.blue2,
-      val: selDoctor,
-      set: setSelDoctor,
-      opts: doctors,
-      prefix: "Dr. ",
-    },
-    {
-      label: "Assign Nurse",
-      icon: (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ width: 14, height: 14, color: C.teal }}
-        >
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        </svg>
-      ),
-      color: C.teal,
-      val: selNurse,
-      set: setSelNurse,
-      opts: nurses,
-      prefix: "Nurse ",
-    },
-    {
-      label: "Assign Lab Scientist",
-      icon: (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ width: 14, height: 14, color: C.orange }}
-        >
-          <path d="M9 3h6M10 3v7L6.5 16.5A3 3 0 009.5 21h5a3 3 0 003-4.5L14 10V3" />
-          <path d="M7.5 16h9" strokeWidth="1.4" />
-        </svg>
-      ),
-      color: C.orange,
-      val: selLab,
-      set: setSelLab,
-      opts: labs,
-      prefix: "",
-    },
+    { label: "Assign Doctor", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14, color: C.blue2 }}><path d="M4.5 7.5a3 3 0 003 3M4.5 7.5H3M7.5 10.5c0 5 4 8 7 8a5 5 0 005-5"/><circle cx="19.5" cy="13.5" r="1.5"/><path d="M4.5 7.5V5a1.5 1.5 0 013 0v2.5M4.5 5a1.5 1.5 0 00-3 0v2.5"/></svg>, color: C.blue2, val: selDoctor, set: setSelDoctor, opts: doctors || [], prefix: "Dr. " },
+    { label: "Assign Nurse", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14, color: C.teal }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, color: C.teal, val: selNurse, set: setSelNurse, opts: nurses || [], prefix: "Nurse " },
+    { label: "Assign Lab Scientist", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14, color: C.orange }}><path d="M9 3h6M10 3v7L6.5 16.5A3 3 0 009.5 21h5a3 3 0 003-4.5L14 10V3"/><path d="M7.5 16h9" strokeWidth="1.4"/></svg>, color: C.orange, val: selLab, set: setSelLab, opts: labs || [], prefix: "" },
   ];
 
   return (
-    <Modal
-      title="Assign Staff"
-      subtitle={`Allocate healthcare professionals to ${appointment?.name}`}
-      onClose={onClose}
-      wide
-    >
+    <Modal title="Assign Staff" subtitle={`Allocate healthcare professionals to ${appointment?.name}`} onClose={onClose} wide>
       <form onSubmit={handleSubmit}>
-        <div
-          style={{
-            background: C.slate,
-            borderRadius: 10,
-            padding: "12px 14px",
-            marginBottom: 18,
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 8,
-          }}
-        >
+        <div style={{ background: C.slate, borderRadius: 10, padding: "12px 14px", marginBottom: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {[
-            ["Patient", appointment.name],
-            [
-              "Age / Sex",
-              `${appointment.age} / ${appointment.sex === "M" ? "Male" : "Female"}`,
-            ],
-            ["Status", appointment.status.replace(/_/g, " ")],
-            ["Booked", new Date(appointment.booked_at).toLocaleDateString()],
+            ["Patient", appointment?.name ?? "Unknown"],
+            ["Age / Sex", `${appointment?.age ?? "?"} / ${appointment?.sex === "M" ? "Male" : appointment?.sex === "F" ? "Female" : "Other"}`],
+            ["Status", appointment?.status?.replace(/_/g, " ") ?? "Unknown"],
+            ["Booked", appointment?.booked_at ? new Date(appointment.booked_at).toLocaleDateString() : "Unknown"],
           ].map(([k, v]) => (
-            <div key={k}>
-              <span style={{ fontSize: 11, color: C.muted }}>{k}</span>
-              <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                {v}
-              </div>
-            </div>
+            <div key={k}><span style={{ fontSize: 11, color: C.muted }}>{k}</span><div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{v}</div></div>
           ))}
         </div>
         {rows.map((row, i) => (
           <div key={i} style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                marginBottom: 7,
-              }}
-            >
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
               {row.icon}
               <label style={{ ...ls, marginBottom: 0 }}>{row.label}</label>
             </div>
-            <select
-              value={row.val}
-              onChange={(e) => row.set(e.target.value)}
-              style={{
-                ...is,
-                marginBottom: 0,
-                borderColor: row.val ? row.color + "55" : C.soft,
-              }}
-            >
+            <select value={row.val} onChange={e => row.set(e.target.value)} style={{ ...is, marginBottom: 0, borderColor: row.val ? row.color + "55" : C.soft }}>
               <option value="">Select…</option>
-              {row.opts.map((o: any) => (
-                <option key={o.id} value={o.id}>
-                  {row.prefix}
-                  {o.fullname}
-                </option>
-              ))}
+              {row.opts.map((o: any) => <option key={o?.id ?? Math.random()} value={o?.id}>{row.prefix}{o?.fullname ?? "Unknown"}</option>)}
             </select>
           </div>
         ))}
         <label style={ls}>Assignment Notes (optional)</label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-          placeholder="Special instructions for assigned staff…"
-          style={ts}
-        />
-        <Actions
-          onCancel={onClose}
-          label={saving ? "Assigning…" : "Assign Staff"}
-          color={C.indigo}
-          disabled={saving}
-        />
+        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Special instructions for assigned staff…" style={ts} />
+        <Actions onCancel={onClose} label={saving ? "Assigning…" : "Assign Staff"} color={C.indigo} disabled={saving} />
       </form>
     </Modal>
   );
 };
 
 // ─── CREATE BLOG MODAL ────────────────────────────────────────────────────
-const CreateBlogModal: React.FC<{
-  onClose: () => void;
-  onSuccess: () => void;
-}> = ({ onClose, onSuccess }) => {
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    content: "",
-    published: false,
-    enable_toc: true,
-  });
+const CreateBlogModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = ({ onClose, onSuccess }) => {
+  const [form, setForm] = useState({ title: "", description: "", content: "", published: false, enable_toc: true });
   const [featImg, setFeatImg] = useState<File | null>(null);
   const [img1, setImg1] = useState<File | null>(null);
   const [img2, setImg2] = useState<File | null>(null);
@@ -3227,18 +1067,8 @@ const CreateBlogModal: React.FC<{
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (
-      !form.title.trim() ||
-      !form.description.trim() ||
-      !form.content.trim()
-    ) {
-      alert("Please fill all required fields.");
-      return;
-    }
-    if (!featImg) {
-      alert("Featured image is required.");
-      return;
-    }
+    if (!form.title.trim() || !form.description.trim() || !form.content.trim()) { alert("Please fill all required fields."); return; }
+    if (!featImg) { alert("Featured image is required."); return; }
     setSaving(true);
     try {
       const fd = new FormData();
@@ -3251,184 +1081,58 @@ const CreateBlogModal: React.FC<{
       if (img1) fd.append("image_1", img1);
       if (img2) fd.append("image_2", img2);
 
-      // PATCH 4: was fetch("https://dhospitalback.onrender.com/api/hospital/blog/", {...})
-      // That used the wrong backend URL AND bypassed apiService's auth/token handling.
-      // Now delegates to apiService which uses the correct URL + Bearer token automatically.
       await apiService.createBlogPost(fd);
-
       onSuccess();
       alert("Blog post created!");
-    } catch (err: any) {
-      alert(`Failed: ${err.message}`);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err: any) { alert(`Failed: ${err.message}`); } finally { setSaving(false); }
   }
 
-  function fileInput(
-    label: string,
-    req: boolean,
-    onChange: (f: File | null) => void,
-    color: string,
-  ) {
+  function fileInput(label: string, req: boolean, onChange: (f: File | null) => void, color: string) {
     return (
       <div>
-        <label style={ls}>
-          {label}
-          {req && <span style={{ color: C.red }}> *</span>}
-        </label>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 14px",
-            border: `1.5px dashed ${color}55`,
-            borderRadius: 10,
-            cursor: "pointer",
-            background: color + "08",
-          }}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            style={{ width: 14, height: 14, color }}
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          <span style={{ fontSize: 12.5, color, fontWeight: 600 }}>
-            Choose image…
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            required={req}
-            onChange={(e) => onChange(e.target.files?.[0] || null)}
-            style={{ display: "none" }}
-          />
+        <label style={ls}>{label}{req && <span style={{ color: C.red }}> *</span>}</label>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", border: `1.5px dashed ${color}55`, borderRadius: 10, cursor: "pointer", background: color + "08" }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: 14, height: 14, color }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span style={{ fontSize: 12.5, color, fontWeight: 600 }}>Choose image…</span>
+          <input type="file" accept="image/*" required={req} onChange={e => onChange(e.target.files?.[0] || null)} style={{ display: "none" }} />
         </label>
       </div>
     );
   }
 
   return (
-    <Modal
-      title="Create Blog Post"
-      subtitle="Publish a new article to the hospital blog"
-      onClose={onClose}
-      wide
-    >
+    <Modal title="Create Blog Post" subtitle="Publish a new article to the hospital blog" onClose={onClose} wide>
       <form onSubmit={handleSubmit}>
-        <label style={ls}>
-          Title<span style={{ color: C.red }}> *</span>
-        </label>
-        <input
-          required
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-          placeholder="Enter post title"
-          style={is}
-        />
+        <label style={ls}>Title<span style={{ color: C.red }}> *</span></label>
+        <input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Enter post title" style={is} />
 
-        <label style={ls}>
-          Description<span style={{ color: C.red }}> *</span>
-        </label>
-        <textarea
-          required
-          rows={2}
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          placeholder="Brief summary shown in blog listing"
-          style={ts}
-        />
+        <label style={ls}>Description<span style={{ color: C.red }}> *</span></label>
+        <textarea required rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Brief summary shown in blog listing" style={ts} />
 
-        <label style={ls}>
-          Content<span style={{ color: C.red }}> *</span>
-        </label>
-        <textarea
-          required
-          rows={12}
-          value={form.content}
-          onChange={(e) => setForm({ ...form, content: e.target.value })}
-          placeholder={
-            "Write your post content using HTML.\n\nExample:\n<h2>Introduction</h2>\n<p>Your content here...</p>\n<h2>Section Two</h2>\n<p>More content...</p>"
-          }
-          style={{ ...ts, fontFamily: "monospace", fontSize: 12 }}
-        />
+        <label style={ls}>Content<span style={{ color: C.red }}> *</span></label>
+        <textarea required rows={12} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })}
+          placeholder={"Write your post content using HTML.\n\nExample:\n<h2>Introduction</h2>\n<p>Your content here...</p>\n<h2>Section Two</h2>\n<p>More content...</p>"}
+          style={{ ...ts, fontFamily: "monospace", fontSize: 12 }} />
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: 12,
-            marginBottom: 16,
-          }}
-        >
-          {fileInput("Featured Image", true, (f) => setFeatImg(f), C.blue2)}
-          {fileInput("Image 2 (optional)", false, (f) => setImg1(f), C.green)}
-          {fileInput("Image 3 (optional)", false, (f) => setImg2(f), C.purple)}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+          {fileInput("Featured Image", true, f => setFeatImg(f), C.blue2)}
+          {fileInput("Image 2 (optional)", false, f => setImg1(f), C.green)}
+          {fileInput("Image 3 (optional)", false, f => setImg2(f), C.purple)}
         </div>
 
         <div style={{ display: "flex", gap: 20, marginBottom: 20 }}>
-          {(
-            [
-              ["published", "Publish immediately"],
-              ["enable_toc", "Enable table of contents"],
-            ] as const
-          ).map(([key, label]) => (
-            <label
-              key={key}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                cursor: "pointer",
-              }}
-            >
-              <div
-                onClick={() => setForm((f) => ({ ...f, [key]: !f[key] }))}
-                style={{
-                  width: 36,
-                  height: 20,
-                  borderRadius: 10,
-                  background: form[key] ? C.blue2 : C.soft,
-                  position: "relative",
-                  transition: "background 0.2s",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                }}
-              >
-                <div
-                  style={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: "50%",
-                    background: C.white,
-                    position: "absolute",
-                    top: 3,
-                    left: form[key] ? 19 : 3,
-                    transition: "left 0.2s",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                  }}
-                />
+          {([["published", "Publish immediately"], ["enable_toc", "Enable table of contents"]] as const).map(([key, label]) => (
+            <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <div onClick={() => setForm(f => ({ ...f, [key]: !f[key] }))}
+                style={{ width: 36, height: 20, borderRadius: 10, background: form[key] ? C.blue2 : C.soft, position: "relative", transition: "background 0.2s", cursor: "pointer", flexShrink: 0 }}>
+                <div style={{ width: 14, height: 14, borderRadius: "50%", background: C.white, position: "absolute", top: 3, left: form[key] ? 19 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
               </div>
-              <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>
-                {label}
-              </span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{label}</span>
             </label>
           ))}
         </div>
 
-        <Actions
-          onCancel={onClose}
-          label={saving ? "Creating…" : "Create Post"}
-          color={C.orange}
-          disabled={saving}
-        />
+        <Actions onCancel={onClose} label={saving ? "Creating…" : "Create Post"} color={C.orange} disabled={saving} />
       </form>
     </Modal>
   );
