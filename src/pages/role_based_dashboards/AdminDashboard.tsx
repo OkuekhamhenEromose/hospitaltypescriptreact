@@ -514,6 +514,9 @@ function Avatar({
   size?: number;
   grad?: string;
 }) {
+  // Safety check - if name is undefined or null, use a fallback
+  const safeName = name || "?";
+  
   return (
     <div
       style={{
@@ -528,7 +531,7 @@ function Avatar({
       }}
     >
       <span style={{ color: C.white, fontSize: size * 0.38, fontWeight: 600 }}>
-        {name?.charAt(0)?.toUpperCase() || "?"}
+        {safeName.charAt(0).toUpperCase()}
       </span>
     </div>
   );
@@ -571,6 +574,8 @@ function Modal({
   children: React.ReactNode;
   wide?: boolean;
 }) {
+  const CloseIcon = I.X;
+  
   return (
     <div
       style={{
@@ -635,7 +640,7 @@ function Modal({
               justifyContent: "center",
             }}
           >
-            <I.X style={{ width: 14, height: 14, color: C.muted }} />
+            {CloseIcon && <CloseIcon style={{ width: 14, height: 14, color: C.muted }} />}
           </button>
         </div>
         <div style={{ padding: "20px 24px" }}>{children}</div>
@@ -768,19 +773,19 @@ const AdminDashboard: React.FC = () => {
     {
       id: "staff",
       label: "Staff",
-      icon: "Users", // Make sure this matches I["Users"]
+      icon: "Users",
       count: totalDoctors + totalNurses + totalLabScientists,
     },
     {
       id: "assignments",
       label: "Staff Assignments",
-      icon: "UserPlus", // Make sure this matches I["UserPlus"]
+      icon: "UserPlus",
       count: appointments?.filter((a) => a?.status !== "COMPLETED").length ?? 0,
     },
     {
       id: "blog",
       label: "Blog Management",
-      icon: "FileText", // Make sure this matches I["FileText"]
+      icon: "FileText",
       count: blogPosts?.length ?? 0,
     },
   ];
@@ -794,34 +799,34 @@ const AdminDashboard: React.FC = () => {
   }, [appointments]);
 
   useEffect(() => {
-  const checkToken = async () => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      // No token, redirect to login
-      window.location.href = '/login';
-      return;
-    }
-    
-    // Check if token is expired
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const exp = payload.exp * 1000;
-      if (exp < Date.now()) {
-        // Token expired, try to refresh
-        try {
-          await apiService.refreshToken();
-        } catch {
-          window.location.href = '/login';
-        }
+    const checkToken = async () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        // No token, redirect to login
+        window.location.href = '/login';
+        return;
       }
-    } catch {
-      // Invalid token
-      window.location.href = '/login';
-    }
-  };
-  
-  checkToken();
-}, []);
+      
+      // Check if token is expired
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const exp = payload.exp * 1000;
+        if (exp < Date.now()) {
+          // Token expired, try to refresh
+          try {
+            await apiService.refreshToken();
+          } catch {
+            window.location.href = '/login';
+          }
+        }
+      } catch {
+        // Invalid token
+        window.location.href = '/login';
+      }
+    };
+    
+    checkToken();
+  }, []);
 
   useEffect(() => {
     if (isAdmin) {
@@ -847,84 +852,84 @@ const AdminDashboard: React.FC = () => {
   }, [appointments]);
 
   async function loadData() {
-  try {
-    setLoading(true);
-    
-    // Create a function to safely fetch with token refresh
-    const safeFetch = async (promise: Promise<any>, fallback: any) => {
-      try {
-        return await promise;
-      } catch (error: any) {
-        // If it's a 401, try to refresh token once
-        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-          try {
-            await apiService.refreshToken();
-            // Retry the original promise
-            return await promise;
-          } catch (refreshError) {
-            // If refresh fails, logout user
-            logout();
-            return fallback;
+    try {
+      setLoading(true);
+      
+      // Create a function to safely fetch with token refresh
+      const safeFetch = async (promise: Promise<any>, fallback: any) => {
+        try {
+          return await promise;
+        } catch (error: any) {
+          // If it's a 401, try to refresh token once
+          if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+            try {
+              await apiService.refreshToken();
+              // Retry the original promise
+              return await promise;
+            } catch (refreshError) {
+              // If refresh fails, logout user
+              logout();
+              return fallback;
+            }
           }
+          return fallback;
         }
-        return fallback;
-      }
-    };
+      };
 
-    const [staffData, apptData, blogStats, posts] = await Promise.all([
-      safeFetch(apiService.getStaffMembers(), []),
-      safeFetch(apiService.getAppointments(), []),
-      safeFetch(apiService.getBlogStats(), {}),
-      safeFetch(apiService.getAllBlogPosts(), []),
-    ]);
+      const [staffData, apptData, blogStats, posts] = await Promise.all([
+        safeFetch(apiService.getStaffMembers(), []),
+        safeFetch(apiService.getAppointments(), []),
+        safeFetch(apiService.getBlogStats(), {}),
+        safeFetch(apiService.getAllBlogPosts(), []),
+      ]);
 
-    const typedBlogStats = (blogStats as any) || {
-      total_posts: 0,
-      published_posts: 0,
-      draft_posts: 0,
-      posts_with_toc: 0,
-      toc_usage_rate: 0,
-    };
+      const typedBlogStats = (blogStats as any) || {
+        total_posts: 0,
+        published_posts: 0,
+        draft_posts: 0,
+        posts_with_toc: 0,
+        toc_usage_rate: 0,
+      };
 
-    setStaff(Array.isArray(staffData) ? staffData : []);
-    setAppointments(Array.isArray(apptData) ? apptData : []);
-    setBlogPosts(Array.isArray(posts) ? posts : []);
+      setStaff(Array.isArray(staffData) ? staffData : []);
+      setAppointments(Array.isArray(apptData) ? apptData : []);
+      setBlogPosts(Array.isArray(posts) ? posts : []);
 
-    const pm = new Map<number, any>();
-    (Array.isArray(apptData) ? apptData : []).forEach((a: any) => {
-      if (a?.patient && !pm.has(a.patient.id)) {
-        pm.set(a.patient.id, {
-          ...a.patient,
-          appointments_count: (Array.isArray(apptData)
-            ? apptData
-            : []
-          ).filter((x: any) => x?.patient?.id === a.patient.id).length,
-        });
-      }
-    });
+      const pm = new Map<number, any>();
+      (Array.isArray(apptData) ? apptData : []).forEach((a: any) => {
+        if (a?.patient && !pm.has(a.patient.id)) {
+          pm.set(a.patient.id, {
+            ...a.patient,
+            appointments_count: (Array.isArray(apptData)
+              ? apptData
+              : []
+            ).filter((x: any) => x?.patient?.id === a.patient.id).length,
+          });
+        }
+      });
 
-    setPatients(Array.from(pm.values()));
+      setPatients(Array.from(pm.values()));
 
-    setStats({
-      totalPatients: pm.size,
-      totalDoctors: (Array.isArray(staffData) ? staffData : []).filter(
-        (s: any) => s?.role === "DOCTOR",
-      ).length,
-      totalNurses: (Array.isArray(staffData) ? staffData : []).filter(
-        (s: any) => s?.role === "NURSE",
-      ).length,
-      totalLabScientists: (Array.isArray(staffData) ? staffData : []).filter(
-        (s: any) => s?.role === "LAB",
-      ).length,
-      totalAppointments: (Array.isArray(apptData) ? apptData : []).length,
-      blogStats: typedBlogStats,
-    });
-  } catch (e) {
-    console.error(e);
-  } finally {
-    setLoading(false);
+      setStats({
+        totalPatients: pm.size,
+        totalDoctors: (Array.isArray(staffData) ? staffData : []).filter(
+          (s: any) => s?.role === "DOCTOR",
+        ).length,
+        totalNurses: (Array.isArray(staffData) ? staffData : []).filter(
+          (s: any) => s?.role === "NURSE",
+        ).length,
+        totalLabScientists: (Array.isArray(staffData) ? staffData : []).filter(
+          (s: any) => s?.role === "LAB",
+        ).length,
+        totalAppointments: (Array.isArray(apptData) ? apptData : []).length,
+        blogStats: typedBlogStats,
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   async function loadStaff() {
     try {
@@ -2569,7 +2574,6 @@ const AdminDashboard: React.FC = () => {
           )}
 
           {/* ── ASSIGNMENTS ───────────────────────────────────────────── */}
-          {/* ── ASSIGNMENTS ───────────────────────────────────────────── */}
           {activeTab === "assignments" && (
             <div
               className="fi"
@@ -2921,7 +2925,7 @@ const AdminDashboard: React.FC = () => {
                                   }}
                                 >
                                   <Avatar
-                                    name={doctor?.fullname}
+                                    name={doctor?.fullname || "?"}
                                     size={24}
                                     grad={`135deg,${C.blue2},${C.blue2}cc`}
                                   />
@@ -2958,7 +2962,7 @@ const AdminDashboard: React.FC = () => {
                                   }}
                                 >
                                   <Avatar
-                                    name={nurse?.fullname}
+                                    name={nurse?.fullname || "?"}
                                     size={24}
                                     grad={`135deg,${C.teal},${C.teal}cc`}
                                   />
@@ -2995,7 +2999,7 @@ const AdminDashboard: React.FC = () => {
                                   }}
                                 >
                                   <Avatar
-                                    name={lab?.fullname}
+                                    name={lab?.fullname || "?"}
                                     size={24}
                                     grad={`135deg,${C.orange},${C.orange}cc`}
                                   />
