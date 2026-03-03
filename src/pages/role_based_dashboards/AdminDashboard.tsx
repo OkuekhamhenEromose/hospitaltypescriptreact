@@ -1,4 +1,4 @@
-// components/dashboards/AdminDashboard.tsx
+// components/dashboards/AdminDashboard.tsx - FIXED VERSION
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiService } from "../../services/api";
@@ -405,17 +405,7 @@ const I: Record<
   ),
 };
 
-// ─── SAFE ICON HELPER ─────────────────────────────────────────────────────
-// function getIcon(name: string): ((p: React.SVGProps<SVGSVGElement>) => React.ReactElement) | null {
-//   const icon = I[name];
-//   if (!icon) {
-//     console.warn(`Icon "${name}" not found`);
-//     return null;
-//   }
-//   return icon;
-// }
-
-// ─── ICON COMPONENT WRAPPER - COMPLETELY REWRITTEN FOR SAFETY ────────────
+// ─── SAFE ICON COMPONENT ──────────────────────────────────────────────────
 function Icon({ 
   name, 
   style 
@@ -423,36 +413,25 @@ function Icon({
   name: string; 
   style?: React.CSSProperties 
 }) {
-  // CRITICAL FIX: Use useMemo to memoize the icon lookup
-  const IconComponent = React.useMemo(() => {
-    // Ensure I exists and has the property
-    if (!I || typeof I !== 'object') {
-      console.error('Icon library I is not available');
-      return null;
-    }
-    
-    const icon = I[name];
-    if (!icon) {
-      console.warn(`Icon "${name}" not found in library`);
-      return null;
-    }
-    
-    return icon;
-  }, [name]);
-
-  if (!IconComponent) {
-    // Return a fallback div instead of null to maintain layout
-    return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
+  // Safety: ensure name is valid
+  if (!name || typeof name !== 'string') {
+    console.warn('Icon: invalid name prop', name);
+    return null;
   }
-
+  
+  const IconComponent = I[name];
+  if (!IconComponent) {
+    console.warn(`Icon "${name}" not found`);
+    return null;
+  }
+  
   try {
     return <IconComponent style={style} />;
   } catch (error) {
-    console.error(`Error rendering icon ${name}:`, error);
-    return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
+    console.error(`Error rendering icon "${name}":`, error);
+    return null;
   }
 }
-
 
 // ─── TYPES ────────────────────────────────────────────────────────────────
 interface DashboardStats {
@@ -563,10 +542,7 @@ function Avatar({
   size?: number;
   grad?: string;
 }) {
-  // Safety check - if name is undefined or null, use a fallback
   const safeName = name || "?";
-  
-  // Safety check for grad - ensure it's a string
   const safeGrad = grad || `135deg,${C.blue1},${C.blue2}`;
   
   return (
@@ -613,7 +589,6 @@ function Pill({ status }: { status: string }) {
   );
 }
 
-// ─── MODAL COMPONENT - REWRITTEN WITH EXPLICIT ERROR BOUNDARY ─────────────
 function Modal({
   title,
   subtitle,
@@ -627,9 +602,6 @@ function Modal({
   children: React.ReactNode;
   wide?: boolean;
 }) {
-  // Local state to track if close button should render
-  const [showCloseButton, setShowCloseButton] = useState(true);
-
   return (
     <div
       style={{
@@ -680,68 +652,27 @@ function Modal({
               </div>
             )}
           </div>
-          {showCloseButton && (
-            <button
-              onClick={onClose}
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                border: "none",
-                background: C.slate,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              onError={() => setShowCloseButton(false)}
-            >
-              {/* Use a try-catch wrapper for the icon */}
-              <IconWrapper name="X" style={{ width: 14, height: 14, color: C.muted }} />
-            </button>
-          )}
+          <button
+            onClick={onClose}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 8,
+              border: "none",
+              background: C.slate,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon name="X" style={{ width: 14, height: 14, color: C.muted }} />
+          </button>
         </div>
         <div style={{ padding: "20px 24px" }}>{children}</div>
       </div>
     </div>
   );
-}
-
-// ─── ICON WRAPPER COMPONENT - ULTIMATE SAFETY NET ────────────────────────
-function IconWrapper({ name, style }: { name: string; style?: React.CSSProperties }) {
-  try {
-    // First, check if we're in a browser environment
-    if (typeof window === 'undefined') {
-      return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
-    }
-
-    // Check if I exists and is an object
-    if (!I || typeof I !== 'object') {
-      console.error('Icon library I is not properly initialized');
-      return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
-    }
-
-    // Get the icon component
-    const IconComponent = I[name];
-    
-    // If icon doesn't exist, return fallback
-    if (typeof IconComponent !== 'function') {
-      console.warn(`Icon "${name}" not found or not a function`);
-      return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
-    }
-
-    // Try to render the icon
-    try {
-      return <IconComponent style={style} />;
-    } catch (renderError) {
-      console.error(`Error rendering icon ${name}:`, renderError);
-      return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
-    }
-  } catch (error) {
-    // Ultimate fallback - if ANYTHING goes wrong, render a div
-    console.error(`Critical error in IconWrapper for ${name}:`, error);
-    return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
-  }
 }
 
 function Actions({
@@ -833,12 +764,40 @@ function TableCard({
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────
 const AdminDashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const authContext = useAuth();
+  
+  // Safety check for auth context
+  if (!authContext) {
+    return (
+      <div style={{ padding: 20, color: C.red }}>
+        Error: Authentication context not available
+      </div>
+    );
+  }
+  
+  const { user, logout } = authContext;
+  
   const [activeTab, setActiveTab] = useState<
     "overview" | "patients" | "staff" | "assignments" | "blog"
   >("overview");
   const [collapsed, setCollapsed] = useState(false);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  
+  // Initialize with safe defaults
+  const [stats, setStats] = useState<DashboardStats>({
+    totalPatients: 0,
+    totalDoctors: 0,
+    totalNurses: 0,
+    totalLabScientists: 0,
+    totalAppointments: 0,
+    blogStats: {
+      total_posts: 0,
+      published_posts: 0,
+      draft_posts: 0,
+      posts_with_toc: 0,
+      toc_usage_rate: 0,
+    },
+  });
+  
   const [staff, setStaff] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
@@ -853,6 +812,7 @@ const AdminDashboard: React.FC = () => {
   const [assignments, setAssignments] = useState<StaffAssignment[]>([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [q, setQ] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const isAdmin = user?.profile?.role === "ADMIN";
   const sw = collapsed ? 72 : 248;
@@ -862,6 +822,7 @@ const AdminDashboard: React.FC = () => {
   const totalNurses = stats?.totalNurses ?? 0;
   const totalLabScientists = stats?.totalLabScientists ?? 0;
   const totalPatients = stats?.totalPatients ?? 0;
+  
   const navItems = [
     { id: "overview", label: "Overview", icon: "Home", count: null },
     { id: "patients", label: "Patients", icon: "User", count: totalPatients },
@@ -885,29 +846,18 @@ const AdminDashboard: React.FC = () => {
     },
   ];
 
-  // Safety check for appointments
-  useEffect(() => {
-    if (appointments && !Array.isArray(appointments)) {
-      console.error("Appointments is not an array:", appointments);
-      setAppointments([]);
-    }
-  }, [appointments]);
-
   useEffect(() => {
     const checkToken = async () => {
       const token = localStorage.getItem('access_token');
       if (!token) {
-        // No token, redirect to login
         window.location.href = '/login';
         return;
       }
       
-      // Check if token is expired
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const exp = payload.exp * 1000;
         if (exp < Date.now()) {
-          // Token expired, try to refresh
           try {
             await apiService.refreshToken();
           } catch {
@@ -915,7 +865,6 @@ const AdminDashboard: React.FC = () => {
           }
         }
       } catch {
-        // Invalid token
         window.location.href = '/login';
       }
     };
@@ -934,81 +883,93 @@ const AdminDashboard: React.FC = () => {
     if (activeTab === "assignments") buildAssignments();
   }, [activeTab, statusFilter, appointments]);
 
+  // FIXED: Proper retry logic for API calls
   async function loadData() {
     try {
       setLoading(true);
+      setError(null);
       
-      // Create a function to safely fetch with token refresh
-      const safeFetch = async (promise: Promise<any>, fallback: any) => {
+      // Helper to safely fetch with proper retry on 401
+      const safeFetch = async <T,>(
+        fetchFn: () => Promise<T>,
+        fallback: T
+      ): Promise<T> => {
         try {
-          return await promise;
+          return await fetchFn();
         } catch (error: any) {
-          // If it's a 401, try to refresh token once
           if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
             try {
               await apiService.refreshToken();
-              // Retry the original promise
-              return await promise;
+              // FIXED: Retry the FUNCTION, not the promise
+              return await fetchFn();
             } catch (refreshError) {
-              // If refresh fails, logout user
+              console.error('Token refresh failed:', refreshError);
               logout();
               return fallback;
             }
           }
+          console.error('Fetch error:', error);
           return fallback;
         }
       };
 
       const [staffData, apptData, blogStats, posts] = await Promise.all([
-        safeFetch(apiService.getStaffMembers(), []),
-        safeFetch(apiService.getAppointments(), []),
-        safeFetch(apiService.getBlogStats(), {}),
-        safeFetch(apiService.getAllBlogPosts(), []),
+        safeFetch(() => apiService.getStaffMembers(), []),
+        safeFetch(() => apiService.getAppointments(), []),
+        safeFetch(() => apiService.getBlogStats(), {
+          total_posts: 0,
+          published_posts: 0,
+          draft_posts: 0,
+          posts_with_toc: 0,
+          toc_usage_rate: 0,
+        }),
+        safeFetch(() => apiService.getAllBlogPosts(), []),
       ]);
 
-      const typedBlogStats = (blogStats as any) || {
-        total_posts: 0,
-        published_posts: 0,
-        draft_posts: 0,
-        posts_with_toc: 0,
-        toc_usage_rate: 0,
-      };
+      // Ensure all data is arrays
+      const safeStaffData = Array.isArray(staffData) ? staffData : [];
+      const safeApptData = Array.isArray(apptData) ? apptData : [];
+      const safePosts = Array.isArray(posts) ? posts : [];
 
-      setStaff(Array.isArray(staffData) ? staffData : []);
-      setAppointments(Array.isArray(apptData) ? apptData : []);
-      setBlogPosts(Array.isArray(posts) ? posts : []);
+      setStaff(safeStaffData);
+      setAppointments(safeApptData);
+      setBlogPosts(safePosts);
 
+      // Extract unique patients from appointments
       const pm = new Map<number, any>();
-      (Array.isArray(apptData) ? apptData : []).forEach((a: any) => {
-        if (a?.patient && !pm.has(a.patient.id)) {
-          pm.set(a.patient.id, {
-            ...a.patient,
-            appointments_count: (Array.isArray(apptData)
-              ? apptData
-              : []
-            ).filter((x: any) => x?.patient?.id === a.patient.id).length,
-          });
+      safeApptData.forEach((a: any) => {
+        if (a?.patient && a.patient.id) {
+          if (!pm.has(a.patient.id)) {
+            pm.set(a.patient.id, {
+              ...a.patient,
+              appointments_count: safeApptData.filter(
+                (x: any) => x?.patient?.id === a.patient.id
+              ).length,
+            });
+          }
         }
       });
 
       setPatients(Array.from(pm.values()));
 
+      // Set stats with safe defaults
       setStats({
         totalPatients: pm.size,
-        totalDoctors: (Array.isArray(staffData) ? staffData : []).filter(
-          (s: any) => s?.role === "DOCTOR",
-        ).length,
-        totalNurses: (Array.isArray(staffData) ? staffData : []).filter(
-          (s: any) => s?.role === "NURSE",
-        ).length,
-        totalLabScientists: (Array.isArray(staffData) ? staffData : []).filter(
-          (s: any) => s?.role === "LAB",
-        ).length,
-        totalAppointments: (Array.isArray(apptData) ? apptData : []).length,
-        blogStats: typedBlogStats,
+        totalDoctors: safeStaffData.filter((s: any) => s?.role === "DOCTOR").length,
+        totalNurses: safeStaffData.filter((s: any) => s?.role === "NURSE").length,
+        totalLabScientists: safeStaffData.filter((s: any) => s?.role === "LAB").length,
+        totalAppointments: safeApptData.length,
+        blogStats: blogStats || {
+          total_posts: 0,
+          published_posts: 0,
+          draft_posts: 0,
+          posts_with_toc: 0,
+          toc_usage_rate: 0,
+        },
       });
     } catch (e) {
-      console.error(e);
+      console.error('Error loading dashboard data:', e);
+      setError('Failed to load dashboard data. Please refresh.');
     } finally {
       setLoading(false);
     }
@@ -1025,12 +986,12 @@ const AdminDashboard: React.FC = () => {
       setAvailableNurses(Array.isArray(n) ? n : []);
       setAvailableLabs(Array.isArray(l) ? l : []);
     } catch (e) {
-      console.error(e);
+      console.error('Error loading staff:', e);
     }
   }
 
   function buildAssignments() {
-    if (!appointments || !Array.isArray(appointments)) {
+    if (!Array.isArray(appointments)) {
       setAssignments([]);
       return;
     }
@@ -1041,19 +1002,17 @@ const AdminDashboard: React.FC = () => {
         : appointments.filter((a) => a?.status === statusFilter);
 
     const newAssignments = src
-      .filter((appt) => appt != null) // Filter out null/undefined appointments
+      .filter((appt) => appt != null)
       .map((a: any) => {
         try {
-          // Safely extract assigned staff with multiple fallbacks
           const getAssignedDoctor = () => {
             try {
               if (!a) return null;
-              // Try different possible paths
               if (a.doctor) return a.doctor;
               if (a.assigned_doctor?.staff) return a.assigned_doctor.staff;
               if (a.assignments) {
                 const doctorAssign = a.assignments.find(
-                  (ass: any) => ass?.role === "DOCTOR",
+                  (ass: any) => ass?.role === "DOCTOR"
                 );
                 return doctorAssign?.staff || null;
               }
@@ -1066,7 +1025,6 @@ const AdminDashboard: React.FC = () => {
           const getAssignedNurse = () => {
             try {
               if (!a) return null;
-              // Try vital_requests array
               if (
                 a.vital_requests &&
                 Array.isArray(a.vital_requests) &&
@@ -1077,10 +1035,9 @@ const AdminDashboard: React.FC = () => {
                   return firstVital.assigned_to || firstVital.staff || null;
                 }
               }
-              // Try assignments
               if (a.assignments) {
                 const nurseAssign = a.assignments.find(
-                  (ass: any) => ass?.role === "NURSE",
+                  (ass: any) => ass?.role === "NURSE"
                 );
                 return nurseAssign?.staff || null;
               }
@@ -1093,7 +1050,6 @@ const AdminDashboard: React.FC = () => {
           const getAssignedLab = () => {
             try {
               if (!a) return null;
-              // Try test_requests array
               if (
                 a.test_requests &&
                 Array.isArray(a.test_requests) &&
@@ -1104,10 +1060,9 @@ const AdminDashboard: React.FC = () => {
                   return firstTest.assigned_to || firstTest.staff || null;
                 }
               }
-              // Try assignments
               if (a.assignments) {
                 const labAssign = a.assignments.find(
-                  (ass: any) => ass?.role === "LAB",
+                  (ass: any) => ass?.role === "LAB"
                 );
                 return labAssign?.staff || null;
               }
@@ -1128,7 +1083,6 @@ const AdminDashboard: React.FC = () => {
             bookedAt: a?.booked_at ?? new Date().toISOString(),
           };
         } catch (error) {
-          // If anything fails for this appointment, return a safe default
           return {
             appointmentId: a?.id ?? 0,
             patientId: 0,
@@ -1153,7 +1107,7 @@ const AdminDashboard: React.FC = () => {
           appointment_id: data.appointment_id,
           staff_id: data.doctor_id,
           role: "DOCTOR",
-        }),
+        })
       );
     if (data.nurse_id)
       ops.push(
@@ -1161,7 +1115,7 @@ const AdminDashboard: React.FC = () => {
           appointment_id: data.appointment_id,
           staff_id: data.nurse_id,
           role: "NURSE",
-        }),
+        })
       );
     if (data.lab_id)
       ops.push(
@@ -1169,7 +1123,7 @@ const AdminDashboard: React.FC = () => {
           appointment_id: data.appointment_id,
           staff_id: data.lab_id,
           role: "LAB",
-        }),
+        })
       );
     await Promise.all(ops);
     loadData();
@@ -1198,7 +1152,7 @@ const AdminDashboard: React.FC = () => {
             const v = String((r as any)[h]);
             return /[,"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
           })
-          .join(","),
+          .join(",")
       ),
     ].join("\n");
     const a = document.createElement("a");
@@ -1213,10 +1167,10 @@ const AdminDashboard: React.FC = () => {
         ? (patients || []).filter(
             (p) =>
               p?.fullname?.toLowerCase().includes(q.toLowerCase()) ||
-              p?.user?.email?.toLowerCase().includes(q.toLowerCase()),
+              p?.user?.email?.toLowerCase().includes(q.toLowerCase())
           )
         : patients || [],
-    [patients, q],
+    [patients, q]
   );
 
   const filteredStaff = useMemo(
@@ -1225,23 +1179,54 @@ const AdminDashboard: React.FC = () => {
         ? (staff || []).filter(
             (s) =>
               s?.fullname?.toLowerCase().includes(q.toLowerCase()) ||
-              s?.role?.toLowerCase().includes(q.toLowerCase()),
+              s?.role?.toLowerCase().includes(q.toLowerCase())
           )
         : staff || [],
-    [staff, q],
+    [staff, q]
   );
 
   const filteredPosts = useMemo(
     () =>
       q
         ? (blogPosts || []).filter((p) =>
-            p?.title?.toLowerCase().includes(q.toLowerCase()),
+            p?.title?.toLowerCase().includes(q.toLowerCase())
           )
         : blogPosts || [],
-    [blogPosts, q],
+    [blogPosts, q]
   );
 
   // ── Access guard ──────────────────────────────────────────────────────
+  if (!user) {
+    return (
+      <div
+        style={{
+          fontFamily: "'DM Sans',sans-serif",
+          minHeight: "100vh",
+          background: C.slate,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');`}</style>
+        <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              border: `3px solid ${C.soft}`,
+              borderTopColor: C.blue2,
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+              margin: "0 auto 14px",
+            }}
+          />
+          <p style={{ color: C.muted, fontSize: 13 }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAdmin) {
     return (
       <div
@@ -1297,7 +1282,7 @@ const AdminDashboard: React.FC = () => {
   }
 
   // ── Loading ───────────────────────────────────────────────────────────
-  if (loading)
+  if (loading) {
     return (
       <div
         style={{
@@ -1328,6 +1313,83 @@ const AdminDashboard: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // ── Error state ───────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div
+        style={{
+          fontFamily: "'DM Sans',sans-serif",
+          minHeight: "100vh",
+          background: C.slate,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+        }}
+      >
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');`}</style>
+        <div
+          style={{
+            background: C.white,
+            borderRadius: 18,
+            padding: "40px 48px",
+            textAlign: "center",
+            boxShadow: "0 24px 64px rgba(23,127,237,0.15)",
+            maxWidth: 400,
+          }}
+        >
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              background: "#fef2f2",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+            }}
+          >
+            <Icon name="X" style={{ width: 24, height: 24, color: C.red }} />
+          </div>
+          <div
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: C.text,
+              marginBottom: 8,
+            }}
+          >
+            Error Loading Dashboard
+          </div>
+          <div style={{ fontSize: 14, color: C.muted, marginBottom: 20 }}>
+            {error}
+          </div>
+          <button
+            onClick={() => {
+              setError(null);
+              loadData();
+            }}
+            style={{
+              padding: "10px 24px",
+              borderRadius: 10,
+              border: "none",
+              background: C.blue2,
+              color: C.white,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const adminImg = imgUrl(user?.profile);
 
@@ -2903,17 +2965,16 @@ const AdminDashboard: React.FC = () => {
                       .filter((appt) => appt != null)
                       .filter(
                         (a) =>
-                          statusFilter === "all" || a?.status === statusFilter,
+                          statusFilter === "all" || a?.status === statusFilter
                       )
                       .map((appt) => {
-                        // Safely get doctor, nurse, lab with fallbacks
                         const doctor =
                           appt?.doctor || appt?.assigned_doctor?.staff || null;
                         const nurse =
                           appt?.vital_requests?.[0]?.assigned_to ||
                           appt?.vital_requests?.[0]?.staff ||
                           appt?.assignments?.find(
-                            (a: any) => a?.role === "NURSE",
+                            (a: any) => a?.role === "NURSE"
                           )?.staff ||
                           null;
                         const lab =
@@ -3252,7 +3313,7 @@ const AdminDashboard: React.FC = () => {
                                   year: "numeric",
                                   month: "short",
                                   day: "numeric",
-                                },
+                                }
                               )
                             : "Unknown"}
                         </td>
@@ -3307,7 +3368,6 @@ const AdminDashboard: React.FC = () => {
                                     if (b.action === "view") {
                                       window.open(`/blog/${post?.slug}`, "_blank");
                                     }
-                                    // Edit would go here
                                   }}
                                   style={{
                                     width: 28,
@@ -3381,13 +3441,13 @@ const AssignModal: React.FC<{
   onAssign: (data: any) => Promise<void>;
 }> = ({ appointment, doctors, nurses, labs, onClose, onAssign }) => {
   const [selDoctor, setSelDoctor] = useState(
-    appointment?.doctor?.id?.toString() || "",
+    appointment?.doctor?.id?.toString() || ""
   );
   const [selNurse, setSelNurse] = useState(
-    appointment?.vital_requests?.[0]?.assigned_to?.id?.toString() || "",
+    appointment?.vital_requests?.[0]?.assigned_to?.id?.toString() || ""
   );
   const [selLab, setSelLab] = useState(
-    appointment?.test_requests?.[0]?.assigned_to?.id?.toString() || "",
+    appointment?.test_requests?.[0]?.assigned_to?.id?.toString() || ""
   );
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -3596,7 +3656,7 @@ const CreateBlogModal: React.FC<{
     label: string,
     req: boolean,
     onChange: (f: File | null) => void,
-    color: string,
+    color: string
   ) {
     return (
       <div>
