@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 // components/DashboardRouter.tsx
 import React, { lazy, Suspense, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,6 +22,49 @@ const UnknownRoleDashboard: React.FC<{ role?: string }> = ({ role }) => (
     </div>
   </div>
 );
+
+// Icon verification component
+const IconVerificationWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [iconsLoaded, setIconsLoaded] = useState(false);
+
+  useEffect(() => {
+    // Import I from AdminDashboard or wherever it's defined
+    import('./role_based_dashboards/AdminDashboard').then(module => {
+      const I = (module as any).I;
+      
+      // Verify that all required icons exist
+      const requiredIcons = ['Logo', 'Home', 'Users', 'User', 'UserPlus', 'FileText', 
+        'BarChart', 'Bell', 'Search', 'ChevDown', 'ChevLeft', 'X', 'Filter', 
+        'Download', 'Plus', 'Edit', 'Trash', 'Eye', 'Calendar', 'Clock', 
+        'Shield', 'Stethoscope', 'Flask', 'RefreshCw', 'Activity', 'Check'];
+      
+      if (I) {
+        const missingIcons = requiredIcons.filter(icon => !I[icon]);
+        
+        if (missingIcons.length > 0) {
+          console.error('Missing icons:', missingIcons);
+        }
+      } else {
+        console.warn('Icon library I not found');
+      }
+      
+      setIconsLoaded(true);
+    }).catch(error => {
+      console.error('Failed to load icon library:', error);
+      setIconsLoaded(true); // Still set to true to render children
+    });
+  }, []);
+
+  if (!iconsLoaded) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
 
 const DashboardRouter: React.FC = React.memo(() => {
   const { user, loading } = useAuth();
@@ -62,7 +106,14 @@ const DashboardRouter: React.FC = React.memo(() => {
   return (
     <ErrorBoundary>
       <Suspense fallback={<LoadingSpinner />}>
-        <DashboardComponent />
+        {/* Wrap with IconVerificationWrapper only for admin dashboard */}
+        {userRole === 'ADMIN' ? (
+          <IconVerificationWrapper>
+            <DashboardComponent />
+          </IconVerificationWrapper>
+        ) : (
+          <DashboardComponent />
+        )}
       </Suspense>
     </ErrorBoundary>
   );

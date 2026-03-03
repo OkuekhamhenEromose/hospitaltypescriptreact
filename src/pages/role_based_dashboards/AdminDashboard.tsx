@@ -406,16 +406,16 @@ const I: Record<
 };
 
 // ─── SAFE ICON HELPER ─────────────────────────────────────────────────────
-function getIcon(name: string): ((p: React.SVGProps<SVGSVGElement>) => React.ReactElement) | null {
-  const icon = I[name];
-  if (!icon) {
-    console.warn(`Icon "${name}" not found`);
-    return null;
-  }
-  return icon;
-}
+// function getIcon(name: string): ((p: React.SVGProps<SVGSVGElement>) => React.ReactElement) | null {
+//   const icon = I[name];
+//   if (!icon) {
+//     console.warn(`Icon "${name}" not found`);
+//     return null;
+//   }
+//   return icon;
+// }
 
-// ─── ICON COMPONENT WRAPPER ───────────────────────────────────────────────
+// ─── ICON COMPONENT WRAPPER - COMPLETELY REWRITTEN FOR SAFETY ────────────
 function Icon({ 
   name, 
   style 
@@ -423,10 +423,36 @@ function Icon({
   name: string; 
   style?: React.CSSProperties 
 }) {
-  const IconComponent = getIcon(name);
-  if (!IconComponent) return null;
-  return <IconComponent style={style} />;
+  // CRITICAL FIX: Use useMemo to memoize the icon lookup
+  const IconComponent = React.useMemo(() => {
+    // Ensure I exists and has the property
+    if (!I || typeof I !== 'object') {
+      console.error('Icon library I is not available');
+      return null;
+    }
+    
+    const icon = I[name];
+    if (!icon) {
+      console.warn(`Icon "${name}" not found in library`);
+      return null;
+    }
+    
+    return icon;
+  }, [name]);
+
+  if (!IconComponent) {
+    // Return a fallback div instead of null to maintain layout
+    return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
+  }
+
+  try {
+    return <IconComponent style={style} />;
+  } catch (error) {
+    console.error(`Error rendering icon ${name}:`, error);
+    return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
+  }
 }
+
 
 // ─── TYPES ────────────────────────────────────────────────────────────────
 interface DashboardStats {
@@ -587,6 +613,7 @@ function Pill({ status }: { status: string }) {
   );
 }
 
+// ─── MODAL COMPONENT - REWRITTEN WITH EXPLICIT ERROR BOUNDARY ─────────────
 function Modal({
   title,
   subtitle,
@@ -600,6 +627,9 @@ function Modal({
   children: React.ReactNode;
   wide?: boolean;
 }) {
+  // Local state to track if close button should render
+  const [showCloseButton, setShowCloseButton] = useState(true);
+
   return (
     <div
       style={{
@@ -650,27 +680,68 @@ function Modal({
               </div>
             )}
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 8,
-              border: "none",
-              background: C.slate,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Icon name="X" style={{ width: 14, height: 14, color: C.muted }} />
-          </button>
+          {showCloseButton && (
+            <button
+              onClick={onClose}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 8,
+                border: "none",
+                background: C.slate,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onError={() => setShowCloseButton(false)}
+            >
+              {/* Use a try-catch wrapper for the icon */}
+              <IconWrapper name="X" style={{ width: 14, height: 14, color: C.muted }} />
+            </button>
+          )}
         </div>
         <div style={{ padding: "20px 24px" }}>{children}</div>
       </div>
     </div>
   );
+}
+
+// ─── ICON WRAPPER COMPONENT - ULTIMATE SAFETY NET ────────────────────────
+function IconWrapper({ name, style }: { name: string; style?: React.CSSProperties }) {
+  try {
+    // First, check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
+    }
+
+    // Check if I exists and is an object
+    if (!I || typeof I !== 'object') {
+      console.error('Icon library I is not properly initialized');
+      return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
+    }
+
+    // Get the icon component
+    const IconComponent = I[name];
+    
+    // If icon doesn't exist, return fallback
+    if (typeof IconComponent !== 'function') {
+      console.warn(`Icon "${name}" not found or not a function`);
+      return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
+    }
+
+    // Try to render the icon
+    try {
+      return <IconComponent style={style} />;
+    } catch (renderError) {
+      console.error(`Error rendering icon ${name}:`, renderError);
+      return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
+    }
+  } catch (error) {
+    // Ultimate fallback - if ANYTHING goes wrong, render a div
+    console.error(`Critical error in IconWrapper for ${name}:`, error);
+    return <div style={{ width: style?.width || 24, height: style?.height || 24 }} />;
+  }
 }
 
 function Actions({
