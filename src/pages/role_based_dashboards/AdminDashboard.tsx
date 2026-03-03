@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiService } from "../../services/api";
-import { ModernIcon } from "../../components/Modernicon";
+import { SafeIcon } from "../../components/Modernicon";
+
+// Add animation styles
+const styles = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+`;
 
 const AdminDashboard: React.FC = () => {
   const authContext = useAuth();
@@ -46,6 +57,17 @@ const AdminDashboard: React.FC = () => {
   const isAdmin = user?.profile?.role === "ADMIN";
 
   useEffect(() => {
+    // Add styles to document
+    const styleSheet = document.createElement("style");
+    styleSheet.textContent = styles;
+    document.head.appendChild(styleSheet);
+    
+    return () => {
+      document.head.removeChild(styleSheet);
+    };
+  }, []);
+
+  useEffect(() => {
     if (isAdmin) {
       loadDashboardData();
     }
@@ -76,7 +98,7 @@ const AdminDashboard: React.FC = () => {
 
       const patientMap = new Map();
       safeAppointments.forEach((appt: any) => {
-        if (appt?.patient?.id) {
+        if (appt?.patient?.id && !patientMap.has(appt.patient.id)) {
           patientMap.set(appt.patient.id, appt.patient);
         }
       });
@@ -114,7 +136,7 @@ const AdminDashboard: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ModernIcon name="X" size={32} className="text-red-600" />
+            <SafeIcon name="X" size={32} className="text-red-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
           <p className="text-gray-600 mb-6">Admin privileges required to access this dashboard.</p>
@@ -145,7 +167,7 @@ const AdminDashboard: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ModernIcon name="X" size={32} className="text-red-600" />
+            <SafeIcon name="X" size={32} className="text-red-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
           <p className="text-gray-600 mb-6">{error}</p>
@@ -164,11 +186,11 @@ const AdminDashboard: React.FC = () => {
   }
 
   const navItems = [
-    { id: "overview", label: "Overview", icon: "Home" as const, count: null },
-    { id: "patients", label: "Patients", icon: "User" as const, count: stats.totalPatients },
-    { id: "staff", label: "Staff", icon: "Users" as const, count: stats.totalDoctors + stats.totalNurses + stats.totalLabScientists },
-    { id: "assignments", label: "Assignments", icon: "UserPlus" as const, count: appointments.filter(a => a?.status !== "COMPLETED").length },
-    { id: "blog", label: "Blog", icon: "FileText" as const, count: stats.blogStats.total_posts },
+    { id: "overview", label: "Overview", icon: "Home", count: null },
+    { id: "patients", label: "Patients", icon: "User", count: stats.totalPatients },
+    { id: "staff", label: "Staff", icon: "Users", count: stats.totalDoctors + stats.totalNurses + stats.totalLabScientists },
+    { id: "assignments", label: "Assignments", icon: "UserPlus", count: appointments.filter(a => a?.status !== "COMPLETED").length },
+    { id: "blog", label: "Blog", icon: "FileText", count: stats.blogStats.total_posts },
   ];
 
   return (
@@ -182,7 +204,7 @@ const AdminDashboard: React.FC = () => {
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-              <ModernIcon name="Logo" size={24} className="text-white" />
+              <SafeIcon name="Logo" size={24} className="text-white" />
             </div>
             {!sidebarCollapsed && (
               <div>
@@ -206,7 +228,7 @@ const AdminDashboard: React.FC = () => {
                     : "text-gray-600 hover:bg-gray-50"
                 }`}
               >
-                <ModernIcon name={item.icon} size={20} />
+                <SafeIcon name={item.icon} size={20} />
                 {!sidebarCollapsed && (
                   <>
                     <span className="flex-1 text-left font-medium text-sm">{item.label}</span>
@@ -246,7 +268,7 @@ const AdminDashboard: React.FC = () => {
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
           >
-            <ModernIcon
+            <SafeIcon
               name="ChevLeft"
               size={16}
               style={{ transform: sidebarCollapsed ? "rotate(180deg)" : "none" }}
@@ -273,7 +295,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="flex items-center gap-3">
               <div className="relative">
-                <ModernIcon
+                <SafeIcon
                   name="Search"
                   size={16}
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -289,11 +311,12 @@ const AdminDashboard: React.FC = () => {
               <button
                 onClick={loadDashboardData}
                 className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                title="Refresh"
               >
-                <ModernIcon name="RefreshCw" size={20} className="text-gray-600" />
+                <SafeIcon name="RefreshCw" size={20} className="text-gray-600" />
               </button>
               <button className="p-2 hover:bg-gray-50 rounded-lg transition-colors relative">
-                <ModernIcon name="Bell" size={20} className="text-gray-600" />
+                <SafeIcon name="Bell" size={20} className="text-gray-600" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
               </button>
             </div>
@@ -317,34 +340,26 @@ const OverviewTab: React.FC<{ stats: any; appointments: any[] }> = ({ stats, app
     {
       label: "Total Patients",
       value: stats.totalPatients,
-      icon: "User" as const,
+      icon: "User",
       color: "from-blue-500 to-blue-600",
-      bgColor: "bg-blue-50",
-      textColor: "text-blue-600",
     },
     {
       label: "Doctors",
       value: stats.totalDoctors,
-      icon: "Stethoscope" as const,
+      icon: "Stethoscope",
       color: "from-green-500 to-green-600",
-      bgColor: "bg-green-50",
-      textColor: "text-green-600",
     },
     {
       label: "Nurses",
       value: stats.totalNurses,
-      icon: "Shield" as const,
+      icon: "Shield",
       color: "from-purple-500 to-purple-600",
-      bgColor: "bg-purple-50",
-      textColor: "text-purple-600",
     },
     {
       label: "Lab Scientists",
       value: stats.totalLabScientists,
-      icon: "Flask" as const,
+      icon: "Flask",
       color: "from-orange-500 to-orange-600",
-      bgColor: "bg-orange-50",
-      textColor: "text-orange-600",
     },
   ];
 
@@ -358,7 +373,7 @@ const OverviewTab: React.FC<{ stats: any; appointments: any[] }> = ({ stats, app
           >
             <div className="flex items-start justify-between mb-4">
               <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center`}>
-                <ModernIcon name={card.icon} size={24} className="text-white" />
+                <SafeIcon name={card.icon} size={24} className="text-white" />
               </div>
               <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
                 +{3 + idx}%
@@ -374,7 +389,7 @@ const OverviewTab: React.FC<{ stats: any; appointments: any[] }> = ({ stats, app
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
-              <ModernIcon name="BarChart" size={20} className="text-purple-600" />
+              <SafeIcon name="BarChart" size={20} className="text-purple-600" />
             </div>
             <h3 className="text-lg font-bold text-gray-900">Blog Statistics</h3>
           </div>
@@ -423,7 +438,7 @@ const PatientsTab: React.FC<{ patients: any[]; searchQuery: string }> = ({ patie
   );
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 animate-fadeIn">
       <div className="p-6 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div>
@@ -431,7 +446,7 @@ const PatientsTab: React.FC<{ patients: any[]; searchQuery: string }> = ({ patie
             <p className="text-sm text-gray-500 mt-1">{filteredPatients.length} patients found</p>
           </div>
           <button className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2">
-            <ModernIcon name="Plus" size={16} />
+            <SafeIcon name="Plus" size={16} />
             Add Patient
           </button>
         </div>
@@ -473,13 +488,13 @@ const PatientsTab: React.FC<{ patients: any[]; searchQuery: string }> = ({ patie
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <button className="p-2 hover:bg-blue-50 rounded-lg transition-colors">
-                      <ModernIcon name="Eye" size={16} className="text-blue-600" />
+                      <SafeIcon name="Eye" size={16} className="text-blue-600" />
                     </button>
                     <button className="p-2 hover:bg-green-50 rounded-lg transition-colors">
-                      <ModernIcon name="Edit" size={16} className="text-green-600" />
+                      <SafeIcon name="Edit" size={16} className="text-green-600" />
                     </button>
                     <button className="p-2 hover:bg-red-50 rounded-lg transition-colors">
-                      <ModernIcon name="Trash" size={16} className="text-red-600" />
+                      <SafeIcon name="Trash" size={16} className="text-red-600" />
                     </button>
                   </div>
                 </td>
@@ -512,7 +527,7 @@ const StaffTab: React.FC<{ staff: any[]; searchQuery: string }> = ({ staff, sear
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 animate-fadeIn">
       <div className="p-6 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div>
@@ -520,7 +535,7 @@ const StaffTab: React.FC<{ staff: any[]; searchQuery: string }> = ({ staff, sear
             <p className="text-sm text-gray-500 mt-1">{filteredStaff.length} staff members</p>
           </div>
           <button className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors flex items-center gap-2">
-            <ModernIcon name="Plus" size={16} />
+            <SafeIcon name="Plus" size={16} />
             Add Staff
           </button>
         </div>
@@ -570,13 +585,13 @@ const StaffTab: React.FC<{ staff: any[]; searchQuery: string }> = ({ staff, sear
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <button className="p-2 hover:bg-blue-50 rounded-lg transition-colors">
-                        <ModernIcon name="Eye" size={16} className="text-blue-600" />
+                        <SafeIcon name="Eye" size={16} className="text-blue-600" />
                       </button>
                       <button className="p-2 hover:bg-green-50 rounded-lg transition-colors">
-                        <ModernIcon name="Edit" size={16} className="text-green-600" />
+                        <SafeIcon name="Edit" size={16} className="text-green-600" />
                       </button>
                       <button className="p-2 hover:bg-red-50 rounded-lg transition-colors">
-                        <ModernIcon name="Trash" size={16} className="text-red-600" />
+                        <SafeIcon name="Trash" size={16} className="text-red-600" />
                       </button>
                     </div>
                   </td>
@@ -592,7 +607,7 @@ const StaffTab: React.FC<{ staff: any[]; searchQuery: string }> = ({ staff, sear
 
 const AssignmentsTab: React.FC<{ appointments: any[] }> = () => {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 animate-fadeIn">
       <div className="p-6 border-b border-gray-100">
         <h3 className="text-lg font-bold text-gray-900">Staff Assignments</h3>
         <p className="text-sm text-gray-500 mt-1">Manage appointments and staff allocation</p>
@@ -600,7 +615,7 @@ const AssignmentsTab: React.FC<{ appointments: any[] }> = () => {
       <div className="p-6">
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ModernIcon name="UserPlus" size={32} className="text-gray-400" />
+            <SafeIcon name="UserPlus" size={32} className="text-gray-400" />
           </div>
           <p className="text-gray-600">Assignment functionality will be displayed here</p>
         </div>
@@ -611,7 +626,7 @@ const AssignmentsTab: React.FC<{ appointments: any[] }> = () => {
 
 const BlogTab: React.FC<{ stats: any }> = ({ stats }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 animate-fadeIn">
       <div className="p-6 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div>
@@ -619,7 +634,7 @@ const BlogTab: React.FC<{ stats: any }> = ({ stats }) => {
             <p className="text-sm text-gray-500 mt-1">{stats.total_posts} total posts</p>
           </div>
           <button className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors flex items-center gap-2">
-            <ModernIcon name="Plus" size={16} />
+            <SafeIcon name="Plus" size={16} />
             New Post
           </button>
         </div>
@@ -627,7 +642,7 @@ const BlogTab: React.FC<{ stats: any }> = ({ stats }) => {
       <div className="p-6">
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ModernIcon name="FileText" size={32} className="text-gray-400" />
+            <SafeIcon name="FileText" size={32} className="text-gray-400" />
           </div>
           <p className="text-gray-600">Blog management interface will be displayed here</p>
         </div>
