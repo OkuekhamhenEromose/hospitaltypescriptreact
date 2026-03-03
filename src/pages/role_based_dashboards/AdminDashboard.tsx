@@ -405,6 +405,16 @@ const I: Record<
   ),
 };
 
+// ─── SAFE ICON HELPER ─────────────────────────────────────────────────────
+function getIcon(name: string): ((p: React.SVGProps<SVGSVGElement>) => React.ReactElement) | null {
+  const icon = I[name];
+  if (!icon) {
+    console.warn(`Icon "${name}" not found`);
+    return null;
+  }
+  return icon;
+}
+
 // ─── TYPES ────────────────────────────────────────────────────────────────
 interface DashboardStats {
   totalPatients: number;
@@ -517,13 +527,16 @@ function Avatar({
   // Safety check - if name is undefined or null, use a fallback
   const safeName = name || "?";
   
+  // Safety check for grad - ensure it's a string
+  const safeGrad = grad || `135deg,${C.blue1},${C.blue2}`;
+  
   return (
     <div
       style={{
         width: size,
         height: size,
         borderRadius: "50%",
-        background: `linear-gradient(${grad})`,
+        background: `linear-gradient(${safeGrad})`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -574,7 +587,7 @@ function Modal({
   children: React.ReactNode;
   wide?: boolean;
 }) {
-  const CloseIcon = I.X;
+  const CloseIcon = getIcon("X");
   
   return (
     <div
@@ -738,7 +751,7 @@ function TableCard({
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────
 const AdminDashboard: React.FC = () => {
-  const { user,logout } = useAuth();
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<
     "overview" | "patients" | "staff" | "assignments" | "blog"
   >("overview");
@@ -838,18 +851,6 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     if (activeTab === "assignments") buildAssignments();
   }, [activeTab, statusFilter, appointments]);
-
-  // TEMPORARY DEBUG - add this right before the return statement
-  useEffect(() => {
-    if (appointments && appointments.length > 0) {
-      console.log(
-        "First appointment structure:",
-        JSON.stringify(appointments[0], null, 2),
-      );
-      console.log("vital_requests:", appointments[0]?.vital_requests);
-      console.log("test_requests:", appointments[0]?.test_requests);
-    }
-  }, [appointments]);
 
   async function loadData() {
     try {
@@ -1160,6 +1161,7 @@ const AdminDashboard: React.FC = () => {
 
   // ── Access guard ──────────────────────────────────────────────────────
   if (!isAdmin) {
+    const XIcon = getIcon("X");
     return (
       <div
         style={{
@@ -1193,7 +1195,7 @@ const AdminDashboard: React.FC = () => {
               margin: "0 auto 16px",
             }}
           >
-            <I.X style={{ width: 24, height: 24, color: C.red }} />
+            {XIcon && <XIcon style={{ width: 24, height: 24, color: C.red }} />}
           </div>
           <div
             style={{
@@ -1246,28 +1248,15 @@ const AdminDashboard: React.FC = () => {
       </div>
     );
 
-  // Add this right after the loading check, before the return statement
-  if (!appointments || !staff || !blogPosts) {
-    return (
-      <div
-        style={{
-          fontFamily: "'DM Sans',sans-serif",
-          minHeight: "100vh",
-          background: C.slate,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div style={{ textAlign: "center" }}>
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard data...</p>
-        </div>
-      </div>
-    );
-  }
-
   const adminImg = imgUrl(user?.profile);
+
+  // Get topbar icons safely
+  const SearchIcon = getIcon("Search");
+  const RefreshIcon = getIcon("RefreshCw");
+  const BellIcon = getIcon("Bell");
+  const ChevDownIcon = getIcon("ChevDown");
+  const ChevLeftIcon = getIcon("ChevLeft");
+  const LogoIcon = getIcon("Logo");
 
   return (
     <div
@@ -1325,7 +1314,7 @@ const AdminDashboard: React.FC = () => {
             minHeight: 62,
           }}
         >
-          <I.Logo style={{ width: 30, height: 30, flexShrink: 0 }} />
+          {LogoIcon && <LogoIcon style={{ width: 30, height: 30, flexShrink: 0 }} />}
           {!collapsed && (
             <div>
               <div
@@ -1355,7 +1344,7 @@ const AdminDashboard: React.FC = () => {
           }}
         >
           {navItems.map((n) => {
-            const IconComponent = I[n.icon];
+            const IconComponent = getIcon(n.icon);
 
             // Safety check - if icon doesn't exist, don't render
             if (!IconComponent) {
@@ -1509,14 +1498,16 @@ const AdminDashboard: React.FC = () => {
               transition: "all 0.15s",
             }}
           >
-            <I.ChevLeft
-              style={{
-                width: 13,
-                height: 13,
-                transition: "transform 0.25s",
-                transform: collapsed ? "rotate(180deg)" : "none",
-              }}
-            />
+            {ChevLeftIcon && (
+              <ChevLeftIcon
+                style={{
+                  width: 13,
+                  height: 13,
+                  transition: "transform 0.25s",
+                  transform: collapsed ? "rotate(180deg)" : "none",
+                }}
+              />
+            )}
             {!collapsed && <span>Collapse</span>}
           </button>
         </div>
@@ -1553,17 +1544,19 @@ const AdminDashboard: React.FC = () => {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ position: "relative" }}>
-              <I.Search
-                style={{
-                  width: 14,
-                  height: 14,
-                  color: C.muted,
-                  position: "absolute",
-                  left: 10,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                }}
-              />
+              {SearchIcon && (
+                <SearchIcon
+                  style={{
+                    width: 14,
+                    height: 14,
+                    color: C.muted,
+                    position: "absolute",
+                    left: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                  }}
+                />
+              )}
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -1600,7 +1593,7 @@ const AdminDashboard: React.FC = () => {
                 transition: "all 0.15s",
               }}
             >
-              <I.RefreshCw style={{ width: 15, height: 15, color: C.muted }} />
+              {RefreshIcon && <RefreshIcon style={{ width: 15, height: 15, color: C.muted }} />}
             </button>
             <button
               className="xh"
@@ -1618,7 +1611,7 @@ const AdminDashboard: React.FC = () => {
                 transition: "all 0.15s",
               }}
             >
-              <I.Bell style={{ width: 15, height: 15, color: C.muted }} />
+              {BellIcon && <BellIcon style={{ width: 15, height: 15, color: C.muted }} />}
               <span
                 style={{
                   position: "absolute",
@@ -1677,7 +1670,7 @@ const AdminDashboard: React.FC = () => {
               <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>
                 {user?.profile?.fullname?.split(" ")[0] || "Admin"}
               </span>
-              <I.ChevDown style={{ width: 13, height: 13, color: C.muted }} />
+              {ChevDownIcon && <ChevDownIcon style={{ width: 13, height: 13, color: C.muted }} />}
             </div>
           </div>
         </header>
@@ -1735,7 +1728,9 @@ const AdminDashboard: React.FC = () => {
                     icon: "Flask",
                   },
                 ].map((s, i) => {
-                  const A = I[s.icon];
+                  const A = getIcon(s.icon);
+                  if (!A) return null;
+                  
                   return (
                     <div
                       key={i}
@@ -1978,8 +1973,10 @@ const AdminDashboard: React.FC = () => {
                           tab: "blog",
                         },
                       ].map((a, i) => {
-                        const IconComponent = I[a.icon];
+                        const IconComponent = getIcon(a.icon);
                         if (!IconComponent) return null;
+
+                        const ChevLeft = getIcon("ChevLeft");
 
                         return (
                           <button
@@ -2029,14 +2026,16 @@ const AdminDashboard: React.FC = () => {
                                 {a.label}
                               </span>
                             </div>
-                            <I.ChevLeft
-                              style={{
-                                width: 13,
-                                height: 13,
-                                color: a.color,
-                                transform: "rotate(180deg)",
-                              }}
-                            />
+                            {ChevLeft && (
+                              <ChevLeft
+                                style={{
+                                  width: 13,
+                                  height: 13,
+                                  color: a.color,
+                                  transform: "rotate(180deg)",
+                                }}
+                              />
+                            )}
                           </button>
                         );
                       })}
@@ -2272,7 +2271,9 @@ const AdminDashboard: React.FC = () => {
                               { ic: "Edit", col: C.green },
                               { ic: "Trash", col: C.red },
                             ].map((b, i) => {
-                              const B = I[b.ic];
+                              const B = getIcon(b.ic);
+                              if (!B) return null;
+                              
                               return (
                                 <button
                                   key={i}
@@ -2339,7 +2340,9 @@ const AdminDashboard: React.FC = () => {
                     icon: "Flask",
                   },
                 ].map((r, i) => {
-                  const A = I[r.icon];
+                  const A = getIcon(r.icon);
+                  if (!A) return null;
+                  
                   const cnt = (staff || []).filter(
                     (s) => s?.role === r.role,
                   ).length;
@@ -2536,7 +2539,9 @@ const AdminDashboard: React.FC = () => {
                                 { ic: "Edit", col: C.green },
                                 { ic: "Trash", col: C.red },
                               ].map((b, i) => {
-                                const B = I[b.ic];
+                                const B = getIcon(b.ic);
+                                if (!B) return null;
+                                
                                 return (
                                   <button
                                     key={i}
@@ -2612,7 +2617,9 @@ const AdminDashboard: React.FC = () => {
                     grad: `135deg,${C.orange},#f97316`,
                   },
                 ].map((s, i) => {
-                  const A = I[s.icon];
+                  const A = getIcon(s.icon);
+                  if (!A) return null;
+                  
                   const total = assignments?.length || 0;
                   const pct = total ? Math.round((s.count / total) * 100) : 0;
                   return (
@@ -2877,6 +2884,9 @@ const AdminDashboard: React.FC = () => {
                             ?.staff ||
                           null;
 
+                        const ClockIcon = getIcon("Clock");
+                        const UserPlusIcon = getIcon("UserPlus");
+
                         return (
                           <tr
                             key={appt?.id ?? Math.random()}
@@ -2905,7 +2915,7 @@ const AdminDashboard: React.FC = () => {
                                   <div
                                     style={{ fontSize: 11.5, color: C.muted }}
                                   >
-                                    Age {appt?.age ?? "?"} ·{" "}
+                                    Age {appt?.age ?? "?"} · 
                                     {appt?.sex === "M"
                                       ? "Male"
                                       : appt?.sex === "F"
@@ -2947,7 +2957,7 @@ const AdminDashboard: React.FC = () => {
                                     fontWeight: 600,
                                   }}
                                 >
-                                  <I.Clock style={{ width: 10, height: 10 }} />
+                                  {ClockIcon && <ClockIcon style={{ width: 10, height: 10 }} />}
                                   Unassigned
                                 </span>
                               )}
@@ -2984,7 +2994,7 @@ const AdminDashboard: React.FC = () => {
                                     fontWeight: 600,
                                   }}
                                 >
-                                  <I.Clock style={{ width: 10, height: 10 }} />
+                                  {ClockIcon && <ClockIcon style={{ width: 10, height: 10 }} />}
                                   Unassigned
                                 </span>
                               )}
@@ -3021,7 +3031,7 @@ const AdminDashboard: React.FC = () => {
                                     fontWeight: 600,
                                   }}
                                 >
-                                  <I.Clock style={{ width: 10, height: 10 }} />
+                                  {ClockIcon && <ClockIcon style={{ width: 10, height: 10 }} />}
                                   Unassigned
                                 </span>
                               )}
@@ -3052,7 +3062,7 @@ const AdminDashboard: React.FC = () => {
                                   transition: "all 0.15s",
                                 }}
                               >
-                                <I.UserPlus style={{ width: 12, height: 12 }} />
+                                {UserPlusIcon && <UserPlusIcon style={{ width: 12, height: 12 }} />}
                                 Assign
                               </button>
                             </td>
@@ -3212,77 +3222,81 @@ const AdminDashboard: React.FC = () => {
                         </td>
                         <td>
                           <div style={{ display: "flex", gap: 6 }}>
-                            <button
-                              onClick={() =>
-                                window.open(`/blog/${post?.slug}`, "_blank")
+                            {[
+                              { ic: "Eye", col: C.blue2, action: "view" },
+                              { ic: "Edit", col: C.green, action: "edit" },
+                              { ic: "Trash", col: C.red, action: "delete" },
+                            ].map((b) => {
+                              const B = getIcon(b.ic);
+                              if (!B) return null;
+                              
+                              if (b.action === "delete") {
+                                return (
+                                  <button
+                                    key={b.action}
+                                    onClick={async () => {
+                                      if (!confirm("Delete this post?")) return;
+                                      try {
+                                        await apiService.deleteBlogPost(post?.slug);
+                                        loadData();
+                                      } catch {
+                                        alert("Failed to delete.");
+                                      }
+                                    }}
+                                    style={{
+                                      width: 28,
+                                      height: 28,
+                                      borderRadius: 7,
+                                      border: "none",
+                                      background: C.red + "14",
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <B
+                                      style={{
+                                        width: 13,
+                                        height: 13,
+                                        color: C.red,
+                                      }}
+                                    />
+                                  </button>
+                                );
                               }
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 7,
-                                border: "none",
-                                background: C.blue2 + "14",
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <I.Eye
-                                style={{
-                                  width: 13,
-                                  height: 13,
-                                  color: C.blue2,
-                                }}
-                              />
-                            </button>
-                            <button
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 7,
-                                border: "none",
-                                background: C.green + "14",
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <I.Edit
-                                style={{
-                                  width: 13,
-                                  height: 13,
-                                  color: C.green,
-                                }}
-                              />
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (!confirm("Delete this post?")) return;
-                                try {
-                                  await apiService.deleteBlogPost(post?.slug);
-                                  loadData();
-                                } catch {
-                                  alert("Failed to delete.");
-                                }
-                              }}
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 7,
-                                border: "none",
-                                background: C.red + "14",
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <I.Trash
-                                style={{ width: 13, height: 13, color: C.red }}
-                              />
-                            </button>
+                              
+                              return (
+                                <button
+                                  key={b.action}
+                                  onClick={() => {
+                                    if (b.action === "view") {
+                                      window.open(`/blog/${post?.slug}`, "_blank");
+                                    }
+                                    // Edit would go here
+                                  }}
+                                  style={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: 7,
+                                    border: "none",
+                                    background: b.col + "14",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  <B
+                                    style={{
+                                      width: 13,
+                                      height: 13,
+                                      color: b.col,
+                                    }}
+                                  />
+                                </button>
+                              );
+                            })}
                           </div>
                         </td>
                       </tr>
@@ -3366,24 +3380,12 @@ const AssignModal: React.FC<{
     }
   }
 
+  const ClockIcon = getIcon("Clock");
+
   const rows = [
     {
       label: "Assign Doctor",
-      icon: (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ width: 14, height: 14, color: C.blue2 }}
-        >
-          <path d="M4.5 7.5a3 3 0 003 3M4.5 7.5H3M7.5 10.5c0 5 4 8 7 8a5 5 0 005-5" />
-          <circle cx="19.5" cy="13.5" r="1.5" />
-          <path d="M4.5 7.5V5a1.5 1.5 0 013 0v2.5M4.5 5a1.5 1.5 0 00-3 0v2.5" />
-        </svg>
-      ),
+      icon: getIcon("Stethoscope"),
       color: C.blue2,
       val: selDoctor,
       set: setSelDoctor,
@@ -3392,19 +3394,7 @@ const AssignModal: React.FC<{
     },
     {
       label: "Assign Nurse",
-      icon: (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ width: 14, height: 14, color: C.teal }}
-        >
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        </svg>
-      ),
+      icon: getIcon("Shield"),
       color: C.teal,
       val: selNurse,
       set: setSelNurse,
@@ -3413,20 +3403,7 @@ const AssignModal: React.FC<{
     },
     {
       label: "Assign Lab Scientist",
-      icon: (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ width: 14, height: 14, color: C.orange }}
-        >
-          <path d="M9 3h6M10 3v7L6.5 16.5A3 3 0 009.5 21h5a3 3 0 003-4.5L14 10V3" />
-          <path d="M7.5 16h9" strokeWidth="1.4" />
-        </svg>
-      ),
+      icon: getIcon("Flask"),
       color: C.orange,
       val: selLab,
       set: setSelLab,
@@ -3476,38 +3453,44 @@ const AssignModal: React.FC<{
             </div>
           ))}
         </div>
-        {rows.map((row, i) => (
-          <div key={i} style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                marginBottom: 7,
-              }}
-            >
-              {row.icon}
-              <label style={{ ...ls, marginBottom: 0 }}>{row.label}</label>
+        {rows.map((row, i) => {
+          if (!row.icon) return null;
+          
+          return (
+            <div key={i} style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                  marginBottom: 7,
+                }}
+              >
+                {React.cloneElement(row.icon({} as any), {
+                  style: { width: 14, height: 14, color: row.color }
+                })}
+                <label style={{ ...ls, marginBottom: 0 }}>{row.label}</label>
+              </div>
+              <select
+                value={row.val}
+                onChange={(e) => row.set(e.target.value)}
+                style={{
+                  ...is,
+                  marginBottom: 0,
+                  borderColor: row.val ? row.color + "55" : C.soft,
+                }}
+              >
+                <option value="">Select…</option>
+                {row.opts.map((o: any) => (
+                  <option key={o?.id ?? Math.random()} value={o?.id}>
+                    {row.prefix}
+                    {o?.fullname ?? "Unknown"}
+                  </option>
+                ))}
+              </select>
             </div>
-            <select
-              value={row.val}
-              onChange={(e) => row.set(e.target.value)}
-              style={{
-                ...is,
-                marginBottom: 0,
-                borderColor: row.val ? row.color + "55" : C.soft,
-              }}
-            >
-              <option value="">Select…</option>
-              {row.opts.map((o: any) => (
-                <option key={o?.id ?? Math.random()} value={o?.id}>
-                  {row.prefix}
-                  {o?.fullname ?? "Unknown"}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
+          );
+        })}
         <label style={ls}>Assignment Notes (optional)</label>
         <textarea
           value={notes}
@@ -3586,6 +3569,8 @@ const CreateBlogModal: React.FC<{
     onChange: (f: File | null) => void,
     color: string,
   ) {
+    const PlusIcon = getIcon("Plus");
+    
     return (
       <div>
         <label style={ls}>
@@ -3604,17 +3589,7 @@ const CreateBlogModal: React.FC<{
             background: color + "08",
           }}
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            style={{ width: 14, height: 14, color }}
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+          {PlusIcon && <PlusIcon style={{ width: 14, height: 14, color }} />}
           <span style={{ fontSize: 12.5, color, fontWeight: 600 }}>
             Choose image…
           </span>

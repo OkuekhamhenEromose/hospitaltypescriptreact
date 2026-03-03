@@ -2,6 +2,7 @@
 import React, { lazy, Suspense, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadSpinner';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // Lazy load dashboard components for faster initial load
 const PatientDashboard = lazy(() => import('./role_based_dashboards/PatientDashboard'));
@@ -59,9 +60,11 @@ const DashboardRouter: React.FC = React.memo(() => {
   }, [userRole]);
 
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <DashboardComponent />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingSpinner />}>
+        <DashboardComponent />
+      </Suspense>
+    </ErrorBoundary>
   );
 });
 
