@@ -415,6 +415,19 @@ function getIcon(name: string): ((p: React.SVGProps<SVGSVGElement>) => React.Rea
   return icon;
 }
 
+// ─── ICON COMPONENT WRAPPER ───────────────────────────────────────────────
+function Icon({ 
+  name, 
+  style 
+}: { 
+  name: string; 
+  style?: React.CSSProperties 
+}) {
+  const IconComponent = getIcon(name);
+  if (!IconComponent) return null;
+  return <IconComponent style={style} />;
+}
+
 // ─── TYPES ────────────────────────────────────────────────────────────────
 interface DashboardStats {
   totalPatients: number;
@@ -587,8 +600,6 @@ function Modal({
   children: React.ReactNode;
   wide?: boolean;
 }) {
-  const CloseIcon = getIcon("X");
-  
   return (
     <div
       style={{
@@ -653,7 +664,7 @@ function Modal({
               justifyContent: "center",
             }}
           >
-            {CloseIcon && <CloseIcon style={{ width: 14, height: 14, color: C.muted }} />}
+            <Icon name="X" style={{ width: 14, height: 14, color: C.muted }} />
           </button>
         </div>
         <div style={{ padding: "20px 24px" }}>{children}</div>
@@ -1161,7 +1172,6 @@ const AdminDashboard: React.FC = () => {
 
   // ── Access guard ──────────────────────────────────────────────────────
   if (!isAdmin) {
-    const XIcon = getIcon("X");
     return (
       <div
         style={{
@@ -1195,7 +1205,7 @@ const AdminDashboard: React.FC = () => {
               margin: "0 auto 16px",
             }}
           >
-            {XIcon && <XIcon style={{ width: 24, height: 24, color: C.red }} />}
+            <Icon name="X" style={{ width: 24, height: 24, color: C.red }} />
           </div>
           <div
             style={{
@@ -1249,14 +1259,6 @@ const AdminDashboard: React.FC = () => {
     );
 
   const adminImg = imgUrl(user?.profile);
-
-  // Get topbar icons safely
-  const SearchIcon = getIcon("Search");
-  const RefreshIcon = getIcon("RefreshCw");
-  const BellIcon = getIcon("Bell");
-  const ChevDownIcon = getIcon("ChevDown");
-  const ChevLeftIcon = getIcon("ChevLeft");
-  const LogoIcon = getIcon("Logo");
 
   return (
     <div
@@ -1314,7 +1316,7 @@ const AdminDashboard: React.FC = () => {
             minHeight: 62,
           }}
         >
-          {LogoIcon && <LogoIcon style={{ width: 30, height: 30, flexShrink: 0 }} />}
+          <Icon name="Logo" style={{ width: 30, height: 30, flexShrink: 0 }} />
           {!collapsed && (
             <div>
               <div
@@ -1344,16 +1346,6 @@ const AdminDashboard: React.FC = () => {
           }}
         >
           {navItems.map((n) => {
-            const IconComponent = getIcon(n.icon);
-
-            // Safety check - if icon doesn't exist, don't render
-            if (!IconComponent) {
-              console.warn(
-                `Icon "${n.icon}" not found for nav item "${n.label}"`,
-              );
-              return null;
-            }
-
             const act = activeTab === n.id;
             return (
               <button
@@ -1374,7 +1366,8 @@ const AdminDashboard: React.FC = () => {
                   transition: "all 0.15s",
                 }}
               >
-                <IconComponent
+                <Icon
+                  name={n.icon}
                   style={{
                     width: 17,
                     height: 17,
@@ -1498,16 +1491,15 @@ const AdminDashboard: React.FC = () => {
               transition: "all 0.15s",
             }}
           >
-            {ChevLeftIcon && (
-              <ChevLeftIcon
-                style={{
-                  width: 13,
-                  height: 13,
-                  transition: "transform 0.25s",
-                  transform: collapsed ? "rotate(180deg)" : "none",
-                }}
-              />
-            )}
+            <Icon
+              name="ChevLeft"
+              style={{
+                width: 13,
+                height: 13,
+                transition: "transform 0.25s",
+                transform: collapsed ? "rotate(180deg)" : "none",
+              }}
+            />
             {!collapsed && <span>Collapse</span>}
           </button>
         </div>
@@ -1544,19 +1536,18 @@ const AdminDashboard: React.FC = () => {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ position: "relative" }}>
-              {SearchIcon && (
-                <SearchIcon
-                  style={{
-                    width: 14,
-                    height: 14,
-                    color: C.muted,
-                    position: "absolute",
-                    left: 10,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                  }}
-                />
-              )}
+              <Icon
+                name="Search"
+                style={{
+                  width: 14,
+                  height: 14,
+                  color: C.muted,
+                  position: "absolute",
+                  left: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                }}
+              />
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -1593,7 +1584,7 @@ const AdminDashboard: React.FC = () => {
                 transition: "all 0.15s",
               }}
             >
-              {RefreshIcon && <RefreshIcon style={{ width: 15, height: 15, color: C.muted }} />}
+              <Icon name="RefreshCw" style={{ width: 15, height: 15, color: C.muted }} />
             </button>
             <button
               className="xh"
@@ -1611,7 +1602,7 @@ const AdminDashboard: React.FC = () => {
                 transition: "all 0.15s",
               }}
             >
-              {BellIcon && <BellIcon style={{ width: 15, height: 15, color: C.muted }} />}
+              <Icon name="Bell" style={{ width: 15, height: 15, color: C.muted }} />
               <span
                 style={{
                   position: "absolute",
@@ -1670,7 +1661,7 @@ const AdminDashboard: React.FC = () => {
               <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>
                 {user?.profile?.fullname?.split(" ")[0] || "Admin"}
               </span>
-              {ChevDownIcon && <ChevDownIcon style={{ width: 13, height: 13, color: C.muted }} />}
+              <Icon name="ChevDown" style={{ width: 13, height: 13, color: C.muted }} />
             </div>
           </div>
         </header>
@@ -1728,9 +1719,6 @@ const AdminDashboard: React.FC = () => {
                     icon: "Flask",
                   },
                 ].map((s, i) => {
-                  const A = getIcon(s.icon);
-                  if (!A) return null;
-                  
                   return (
                     <div
                       key={i}
@@ -1763,9 +1751,7 @@ const AdminDashboard: React.FC = () => {
                             justifyContent: "center",
                           }}
                         >
-                          <A
-                            style={{ width: 18, height: 18, color: C.white }}
-                          />
+                          <Icon name={s.icon} style={{ width: 18, height: 18, color: C.white }} />
                         </div>
                         <span
                           style={{
@@ -1848,9 +1834,7 @@ const AdminDashboard: React.FC = () => {
                           justifyContent: "center",
                         }}
                       >
-                        <I.BarChart
-                          style={{ width: 15, height: 15, color: C.white }}
-                        />
+                        <Icon name="BarChart" style={{ width: 15, height: 15, color: C.white }} />
                       </div>
                       <span
                         style={{ fontSize: 14, fontWeight: 700, color: C.text }}
@@ -1973,11 +1957,6 @@ const AdminDashboard: React.FC = () => {
                           tab: "blog",
                         },
                       ].map((a, i) => {
-                        const IconComponent = getIcon(a.icon);
-                        if (!IconComponent) return null;
-
-                        const ChevLeft = getIcon("ChevLeft");
-
                         return (
                           <button
                             key={i}
@@ -2009,7 +1988,8 @@ const AdminDashboard: React.FC = () => {
                                 gap: 10,
                               }}
                             >
-                              <IconComponent
+                              <Icon
+                                name={a.icon}
                                 style={{
                                   width: 15,
                                   height: 15,
@@ -2026,16 +2006,15 @@ const AdminDashboard: React.FC = () => {
                                 {a.label}
                               </span>
                             </div>
-                            {ChevLeft && (
-                              <ChevLeft
-                                style={{
-                                  width: 13,
-                                  height: 13,
-                                  color: a.color,
-                                  transform: "rotate(180deg)",
-                                }}
-                              />
-                            )}
+                            <Icon
+                              name="ChevLeft"
+                              style={{
+                                width: 13,
+                                height: 13,
+                                color: a.color,
+                                transform: "rotate(180deg)",
+                              }}
+                            />
                           </button>
                         );
                       })}
@@ -2168,7 +2147,7 @@ const AdminDashboard: React.FC = () => {
                         transition: "all 0.15s",
                       }}
                     >
-                      <I.Plus style={{ width: 14, height: 14 }} />
+                      <Icon name="Plus" style={{ width: 14, height: 14 }} />
                       Add Patient
                     </button>
                   </div>
@@ -2271,9 +2250,6 @@ const AdminDashboard: React.FC = () => {
                               { ic: "Edit", col: C.green },
                               { ic: "Trash", col: C.red },
                             ].map((b, i) => {
-                              const B = getIcon(b.ic);
-                              if (!B) return null;
-                              
                               return (
                                 <button
                                   key={i}
@@ -2289,7 +2265,8 @@ const AdminDashboard: React.FC = () => {
                                     justifyContent: "center",
                                   }}
                                 >
-                                  <B
+                                  <Icon
+                                    name={b.ic}
                                     style={{
                                       width: 13,
                                       height: 13,
@@ -2340,9 +2317,6 @@ const AdminDashboard: React.FC = () => {
                     icon: "Flask",
                   },
                 ].map((r, i) => {
-                  const A = getIcon(r.icon);
-                  if (!A) return null;
-                  
                   const cnt = (staff || []).filter(
                     (s) => s?.role === r.role,
                   ).length;
@@ -2370,7 +2344,7 @@ const AdminDashboard: React.FC = () => {
                           justifyContent: "center",
                         }}
                       >
-                        <A style={{ width: 17, height: 17, color: C.white }} />
+                        <Icon name={r.icon} style={{ width: 17, height: 17, color: C.white }} />
                       </div>
                       <div>
                         <div
@@ -2430,7 +2404,7 @@ const AdminDashboard: React.FC = () => {
                         transition: "all 0.15s",
                       }}
                     >
-                      <I.Plus style={{ width: 14, height: 14 }} />
+                      <Icon name="Plus" style={{ width: 14, height: 14 }} />
                       Add Staff
                     </button>
                   </div>
@@ -2539,9 +2513,6 @@ const AdminDashboard: React.FC = () => {
                                 { ic: "Edit", col: C.green },
                                 { ic: "Trash", col: C.red },
                               ].map((b, i) => {
-                                const B = getIcon(b.ic);
-                                if (!B) return null;
-                                
                                 return (
                                   <button
                                     key={i}
@@ -2557,7 +2528,8 @@ const AdminDashboard: React.FC = () => {
                                       justifyContent: "center",
                                     }}
                                   >
-                                    <B
+                                    <Icon
+                                      name={b.ic}
                                       style={{
                                         width: 13,
                                         height: 13,
@@ -2617,9 +2589,6 @@ const AdminDashboard: React.FC = () => {
                     grad: `135deg,${C.orange},#f97316`,
                   },
                 ].map((s, i) => {
-                  const A = getIcon(s.icon);
-                  if (!A) return null;
-                  
                   const total = assignments?.length || 0;
                   const pct = total ? Math.round((s.count / total) * 100) : 0;
                   return (
@@ -2651,9 +2620,7 @@ const AdminDashboard: React.FC = () => {
                             justifyContent: "center",
                           }}
                         >
-                          <A
-                            style={{ width: 16, height: 16, color: C.white }}
-                          />
+                          <Icon name={s.icon} style={{ width: 16, height: 16, color: C.white }} />
                         </div>
                         <div
                           style={{
@@ -2758,7 +2725,8 @@ const AdminDashboard: React.FC = () => {
                       }}
                     >
                       <div style={{ position: "relative" }}>
-                        <I.Filter
+                        <Icon
+                          name="Filter"
                           style={{
                             width: 13,
                             height: 13,
@@ -2818,7 +2786,7 @@ const AdminDashboard: React.FC = () => {
                           transition: "all 0.15s",
                         }}
                       >
-                        <I.RefreshCw style={{ width: 13, height: 13 }} />
+                        <Icon name="RefreshCw" style={{ width: 13, height: 13 }} />
                         Refresh
                       </button>
                       <button
@@ -2841,7 +2809,7 @@ const AdminDashboard: React.FC = () => {
                           transition: "all 0.15s",
                         }}
                       >
-                        <I.Download style={{ width: 13, height: 13 }} />
+                        <Icon name="Download" style={{ width: 13, height: 13 }} />
                         Export
                       </button>
                     </div>
@@ -2883,9 +2851,6 @@ const AdminDashboard: React.FC = () => {
                           appt?.assignments?.find((a: any) => a?.role === "LAB")
                             ?.staff ||
                           null;
-
-                        const ClockIcon = getIcon("Clock");
-                        const UserPlusIcon = getIcon("UserPlus");
 
                         return (
                           <tr
@@ -2957,7 +2922,7 @@ const AdminDashboard: React.FC = () => {
                                     fontWeight: 600,
                                   }}
                                 >
-                                  {ClockIcon && <ClockIcon style={{ width: 10, height: 10 }} />}
+                                  <Icon name="Clock" style={{ width: 10, height: 10 }} />
                                   Unassigned
                                 </span>
                               )}
@@ -2994,7 +2959,7 @@ const AdminDashboard: React.FC = () => {
                                     fontWeight: 600,
                                   }}
                                 >
-                                  {ClockIcon && <ClockIcon style={{ width: 10, height: 10 }} />}
+                                  <Icon name="Clock" style={{ width: 10, height: 10 }} />
                                   Unassigned
                                 </span>
                               )}
@@ -3031,7 +2996,7 @@ const AdminDashboard: React.FC = () => {
                                     fontWeight: 600,
                                   }}
                                 >
-                                  {ClockIcon && <ClockIcon style={{ width: 10, height: 10 }} />}
+                                  <Icon name="Clock" style={{ width: 10, height: 10 }} />
                                   Unassigned
                                 </span>
                               )}
@@ -3062,7 +3027,7 @@ const AdminDashboard: React.FC = () => {
                                   transition: "all 0.15s",
                                 }}
                               >
-                                {UserPlusIcon && <UserPlusIcon style={{ width: 12, height: 12 }} />}
+                                <Icon name="UserPlus" style={{ width: 12, height: 12 }} />
                                 Assign
                               </button>
                             </td>
@@ -3119,7 +3084,7 @@ const AdminDashboard: React.FC = () => {
                         transition: "all 0.15s",
                       }}
                     >
-                      <I.Plus style={{ width: 14, height: 14 }} />
+                      <Icon name="Plus" style={{ width: 14, height: 14 }} />
                       New Post
                     </button>
                   </div>
@@ -3227,9 +3192,6 @@ const AdminDashboard: React.FC = () => {
                               { ic: "Edit", col: C.green, action: "edit" },
                               { ic: "Trash", col: C.red, action: "delete" },
                             ].map((b) => {
-                              const B = getIcon(b.ic);
-                              if (!B) return null;
-                              
                               if (b.action === "delete") {
                                 return (
                                   <button
@@ -3255,7 +3217,8 @@ const AdminDashboard: React.FC = () => {
                                       justifyContent: "center",
                                     }}
                                   >
-                                    <B
+                                    <Icon
+                                      name={b.ic}
                                       style={{
                                         width: 13,
                                         height: 13,
@@ -3287,7 +3250,8 @@ const AdminDashboard: React.FC = () => {
                                     justifyContent: "center",
                                   }}
                                 >
-                                  <B
+                                  <Icon
+                                    name={b.ic}
                                     style={{
                                       width: 13,
                                       height: 13,
@@ -3380,12 +3344,10 @@ const AssignModal: React.FC<{
     }
   }
 
-  const ClockIcon = getIcon("Clock");
-
   const rows = [
     {
       label: "Assign Doctor",
-      icon: getIcon("Stethoscope"),
+      icon: "Stethoscope",
       color: C.blue2,
       val: selDoctor,
       set: setSelDoctor,
@@ -3394,7 +3356,7 @@ const AssignModal: React.FC<{
     },
     {
       label: "Assign Nurse",
-      icon: getIcon("Shield"),
+      icon: "Shield",
       color: C.teal,
       val: selNurse,
       set: setSelNurse,
@@ -3403,7 +3365,7 @@ const AssignModal: React.FC<{
     },
     {
       label: "Assign Lab Scientist",
-      icon: getIcon("Flask"),
+      icon: "Flask",
       color: C.orange,
       val: selLab,
       set: setSelLab,
@@ -3454,8 +3416,6 @@ const AssignModal: React.FC<{
           ))}
         </div>
         {rows.map((row, i) => {
-          if (!row.icon) return null;
-          
           return (
             <div key={i} style={{ marginBottom: 16 }}>
               <div
@@ -3466,9 +3426,7 @@ const AssignModal: React.FC<{
                   marginBottom: 7,
                 }}
               >
-                {React.cloneElement(row.icon({} as any), {
-                  style: { width: 14, height: 14, color: row.color }
-                })}
+                <Icon name={row.icon} style={{ width: 14, height: 14, color: row.color }} />
                 <label style={{ ...ls, marginBottom: 0 }}>{row.label}</label>
               </div>
               <select
@@ -3569,8 +3527,6 @@ const CreateBlogModal: React.FC<{
     onChange: (f: File | null) => void,
     color: string,
   ) {
-    const PlusIcon = getIcon("Plus");
-    
     return (
       <div>
         <label style={ls}>
@@ -3589,7 +3545,7 @@ const CreateBlogModal: React.FC<{
             background: color + "08",
           }}
         >
-          {PlusIcon && <PlusIcon style={{ width: 14, height: 14, color }} />}
+          <Icon name="Plus" style={{ width: 14, height: 14, color }} />
           <span style={{ fontSize: 12.5, color, fontWeight: 600 }}>
             Choose image…
           </span>
