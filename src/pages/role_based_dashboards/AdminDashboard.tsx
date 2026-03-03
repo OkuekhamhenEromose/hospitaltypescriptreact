@@ -1130,6 +1130,27 @@ const AdminDashboard: React.FC = () => {
       </div>
     );
 
+  // Add this right after the loading check, before the return statement
+  if (!appointments || !staff || !blogPosts) {
+    return (
+      <div
+        style={{
+          fontFamily: "'DM Sans',sans-serif",
+          minHeight: "100vh",
+          background: C.slate,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
   const adminImg = imgUrl(user?.profile);
 
   return (
