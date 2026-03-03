@@ -408,23 +408,56 @@ const AdminDashboard: React.FC = () => {
   }
 
   function buildAssignments() {
-    const src = statusFilter === "all"
-      ? (appointments || [])
-      : (appointments || []).filter((a) => a?.status === statusFilter);
-    
-    setAssignments(
-      src.map((a: any) => ({
+  const src = statusFilter === "all"
+    ? (appointments || [])
+    : (appointments || []).filter((a) => a?.status === statusFilter);
+  
+  setAssignments(
+    src.map((a: any) => {
+      // Safely extract assigned staff with multiple fallbacks
+      const getAssignedDoctor = () => {
+        // Try different possible paths
+        return a?.doctor || 
+               a?.assigned_doctor?.staff || 
+               a?.assignments?.find((ass: any) => ass?.role === 'DOCTOR')?.staff ||
+               null;
+      };
+      
+      const getAssignedNurse = () => {
+        // Try vital_requests array
+        if (a?.vital_requests && a.vital_requests.length > 0) {
+          return a.vital_requests[0]?.assigned_to || 
+                 a.vital_requests[0]?.staff ||
+                 null;
+        }
+        // Try assignments
+        return a?.assignments?.find((ass: any) => ass?.role === 'NURSE')?.staff || null;
+      };
+      
+      const getAssignedLab = () => {
+        // Try test_requests array
+        if (a?.test_requests && a.test_requests.length > 0) {
+          return a.test_requests[0]?.assigned_to || 
+                 a.test_requests[0]?.staff ||
+                 null;
+        }
+        // Try assignments
+        return a?.assignments?.find((ass: any) => ass?.role === 'LAB')?.staff || null;
+      };
+      
+      return {
         appointmentId: a?.id ?? 0,
         patientId: a?.patient?.id ?? 0,
         patientName: a?.name ?? "Unknown",
-        assignedDoctor: a?.doctor,
-        assignedNurse: a?.vital_requests?.[0]?.assigned_to,
-        assignedLab: a?.test_requests?.[0]?.assigned_to,
+        assignedDoctor: getAssignedDoctor(),
+        assignedNurse: getAssignedNurse(),
+        assignedLab: getAssignedLab(),
         status: a?.status ?? "PENDING",
         bookedAt: a?.booked_at ?? new Date().toISOString(),
-      })),
-    );
-  }
+      };
+    }),
+  );
+}
 
   async function handleAssign(data: any) {
     const ops = [];
