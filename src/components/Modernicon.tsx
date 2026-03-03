@@ -27,19 +27,19 @@ const iconMap: Record<string, React.FC<any>> = {
   RefreshCw: Icons.RefreshCw,
   Settings: Icons.Settings,
   LogOut: Icons.LogOut,
-  
-  // Medical icons - with multiple name variants
+
+  // Medical icons
   Stethoscope: Icons.Stethoscope,
   Flask: Icons.FlaskConical,
   FlaskConical: Icons.FlaskConical,
-  Beaker: Icons.FlaskConical, // ALIAS: Beaker -> FlaskConical
+  Beaker: Icons.FlaskConical,
   Heart: Icons.Heart,
   Thermometer: Icons.Thermometer,
   ThermometerSun: Icons.ThermometerSun,
   Pill: Icons.Pill,
   PillBottle: Icons.Pill,
   Syringe: Icons.Syringe,
-  
+
   // Navigation icons
   ChevDown: Icons.ChevronDown,
   ChevronDown: Icons.ChevronDown,
@@ -48,25 +48,24 @@ const iconMap: Record<string, React.FC<any>> = {
   ChevRight: Icons.ChevronRight,
   ChevronRight: Icons.ChevronRight,
   Menu: Icons.Menu,
-  
+
   // Chart icons
   BarChart: Icons.BarChart3,
   BarChart3: Icons.BarChart3,
   LineChart: Icons.LineChart,
   PieChart: Icons.PieChart,
-  
+
   // Document icons
-  FileText: Icons.FileText,
   File: Icons.File,
   Clipboard: Icons.Clipboard,
   ClipboardList: Icons.ClipboardList,
-  
+
   // Status icons
   Alert: Icons.AlertCircle,
   AlertCircle: Icons.AlertCircle,
   AlertTriangle: Icons.AlertTriangle,
   Info: Icons.Info,
-  
+
   // Logo / Brand
   Logo: Icons.LayoutDashboard,
   LayoutDashboard: Icons.LayoutDashboard,
