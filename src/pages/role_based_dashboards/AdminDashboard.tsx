@@ -785,6 +785,14 @@ const AdminDashboard: React.FC = () => {
     },
   ];
 
+  // Safety check for appointments
+  useEffect(() => {
+    if (appointments && !Array.isArray(appointments)) {
+      console.error("Appointments is not an array:", appointments);
+      setAppointments([]);
+    }
+  }, [appointments]);
+
   useEffect(() => {
     if (isAdmin) {
       loadData();
@@ -882,68 +890,119 @@ const AdminDashboard: React.FC = () => {
   }
 
   function buildAssignments() {
+    if (!appointments || !Array.isArray(appointments)) {
+      setAssignments([]);
+      return;
+    }
+
     const src =
       statusFilter === "all"
-        ? appointments || []
-        : (appointments || []).filter((a) => a?.status === statusFilter);
+        ? appointments
+        : appointments.filter((a) => a?.status === statusFilter);
 
-    setAssignments(
-      src.map((a: any) => {
-        // Safely extract assigned staff with multiple fallbacks
-        const getAssignedDoctor = () => {
-          // Try different possible paths
-          return (
-            a?.doctor ||
-            a?.assigned_doctor?.staff ||
-            a?.assignments?.find((ass: any) => ass?.role === "DOCTOR")?.staff ||
-            null
-          );
-        };
+    const newAssignments = src
+      .filter((appt) => appt != null) // Filter out null/undefined appointments
+      .map((a: any) => {
+        try {
+          // Safely extract assigned staff with multiple fallbacks
+          const getAssignedDoctor = () => {
+            try {
+              if (!a) return null;
+              // Try different possible paths
+              if (a.doctor) return a.doctor;
+              if (a.assigned_doctor?.staff) return a.assigned_doctor.staff;
+              if (a.assignments) {
+                const doctorAssign = a.assignments.find(
+                  (ass: any) => ass?.role === "DOCTOR",
+                );
+                return doctorAssign?.staff || null;
+              }
+              return null;
+            } catch {
+              return null;
+            }
+          };
 
-        const getAssignedNurse = () => {
-          // Try vital_requests array
-          if (a?.vital_requests && a.vital_requests.length > 0) {
-            return (
-              a.vital_requests[0]?.assigned_to ||
-              a.vital_requests[0]?.staff ||
-              null
-            );
-          }
-          // Try assignments
-          return (
-            a?.assignments?.find((ass: any) => ass?.role === "NURSE")?.staff ||
-            null
-          );
-        };
+          const getAssignedNurse = () => {
+            try {
+              if (!a) return null;
+              // Try vital_requests array
+              if (
+                a.vital_requests &&
+                Array.isArray(a.vital_requests) &&
+                a.vital_requests.length > 0
+              ) {
+                const firstVital = a.vital_requests[0];
+                if (firstVital) {
+                  return firstVital.assigned_to || firstVital.staff || null;
+                }
+              }
+              // Try assignments
+              if (a.assignments) {
+                const nurseAssign = a.assignments.find(
+                  (ass: any) => ass?.role === "NURSE",
+                );
+                return nurseAssign?.staff || null;
+              }
+              return null;
+            } catch {
+              return null;
+            }
+          };
 
-        const getAssignedLab = () => {
-          // Try test_requests array
-          if (a?.test_requests && a.test_requests.length > 0) {
-            return (
-              a.test_requests[0]?.assigned_to ||
-              a.test_requests[0]?.staff ||
-              null
-            );
-          }
-          // Try assignments
-          return (
-            a?.assignments?.find((ass: any) => ass?.role === "LAB")?.staff ||
-            null
-          );
-        };
+          const getAssignedLab = () => {
+            try {
+              if (!a) return null;
+              // Try test_requests array
+              if (
+                a.test_requests &&
+                Array.isArray(a.test_requests) &&
+                a.test_requests.length > 0
+              ) {
+                const firstTest = a.test_requests[0];
+                if (firstTest) {
+                  return firstTest.assigned_to || firstTest.staff || null;
+                }
+              }
+              // Try assignments
+              if (a.assignments) {
+                const labAssign = a.assignments.find(
+                  (ass: any) => ass?.role === "LAB",
+                );
+                return labAssign?.staff || null;
+              }
+              return null;
+            } catch {
+              return null;
+            }
+          };
 
-        return {
-          appointmentId: a?.id ?? 0,
-          patientId: a?.patient?.id ?? 0,
-          patientName: a?.name ?? "Unknown",
-          assignedDoctor: getAssignedDoctor(),
-          assignedNurse: getAssignedNurse(),
-          assignedLab: getAssignedLab(),
-          status: a?.status ?? "PENDING",
-          bookedAt: a?.booked_at ?? new Date().toISOString(),
-        };
-      }),
-    );
+          return {
+            appointmentId: a?.id ?? 0,
+            patientId: a?.patient?.id ?? 0,
+            patientName: a?.name ?? "Unknown",
+            assignedDoctor: getAssignedDoctor(),
+            assignedNurse: getAssignedNurse(),
+            assignedLab: getAssignedLab(),
+            status: a?.status ?? "PENDING",
+            bookedAt: a?.booked_at ?? new Date().toISOString(),
+          };
+        } catch (error) {
+          // If anything fails for this appointment, return a safe default
+          return {
+            appointmentId: a?.id ?? 0,
+            patientId: 0,
+            patientName: "Unknown",
+            assignedDoctor: null,
+            assignedNurse: null,
+            assignedLab: null,
+            status: "PENDING",
+            bookedAt: new Date().toISOString(),
+          };
+        }
+      });
+
+    setAssignments(newAssignments);
   }
 
   async function handleAssign(data: any) {
@@ -2447,6 +2506,7 @@ const AdminDashboard: React.FC = () => {
           )}
 
           {/* ── ASSIGNMENTS ───────────────────────────────────────────── */}
+          {/* ── ASSIGNMENTS ───────────────────────────────────────────── */}
           {activeTab === "assignments" && (
             <div
               className="fi"
@@ -2637,6 +2697,7 @@ const AdminDashboard: React.FC = () => {
                         />
                         <select
                           onChange={(e) => setStatusFilter(e.target.value)}
+                          value={statusFilter}
                           style={{
                             paddingLeft: 28,
                             paddingRight: 12,
@@ -2726,71 +2787,69 @@ const AdminDashboard: React.FC = () => {
                   </thead>
                   <tbody>
                     {(appointments || [])
+                      .filter((appt) => appt != null)
                       .filter(
                         (a) =>
                           statusFilter === "all" || a?.status === statusFilter,
                       )
-                      .map((appt) => (
-                        <tr
-                          key={appt?.id ?? Math.random()}
-                          className="rh"
-                          style={{ cursor: "pointer" }}
-                          onClick={() => {
-                            setSelectedAppt(appt);
-                            setShowAssignModal(true);
-                          }}
-                        >
-                          <td>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                              }}
-                            >
-                              <Avatar name={appt?.name || "P"} size={32} />
-                              <div>
-                                <div style={{ fontWeight: 600, fontSize: 13 }}>
-                                  {appt?.name ?? "Unknown"}
-                                </div>
-                                <div style={{ fontSize: 11.5, color: C.muted }}>
-                                  Age {appt?.age ?? "?"} ·{" "}
-                                  {appt?.sex === "M"
-                                    ? "Male"
-                                    : appt?.sex === "F"
-                                      ? "Female"
-                                      : "Other"}
+                      .map((appt) => {
+                        // Safely get doctor, nurse, lab with fallbacks
+                        const doctor =
+                          appt?.doctor || appt?.assigned_doctor?.staff || null;
+                        const nurse =
+                          appt?.vital_requests?.[0]?.assigned_to ||
+                          appt?.vital_requests?.[0]?.staff ||
+                          appt?.assignments?.find(
+                            (a: any) => a?.role === "NURSE",
+                          )?.staff ||
+                          null;
+                        const lab =
+                          appt?.test_requests?.[0]?.assigned_to ||
+                          appt?.test_requests?.[0]?.staff ||
+                          appt?.assignments?.find((a: any) => a?.role === "LAB")
+                            ?.staff ||
+                          null;
+
+                        return (
+                          <tr
+                            key={appt?.id ?? Math.random()}
+                            className="rh"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => {
+                              setSelectedAppt(appt);
+                              setShowAssignModal(true);
+                            }}
+                          >
+                            <td>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 10,
+                                }}
+                              >
+                                <Avatar name={appt?.name || "P"} size={32} />
+                                <div>
+                                  <div
+                                    style={{ fontWeight: 600, fontSize: 13 }}
+                                  >
+                                    {appt?.name ?? "Unknown"}
+                                  </div>
+                                  <div
+                                    style={{ fontSize: 11.5, color: C.muted }}
+                                  >
+                                    Age {appt?.age ?? "?"} ·{" "}
+                                    {appt?.sex === "M"
+                                      ? "Male"
+                                      : appt?.sex === "F"
+                                        ? "Female"
+                                        : "Other"}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          {[
-                            {
-                              person:
-                                appt?.doctor || appt?.assigned_doctor?.staff,
-                              color: C.blue2,
-                            },
-                            {
-                              person:
-                                appt?.vital_requests?.[0]?.assigned_to ||
-                                appt?.vital_requests?.[0]?.staff ||
-                                appt?.assignments?.find(
-                                  (a: any) => a?.role === "NURSE",
-                                )?.staff,
-                              color: C.teal,
-                            },
-                            {
-                              person:
-                                appt?.test_requests?.[0]?.assigned_to ||
-                                appt?.test_requests?.[0]?.staff ||
-                                appt?.assignments?.find(
-                                  (a: any) => a?.role === "LAB",
-                                )?.staff,
-                              color: C.orange,
-                            },
-                          ].map((col, ci) => (
-                            <td key={ci}>
-                              {col.person ? (
+                            </td>
+                            <td>
+                              {doctor ? (
                                 <div
                                   style={{
                                     display: "flex",
@@ -2799,12 +2858,12 @@ const AdminDashboard: React.FC = () => {
                                   }}
                                 >
                                   <Avatar
-                                    name={col.person?.fullname}
+                                    name={doctor?.fullname}
                                     size={24}
-                                    grad={`135deg,${col.color},${col.color}cc`}
+                                    grad={`135deg,${C.blue2},${C.blue2}cc`}
                                   />
                                   <span style={{ fontSize: 13 }}>
-                                    {col.person?.fullname ?? "Unknown"}
+                                    {doctor?.fullname ?? "Unknown"}
                                   </span>
                                 </div>
                               ) : (
@@ -2826,39 +2885,113 @@ const AdminDashboard: React.FC = () => {
                                 </span>
                               )}
                             </td>
-                          ))}
-                          <td>
-                            <Pill status={appt?.status ?? "PENDING"} />
-                          </td>
-                          <td onClick={(e) => e.stopPropagation()}>
-                            <button
-                              className="ip"
-                              onClick={() => {
-                                setSelectedAppt(appt);
-                                setShowAssignModal(true);
-                              }}
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 6,
-                                padding: "6px 12px",
-                                borderRadius: 8,
-                                border: "none",
-                                background: C.indigo,
-                                color: C.white,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                fontFamily: "inherit",
-                                transition: "all 0.15s",
-                              }}
-                            >
-                              <I.UserPlus style={{ width: 12, height: 12 }} />
-                              Assign
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            <td>
+                              {nurse ? (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 7,
+                                  }}
+                                >
+                                  <Avatar
+                                    name={nurse?.fullname}
+                                    size={24}
+                                    grad={`135deg,${C.teal},${C.teal}cc`}
+                                  />
+                                  <span style={{ fontSize: 13 }}>
+                                    {nurse?.fullname ?? "Unknown"}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 5,
+                                    padding: "3px 10px",
+                                    borderRadius: 20,
+                                    background: "#fffbeb",
+                                    color: "#b45309",
+                                    fontSize: 11.5,
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  <I.Clock style={{ width: 10, height: 10 }} />
+                                  Unassigned
+                                </span>
+                              )}
+                            </td>
+                            <td>
+                              {lab ? (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 7,
+                                  }}
+                                >
+                                  <Avatar
+                                    name={lab?.fullname}
+                                    size={24}
+                                    grad={`135deg,${C.orange},${C.orange}cc`}
+                                  />
+                                  <span style={{ fontSize: 13 }}>
+                                    {lab?.fullname ?? "Unknown"}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 5,
+                                    padding: "3px 10px",
+                                    borderRadius: 20,
+                                    background: "#fffbeb",
+                                    color: "#b45309",
+                                    fontSize: 11.5,
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  <I.Clock style={{ width: 10, height: 10 }} />
+                                  Unassigned
+                                </span>
+                              )}
+                            </td>
+                            <td>
+                              <Pill status={appt?.status ?? "PENDING"} />
+                            </td>
+                            <td onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className="ip"
+                                onClick={() => {
+                                  setSelectedAppt(appt);
+                                  setShowAssignModal(true);
+                                }}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  padding: "6px 12px",
+                                  borderRadius: 8,
+                                  border: "none",
+                                  background: C.indigo,
+                                  color: C.white,
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                  fontFamily: "inherit",
+                                  transition: "all 0.15s",
+                                }}
+                              >
+                                <I.UserPlus style={{ width: 12, height: 12 }} />
+                                Assign
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </TableCard>
