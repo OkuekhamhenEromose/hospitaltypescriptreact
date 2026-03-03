@@ -768,19 +768,19 @@ const AdminDashboard: React.FC = () => {
     {
       id: "staff",
       label: "Staff",
-      icon: "Users",
+      icon: "Users", // Make sure this matches I["Users"]
       count: totalDoctors + totalNurses + totalLabScientists,
     },
     {
       id: "assignments",
       label: "Staff Assignments",
-      icon: "UserPlus",
+      icon: "UserPlus", // Make sure this matches I["UserPlus"]
       count: appointments?.filter((a) => a?.status !== "COMPLETED").length ?? 0,
     },
     {
       id: "blog",
       label: "Blog Management",
-      icon: "FileText",
+      icon: "FileText", // Make sure this matches I["FileText"]
       count: blogPosts?.length ?? 0,
     },
   ];
@@ -1298,7 +1298,16 @@ const AdminDashboard: React.FC = () => {
           }}
         >
           {navItems.map((n) => {
-            const A = I[n.icon];
+            const IconComponent = I[n.icon];
+
+            // Safety check - if icon doesn't exist, don't render
+            if (!IconComponent) {
+              console.warn(
+                `Icon "${n.icon}" not found for nav item "${n.label}"`,
+              );
+              return null;
+            }
+
             const act = activeTab === n.id;
             return (
               <button
@@ -1319,7 +1328,7 @@ const AdminDashboard: React.FC = () => {
                   transition: "all 0.15s",
                 }}
               >
-                <A
+                <IconComponent
                   style={{
                     width: 17,
                     height: 17,
@@ -1912,7 +1921,9 @@ const AdminDashboard: React.FC = () => {
                           tab: "blog",
                         },
                       ].map((a, i) => {
-                        const A = I[a.icon];
+                        const IconComponent = I[a.icon];
+                        if (!IconComponent) return null;
+
                         return (
                           <button
                             key={i}
@@ -1944,7 +1955,7 @@ const AdminDashboard: React.FC = () => {
                                 gap: 10,
                               }}
                             >
-                              <A
+                              <IconComponent
                                 style={{
                                   width: 15,
                                   height: 15,
