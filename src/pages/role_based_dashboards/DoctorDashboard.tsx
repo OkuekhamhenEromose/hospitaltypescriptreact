@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiService } from "../../services/api";
+import { UniversalIcon } from "../../components/Modernicon";
 
 // ─── HOSPITAL BRAND PALETTE ───────────────────────────────────────────────
 const C = {
@@ -11,33 +12,10 @@ const C = {
   green: "#12b76a", amber: "#f59e0b", purple: "#7c3aed",
 };
 
-// ─── SVG ICON LIBRARY ─────────────────────────────────────────────────────
-const I: Record<string, (p: React.SVGProps<SVGSVGElement>) => React.ReactElement> = {
-  Logo: p => <svg viewBox="0 0 32 32" {...p}><rect width="32" height="32" rx="8" fill="#177fed"/><path d="M16 6v20M6 16h20" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"/></svg>,
-  Stethoscope: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4.5 7.5a3 3 0 003 3M4.5 7.5H3M7.5 10.5c0 5 4 8 7 8a5 5 0 005-5"/><circle cx="19.5" cy="13.5" r="1.5"/><path d="M4.5 7.5V5a1.5 1.5 0 013 0v2.5"/><path d="M4.5 5a1.5 1.5 0 00-3 0v2.5"/></svg>,
-  Calendar: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
-  Clock: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>,
-  Eye: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
-  Check: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="20 6 9 17 4 12"/></svg>,
-  Users: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
-  Activity: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
-  FileText: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
-  Bell: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
-  Search: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>,
-  Menu: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" {...p}><path d="M3 12h18M3 6h18M3 18h12"/></svg>,
-  ChevDown: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M6 9l6 6 6-6"/></svg>,
-  ChevLeft: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M15 18l-6-6 6-6"/></svg>,
-  X: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" {...p}><path d="M18 6L6 18M6 6l12 12"/></svg>,
-  Filter: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
-  Download: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>,
-  Heart: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>,
-  Beaker: p => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 3h6M10 3v7L6.5 16.5A3 3 0 009.5 21h5a3 3 0 003-4.5L14 10V3"/><path d="M7.5 16h9" strokeWidth="1.4"/></svg>,
-};
-
 interface Appointment {
-  id: number; patient: any; name: string; age: number; sex: string;
-  address: string; message: string; status: string; booked_at: string;
-  medical_report?: any; vitals?: any; lab_results?: any[]; test_requests?: any; vital_requests?: any;
+  id:number; patient:any; name:string; age:number; sex:string;
+  address:string; message:string; status:string; booked_at:string;
+  medical_report?:any; vitals?:any; lab_results?:any[]; test_requests?:any; vital_requests?:any;
 }
 
 const ST: Record<string, { label: string; bg: string; color: string; dot: string }> = {
@@ -58,7 +36,7 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.soft}`, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: C.white, borderRadius: "18px 18px 0 0", zIndex: 1 }}>
           <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{title}</span>
           <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: C.slate, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <I.X style={{ width: 14, height: 14, color: C.muted }} />
+            <UniversalIcon name="X" size={14} style={{ color: C.muted }} />
           </button>
         </div>
         <div style={{ padding: "20px 24px" }}>{children}</div>
@@ -104,14 +82,13 @@ const DoctorDashboard: React.FC = () => {
   ];
 
   const stats = [
-    { label: "Total",    value: appointments.length,                                                   sub: `+${appointments.filter(a=>a.status==="PENDING").length} new`, grad: `135deg,${C.blue1},${C.blue2}`, icon: "Users" },
-    { label: "In Review",value: appointments.filter(a=>a.status==="IN_REVIEW").length,                 sub: "Under assessment",    grad: "135deg,#059669,#10b981",          icon: "Eye" },
-    { label: "Awaiting", value: appointments.filter(a=>a.status==="AWAITING_RESULTS").length,          sub: "Pending results",     grad: `135deg,#d97706,${C.amber}`,       icon: "Clock" },
-    { label: "Completed",value: appointments.filter(a=>a.status==="COMPLETED").length,                 sub: "Fully resolved",      grad: `135deg,${C.purple},#9333ea`,     icon: "Check" },
+    { label: "Total",    value: appointments.length, sub: `+${appointments.filter(a=>a.status==="PENDING").length} new`, grad: `135deg,${C.blue1},${C.blue2}`, icon: "Users" },
+    { label: "In Review",value: appointments.filter(a=>a.status==="IN_REVIEW").length, sub: "Under assessment",    grad: "135deg,#059669,#10b981",          icon: "Eye" },
+    { label: "Awaiting", value: appointments.filter(a=>a.status==="AWAITING_RESULTS").length, sub: "Pending results",     grad: `135deg,#d97706,${C.amber}`,       icon: "Clock" },
+    { label: "Completed",value: appointments.filter(a=>a.status==="COMPLETED").length, sub: "Fully resolved",      grad: `135deg,${C.purple},#9333ea`,     icon: "Check" },
   ];
 
-  useEffect(() => { load(); // FIX: removed 30s polling — click Refresh button instead
-        return undefined; }, []);
+  useEffect(() => { load(); return undefined; }, []);
   useEffect(() => {
     let f = appointments;
     if (tab === "awaiting")  f = f.filter(a=>a.status==="AWAITING_RESULTS");
@@ -174,13 +151,13 @@ const DoctorDashboard: React.FC = () => {
       {/* SIDEBAR */}
       <aside style={{ width:sw, minHeight:"100vh", background:C.white, display:"flex", flexDirection:"column", borderRight:`1px solid ${C.soft}`, position:"sticky", top:0, height:"100vh", overflow:"hidden", flexShrink:0, transition:"width 0.25s cubic-bezier(.4,0,.2,1)", boxShadow:"2px 0 10px rgba(23,127,237,0.05)" }}>
         <div style={{ padding:"18px 14px 14px", borderBottom:`1px solid ${C.soft}`, display:"flex", alignItems:"center", gap:10, minHeight:62 }}>
-          <I.Logo style={{ width:30,height:30,flexShrink:0 }}/>
+          <UniversalIcon name="Logo" size={30} style={{flexShrink:0}} />
           {!collapsed && <div><div style={{fontWeight:700,fontSize:14,color:C.text,lineHeight:1.2,whiteSpace:"nowrap"}}>Etha-Atlantic</div><div style={{fontSize:11,color:C.muted}}>Doctor Panel</div></div>}
         </div>
         <nav style={{ flex:1, padding:"10px 8px", display:"flex", flexDirection:"column", gap:3 }}>
-          {navItems.map(n => { const A = I[n.icon]; const act = tab===n.id; return (
+          {navItems.map(n => { const act = tab===n.id; return (
             <button key={n.id} className="nh" onClick={() => setTab(n.id as any)} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:collapsed?"10px":"10px 12px", borderRadius:10, border:"none", cursor:"pointer", background:act?C.soft:"transparent", justifyContent:collapsed?"center":"flex-start", transition:"all 0.15s" }}>
-              <A style={{ width:17,height:17,color:act?C.blue2:C.muted,flexShrink:0 }}/>
+              <UniversalIcon name={n.icon} size={17} style={{color:act?C.blue2:C.muted,flexShrink:0}} />
               {!collapsed && <><span style={{flex:1,textAlign:"left",fontSize:13,fontWeight:act?600:400,color:act?C.text:C.muted,whiteSpace:"nowrap"}}>{n.label}</span><span style={{fontSize:11,fontWeight:600,minWidth:20,height:20,borderRadius:10,background:act?C.blue2:"#eef2f7",color:act?C.white:C.muted,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 6px"}}>{n.count}</span></>}
             </button>
           );})}
@@ -193,7 +170,8 @@ const DoctorDashboard: React.FC = () => {
             {!collapsed && <div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:12.5,fontWeight:600,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>Dr. {user?.profile?.fullname||user?.username}</div><div style={{fontSize:11,color:C.muted}}>Doctor</div></div>}
           </div>
           <button className="nh" onClick={() => setCollapsed(!collapsed)} style={{ marginTop:6,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"7px",borderRadius:8,border:"none",background:"transparent",cursor:"pointer",color:C.muted,fontSize:12,transition:"all 0.15s" }}>
-            <I.ChevLeft style={{width:13,height:13,transition:"transform 0.25s",transform:collapsed?"rotate(180deg)":"none"}}/>{!collapsed&&<span>Collapse</span>}
+            <UniversalIcon name="ChevLeft" size={13} style={{transition:"transform 0.25s",transform:collapsed?"rotate(180deg)":"none"}} />
+            {!collapsed&&<span>Collapse</span>}
           </button>
         </div>
       </aside>
@@ -205,18 +183,19 @@ const DoctorDashboard: React.FC = () => {
           <div><div style={{fontSize:17,fontWeight:700,color:C.text}}>{navItems.find(n=>n.id===tab)?.label}</div><div style={{fontSize:12,color:C.muted}}>{filtered.length} appointments</div></div>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ position:"relative" }}>
-              <I.Search style={{width:14,height:14,color:C.muted,position:"absolute",left:11,top:"50%",transform:"translateY(-50%)"}}/>
+              <UniversalIcon name="Search" size={14} style={{color:C.muted,position:"absolute",left:11,top:"50%",transform:"translateY(-50%)"}} />
               <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search…" style={{paddingLeft:32,paddingRight:14,height:37,border:`1.5px solid ${C.soft}`,borderRadius:10,fontSize:13,color:C.text,background:C.slate,outline:"none",width:210,fontFamily:"inherit"}}/>
             </div>
             <button className="xh" style={{width:37,height:37,borderRadius:10,border:`1.5px solid ${C.soft}`,background:C.white,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",transition:"all 0.15s"}}>
-              <I.Bell style={{width:16,height:16,color:C.muted}}/><span style={{position:"absolute",top:8,right:8,width:6,height:6,borderRadius:"50%",background:C.red,border:`1.5px solid ${C.white}`}}/>
+              <UniversalIcon name="Bell" size={16} style={{color:C.muted}} />
+              <span style={{position:"absolute",top:8,right:8,width:6,height:6,borderRadius:"50%",background:C.red,border:`1.5px solid ${C.white}`}}/>
             </button>
             <div style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 12px 5px 5px", borderRadius:10, background:C.slate, border:`1.5px solid ${C.soft}` }}>
               <div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${C.blue1},${C.blue2})`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
                 {imgUrl(user?.profile)?<img src={imgUrl(user?.profile)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"D"}</span>}
               </div>
               <span style={{fontSize:13,fontWeight:600,color:C.text}}>Dr. {user?.profile?.fullname?.split(" ")[0]||user?.username}</span>
-              <I.ChevDown style={{width:13,height:13,color:C.muted}}/>
+              <UniversalIcon name="ChevDown" size={13} style={{color:C.muted}} />
             </div>
           </div>
         </header>
@@ -224,16 +203,18 @@ const DoctorDashboard: React.FC = () => {
         <main style={{ flex:1, padding:"26px 28px", overflowY:"auto" }}>
           {/* Stats */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:22 }}>
-            {stats.map((s,i) => { const IC = I[s.icon]; return (
+            {stats.map((s,i) => (
               <div key={i} className="ch" style={{ background:C.white, borderRadius:16, padding:"18px 20px", border:`1px solid ${C.soft}`, boxShadow:"0 1px 4px rgba(23,127,237,0.05)", transition:"all 0.2s" }}>
                 <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12 }}>
-                  <div style={{width:40,height:40,borderRadius:12,background:`linear-gradient(${s.grad})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 10px rgba(0,0,0,0.1)"}}><IC style={{width:17,height:17,color:C.white}}/></div>
+                  <div style={{width:40,height:40,borderRadius:12,background:`linear-gradient(${s.grad})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 10px rgba(0,0,0,0.1)"}}>
+                    <UniversalIcon name={s.icon} size={17} style={{color:C.white}} />
+                  </div>
                   <span style={{fontSize:11,fontWeight:600,color:C.green,background:"#ecfdf5",padding:"2px 8px",borderRadius:20}}>{s.sub}</span>
                 </div>
                 <div style={{fontSize:28,fontWeight:700,color:C.text,lineHeight:1}}>{s.value}</div>
                 <div style={{fontSize:12.5,color:C.muted,marginTop:4}}>{s.label}</div>
               </div>
-            );})}
+            ))}
           </div>
 
           {/* Summary bar */}
@@ -252,7 +233,7 @@ const DoctorDashboard: React.FC = () => {
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
                 {q&&<button onClick={()=>setQ("")} className="xh" style={{fontSize:12,color:C.blue1,padding:"4px 10px",borderRadius:6,border:"none",background:C.soft,cursor:"pointer",transition:"all 0.15s"}}>Clear</button>}
                 <div style={{position:"relative",display:"flex",alignItems:"center"}}>
-                  <I.Filter style={{width:12,height:12,color:C.muted,position:"absolute",left:9,pointerEvents:"none"}}/>
+                  <UniversalIcon name="Filter" size={12} style={{color:C.muted,position:"absolute",left:9,pointerEvents:"none"}} />
                   <select value={tab} onChange={e=>setTab(e.target.value as any)} style={{paddingLeft:26,paddingRight:10,height:34,border:`1.5px solid ${C.soft}`,borderRadius:8,fontSize:12.5,background:C.white,color:C.text,cursor:"pointer",outline:"none",fontFamily:"inherit"}}>
                     <option value="all">All Status</option><option value="in_review">In Review</option><option value="awaiting">Awaiting</option><option value="completed">Completed</option>
                   </select>
@@ -262,10 +243,11 @@ const DoctorDashboard: React.FC = () => {
 
             {filtered.length===0 ? (
               <div style={{padding:"60px 24px",textAlign:"center"}}>
-                <I.Calendar style={{width:38,height:38,color:"#dce7f5",margin:"0 auto 10px"}}/><div style={{fontSize:15,fontWeight:600,color:C.muted}}>No appointments found</div>
+                <UniversalIcon name="Calendar" size={38} style={{color:"#dce7f5",margin:"0 auto 10px"}} />
+                <div style={{fontSize:15,fontWeight:600,color:C.muted}}>No appointments found</div>
                 <div style={{fontSize:12.5,color:"#b0bec5",marginTop:4}}>{q?`No results for "${q}"`:"Try changing the filter above"}</div>
               </div>
-            ) : filtered.map((a,i) => {
+            ) : filtered.map((a,i)=>{
               const st = ST[a.status]||ST.PENDING;
               return (
                 <div key={a.id} className="rh fi" style={{padding:"18px 22px",borderBottom:i<filtered.length-1?`1px solid ${C.soft}`:"none",transition:"background 0.15s"}}>
@@ -288,11 +270,19 @@ const DoctorDashboard: React.FC = () => {
                     </div>
                     <div style={{display:"flex",flexDirection:"column",gap:7,flexShrink:0}}>
                       {a.status!=="COMPLETED"&&<>
-                        <button className="bp" onClick={()=>{setSelected(a);setShowTest(true);}} style={{padding:"7px 13px",background:C.blue2,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s",boxShadow:`0 2px 8px ${C.blue2}44`}}><I.FileText style={{width:13,height:13}}/>Request Tests</button>
-                        <button className="gh" onClick={()=>{setSelected(a);setShowVital(true);}} style={{padding:"7px 13px",background:C.green,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}><I.Activity style={{width:13,height:13}}/>Request Vitals</button>
-                        {(a.vitals||(a.lab_results&&a.lab_results.length>0))&&<button className="ph" onClick={()=>{setSelected(a);setShowReport(true);}} style={{padding:"7px 13px",background:C.purple,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}><I.Stethoscope style={{width:13,height:13}}/>Create Report</button>}
+                        <button className="bp" onClick={()=>{setSelected(a);setShowTest(true);}} style={{padding:"7px 13px",background:C.blue2,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s",boxShadow:`0 2px 8px ${C.blue2}44`}}>
+                          <UniversalIcon name="FileText" size={13} />Request Tests
+                        </button>
+                        <button className="gh" onClick={()=>{setSelected(a);setShowVital(true);}} style={{padding:"7px 13px",background:C.green,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}>
+                          <UniversalIcon name="Activity" size={13} />Request Vitals
+                        </button>
+                        {(a.vitals||(a.lab_results&&a.lab_results.length>0))&&<button className="ph" onClick={()=>{setSelected(a);setShowReport(true);}} style={{padding:"7px 13px",background:C.purple,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}>
+                          <UniversalIcon name="Stethoscope" size={13} />Create Report
+                        </button>}
                       </>}
-                      <button className="xh" onClick={()=>exportCSV(a)} style={{padding:"7px 13px",background:C.white,color:C.muted,borderRadius:8,border:`1.5px solid ${C.soft}`,cursor:"pointer",fontSize:12.5,fontWeight:500,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}><I.Download style={{width:13,height:13}}/>Export</button>
+                      <button className="xh" onClick={()=>exportCSV(a)} style={{padding:"7px 13px",background:C.white,color:C.muted,borderRadius:8,border:`1.5px solid ${C.soft}`,cursor:"pointer",fontSize:12.5,fontWeight:500,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}>
+                        <UniversalIcon name="Download" size={13} />Export
+                      </button>
                     </div>
                   </div>
                 </div>

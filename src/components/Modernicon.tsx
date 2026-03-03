@@ -1,10 +1,10 @@
-// components/SafeIcon.tsx
+// components/UniversalIcon.tsx
 import React from 'react';
 import * as Icons from 'lucide-react';
 
-// Create a comprehensive icon map with aliases
+// Comprehensive icon map with all possible variants
 const iconMap: Record<string, React.FC<any>> = {
-  // Direct mappings
+  // Common icons
   Home: Icons.Home,
   Users: Icons.Users,
   User: Icons.User,
@@ -25,24 +25,54 @@ const iconMap: Record<string, React.FC<any>> = {
   Activity: Icons.Activity,
   Check: Icons.Check,
   RefreshCw: Icons.RefreshCw,
-  Stethoscope: Icons.Stethoscope,
   Settings: Icons.Settings,
   LogOut: Icons.LogOut,
   
-  // Aliases
-  BarChart: Icons.BarChart3,
+  // Medical icons - with multiple name variants
+  Stethoscope: Icons.Stethoscope,
   Flask: Icons.FlaskConical,
-  Logo: Icons.LayoutDashboard,
-  ChevDown: Icons.ChevronDown,
-  ChevLeft: Icons.ChevronLeft,
+  FlaskConical: Icons.FlaskConical,
+  Beaker: Icons.FlaskConical, // ALIAS: Beaker -> FlaskConical
+  Heart: Icons.Heart,
+  Thermometer: Icons.Thermometer,
+  ThermometerSun: Icons.ThermometerSun,
+  Pill: Icons.Pill,
+  PillBottle: Icons.Pill,
+  Syringe: Icons.Syringe,
   
-  // Additional fallbacks for common variations
-  Dashboard: Icons.LayoutDashboard,
-  'Bar-Chart': Icons.BarChart3,
-  'Flask-Conical': Icons.FlaskConical,
+  // Navigation icons
+  ChevDown: Icons.ChevronDown,
+  ChevronDown: Icons.ChevronDown,
+  ChevLeft: Icons.ChevronLeft,
+  ChevronLeft: Icons.ChevronLeft,
+  ChevRight: Icons.ChevronRight,
+  ChevronRight: Icons.ChevronRight,
+  Menu: Icons.Menu,
+  
+  // Chart icons
+  BarChart: Icons.BarChart3,
+  BarChart3: Icons.BarChart3,
+  LineChart: Icons.LineChart,
+  PieChart: Icons.PieChart,
+  
+  // Document icons
+  FileText: Icons.FileText,
+  File: Icons.File,
+  Clipboard: Icons.Clipboard,
+  ClipboardList: Icons.ClipboardList,
+  
+  // Status icons
+  Alert: Icons.AlertCircle,
+  AlertCircle: Icons.AlertCircle,
+  AlertTriangle: Icons.AlertTriangle,
+  Info: Icons.Info,
+  
+  // Logo / Brand
+  Logo: Icons.LayoutDashboard,
+  LayoutDashboard: Icons.LayoutDashboard,
 };
 
-// Fallback icon component
+// Fallback component when icon is missing
 const FallbackIcon: React.FC<{ size?: number; className?: string; style?: React.CSSProperties }> = ({ 
   size = 20, 
   className = '', 
@@ -54,21 +84,22 @@ const FallbackIcon: React.FC<{ size?: number; className?: string; style?: React.
       height: size, 
       backgroundColor: '#e5e7eb',
       borderRadius: '4px',
+      display: 'inline-block',
       ...style 
     }} 
     className={className}
   />
 );
 
-interface SafeIconProps {
-  name: string; // Use string for flexibility
+interface UniversalIconProps {
+  name: string;
   size?: number;
   className?: string;
   style?: React.CSSProperties;
   fallback?: React.ReactNode;
 }
 
-export const SafeIcon: React.FC<SafeIconProps> = ({ 
+export const UniversalIcon: React.FC<UniversalIconProps> = ({ 
   name, 
   size = 20, 
   className = '', 
@@ -82,18 +113,15 @@ export const SafeIcon: React.FC<SafeIconProps> = ({
     setMounted(true);
   }, []);
 
-  // Don't render on server to avoid hydration issues
   if (!mounted) {
     return <div style={{ width: size, height: size }} />;
   }
 
-  // Validate input
   if (!name || typeof name !== 'string') {
-    console.warn('SafeIcon: Invalid name prop', name);
+    console.warn('UniversalIcon: Invalid name prop', name);
     return fallback ? <>{fallback}</> : <FallbackIcon size={size} className={className} style={style} />;
   }
 
-  // If we've already errored, show fallback
   if (error) {
     return fallback ? <>{fallback}</> : <FallbackIcon size={size} className={className} style={style} />;
   }
@@ -102,13 +130,13 @@ export const SafeIcon: React.FC<SafeIconProps> = ({
     const IconComponent = iconMap[name];
     
     if (!IconComponent) {
-      console.warn(`SafeIcon: Icon "${name}" not found, using fallback`);
+      console.warn(`UniversalIcon: Icon "${name}" not found, using fallback`);
       return fallback ? <>{fallback}</> : <FallbackIcon size={size} className={className} style={style} />;
     }
     
     return <IconComponent size={size} className={className} style={style} />;
   } catch (err) {
-    console.error(`SafeIcon: Error rendering icon "${name}":`, err);
+    console.error(`UniversalIcon: Error rendering icon "${name}":`, err);
     setError(true);
     return fallback ? <>{fallback}</> : <FallbackIcon size={size} className={className} style={style} />;
   }
