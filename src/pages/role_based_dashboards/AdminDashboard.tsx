@@ -885,95 +885,108 @@ const AdminDashboard: React.FC = () => {
 
   // FIXED: Proper retry logic for API calls
   async function loadData() {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Helper to safely fetch with proper retry on 401
-      const safeFetch = async <T,>(
-        fetchFn: () => Promise<T>,
-        fallback: T
-      ): Promise<T> => {
-        try {
-          return await fetchFn();
-        } catch (error: any) {
-          if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-            try {
-              await apiService.refreshToken();
-              // FIXED: Retry the FUNCTION, not the promise
-              return await fetchFn();
-            } catch (refreshError) {
-              console.error('Token refresh failed:', refreshError);
-              logout();
-              return fallback;
-            }
-          }
-          console.error('Fetch error:', error);
-          return fallback;
-        }
-      };
-
-      const [staffData, apptData, blogStats, posts] = await Promise.all([
-        safeFetch(() => apiService.getStaffMembers(), []),
-        safeFetch(() => apiService.getAppointments(), []),
-        safeFetch(() => apiService.getBlogStats(), {
-          total_posts: 0,
-          published_posts: 0,
-          draft_posts: 0,
-          posts_with_toc: 0,
-          toc_usage_rate: 0,
-        }),
-        safeFetch(() => apiService.getAllBlogPosts(), []),
-      ]);
-
-      // Ensure all data is arrays
-      const safeStaffData = Array.isArray(staffData) ? staffData : [];
-      const safeApptData = Array.isArray(apptData) ? apptData : [];
-      const safePosts = Array.isArray(posts) ? posts : [];
-
-      setStaff(safeStaffData);
-      setAppointments(safeApptData);
-      setBlogPosts(safePosts);
-
-      // Extract unique patients from appointments
-      const pm = new Map<number, any>();
-      safeApptData.forEach((a: any) => {
-        if (a?.patient && a.patient.id) {
-          if (!pm.has(a.patient.id)) {
-            pm.set(a.patient.id, {
-              ...a.patient,
-              appointments_count: safeApptData.filter(
-                (x: any) => x?.patient?.id === a.patient.id
-              ).length,
-            });
+  try {
+    setLoading(true);
+    setError(null);
+    
+    // Helper to safely fetch with proper retry on 401
+    const safeFetch = async <T,>(
+      fetchFn: () => Promise<T>,
+      fallback: T
+    ): Promise<T> => {
+      try {
+        return await fetchFn();
+      } catch (error: any) {
+        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+          try {
+            await apiService.refreshToken();
+            return await fetchFn();
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+            logout();
+            return fallback;
           }
         }
-      });
+        console.error('Fetch error:', error);
+        return fallback;
+      }
+    };
 
-      setPatients(Array.from(pm.values()));
+    // Define the expected blog stats type
+    type BlogStatsType = {
+      total_posts: number;
+      published_posts: number;
+      draft_posts: number;
+      posts_with_toc: number;
+      toc_usage_rate: number;
+    };
 
-      // Set stats with safe defaults
-      setStats({
-        totalPatients: pm.size,
-        totalDoctors: safeStaffData.filter((s: any) => s?.role === "DOCTOR").length,
-        totalNurses: safeStaffData.filter((s: any) => s?.role === "NURSE").length,
-        totalLabScientists: safeStaffData.filter((s: any) => s?.role === "LAB").length,
-        totalAppointments: safeApptData.length,
-        blogStats: blogStats || {
-          total_posts: 0,
-          published_posts: 0,
-          draft_posts: 0,
-          posts_with_toc: 0,
-          toc_usage_rate: 0,
-        },
-      });
-    } catch (e) {
-      console.error('Error loading dashboard data:', e);
-      setError('Failed to load dashboard data. Please refresh.');
-    } finally {
-      setLoading(false);
-    }
+    const defaultBlogStats: BlogStatsType = {
+      total_posts: 0,
+      published_posts: 0,
+      draft_posts: 0,
+      posts_with_toc: 0,
+      toc_usage_rate: 0,
+    };
+
+    const [staffData, apptData, blogStats, posts] = await Promise.all([
+      safeFetch(() => apiService.getStaffMembers(), []),
+      safeFetch(() => apiService.getAppointments(), []),
+      safeFetch(() => apiService.getBlogStats(), defaultBlogStats),
+      safeFetch(() => apiService.getAllBlogPosts(), []),
+    ]);
+
+    // Ensure all data is arrays
+    const safeStaffData = Array.isArray(staffData) ? staffData : [];
+    const safeApptData = Array.isArray(apptData) ? apptData : [];
+    const safePosts = Array.isArray(posts) ? posts : [];
+
+    setStaff(safeStaffData);
+    setAppointments(safeApptData);
+    setBlogPosts(safePosts);
+
+    // Extract unique patients from appointments
+    const pm = new Map<number, any>();
+    safeApptData.forEach((a: any) => {
+      if (a?.patient && a.patient.id) {
+        if (!pm.has(a.patient.id)) {
+          pm.set(a.patient.id, {
+            ...a.patient,
+            appointments_count: safeApptData.filter(
+              (x: any) => x?.patient?.id === a.patient.id
+            ).length,
+          });
+        }
+      }
+    });
+
+    setPatients(Array.from(pm.values()));
+
+    // Ensure blogStats has all required properties
+    const safeBlogStats: BlogStatsType = {
+      total_posts: (blogStats as any)?.total_posts ?? 0,
+      published_posts: (blogStats as any)?.published_posts ?? 0,
+      draft_posts: (blogStats as any)?.draft_posts ?? 0,
+      posts_with_toc: (blogStats as any)?.posts_with_toc ?? 0,
+      toc_usage_rate: (blogStats as any)?.toc_usage_rate ?? 0,
+    };
+
+    // Set stats with safe defaults
+    setStats({
+      totalPatients: pm.size,
+      totalDoctors: safeStaffData.filter((s: any) => s?.role === "DOCTOR").length,
+      totalNurses: safeStaffData.filter((s: any) => s?.role === "NURSE").length,
+      totalLabScientists: safeStaffData.filter((s: any) => s?.role === "LAB").length,
+      totalAppointments: safeApptData.length,
+      blogStats: safeBlogStats,
+    });
+  } catch (e) {
+    console.error('Error loading dashboard data:', e);
+    setError('Failed to load dashboard data. Please refresh.');
+  } finally {
+    setLoading(false);
   }
+}
 
   async function loadStaff() {
     try {
