@@ -733,7 +733,7 @@ function TableCard({
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────
 const AdminDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user,logout } = useAuth();
   const [activeTab, setActiveTab] = useState<
     "overview" | "patients" | "staff" | "assignments" | "blog"
   >("overview");
@@ -794,6 +794,36 @@ const AdminDashboard: React.FC = () => {
   }, [appointments]);
 
   useEffect(() => {
+  const checkToken = async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      // No token, redirect to login
+      window.location.href = '/login';
+      return;
+    }
+    
+    // Check if token is expired
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const exp = payload.exp * 1000;
+      if (exp < Date.now()) {
+        // Token expired, try to refresh
+        try {
+          await apiService.refreshToken();
+        } catch {
+          window.location.href = '/login';
+        }
+      }
+    } catch {
+      // Invalid token
+      window.location.href = '/login';
+    }
+  };
+  
+  checkToken();
+}, []);
+
+  useEffect(() => {
     if (isAdmin) {
       loadData();
       loadStaff();
@@ -817,62 +847,84 @@ const AdminDashboard: React.FC = () => {
   }, [appointments]);
 
   async function loadData() {
-    try {
-      setLoading(true);
-      const [staffData, apptData, blogStats, posts] = await Promise.all([
-        apiService.getStaffMembers().catch(() => []),
-        apiService.getAppointments().catch(() => []),
-        apiService.getBlogStats().catch(() => ({})),
-        apiService.getAllBlogPosts().catch(() => []),
-      ]);
-
-      const typedBlogStats = (blogStats as any) || {
-        total_posts: 0,
-        published_posts: 0,
-        draft_posts: 0,
-        posts_with_toc: 0,
-        toc_usage_rate: 0,
-      };
-
-      setStaff(Array.isArray(staffData) ? staffData : []);
-      setAppointments(Array.isArray(apptData) ? apptData : []);
-      setBlogPosts(Array.isArray(posts) ? posts : []);
-
-      const pm = new Map<number, any>();
-      (Array.isArray(apptData) ? apptData : []).forEach((a: any) => {
-        if (a?.patient && !pm.has(a.patient.id)) {
-          pm.set(a.patient.id, {
-            ...a.patient,
-            appointments_count: (Array.isArray(apptData)
-              ? apptData
-              : []
-            ).filter((x: any) => x?.patient?.id === a.patient.id).length,
-          });
+  try {
+    setLoading(true);
+    
+    // Create a function to safely fetch with token refresh
+    const safeFetch = async (promise: Promise<any>, fallback: any) => {
+      try {
+        return await promise;
+      } catch (error: any) {
+        // If it's a 401, try to refresh token once
+        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+          try {
+            await apiService.refreshToken();
+            // Retry the original promise
+            return await promise;
+          } catch (refreshError) {
+            // If refresh fails, logout user
+            logout();
+            return fallback;
+          }
         }
-      });
+        return fallback;
+      }
+    };
 
-      setPatients(Array.from(pm.values()));
+    const [staffData, apptData, blogStats, posts] = await Promise.all([
+      safeFetch(apiService.getStaffMembers(), []),
+      safeFetch(apiService.getAppointments(), []),
+      safeFetch(apiService.getBlogStats(), {}),
+      safeFetch(apiService.getAllBlogPosts(), []),
+    ]);
 
-      setStats({
-        totalPatients: pm.size,
-        totalDoctors: (Array.isArray(staffData) ? staffData : []).filter(
-          (s: any) => s?.role === "DOCTOR",
-        ).length,
-        totalNurses: (Array.isArray(staffData) ? staffData : []).filter(
-          (s: any) => s?.role === "NURSE",
-        ).length,
-        totalLabScientists: (Array.isArray(staffData) ? staffData : []).filter(
-          (s: any) => s?.role === "LAB",
-        ).length,
-        totalAppointments: (Array.isArray(apptData) ? apptData : []).length,
-        blogStats: typedBlogStats,
-      });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    const typedBlogStats = (blogStats as any) || {
+      total_posts: 0,
+      published_posts: 0,
+      draft_posts: 0,
+      posts_with_toc: 0,
+      toc_usage_rate: 0,
+    };
+
+    setStaff(Array.isArray(staffData) ? staffData : []);
+    setAppointments(Array.isArray(apptData) ? apptData : []);
+    setBlogPosts(Array.isArray(posts) ? posts : []);
+
+    const pm = new Map<number, any>();
+    (Array.isArray(apptData) ? apptData : []).forEach((a: any) => {
+      if (a?.patient && !pm.has(a.patient.id)) {
+        pm.set(a.patient.id, {
+          ...a.patient,
+          appointments_count: (Array.isArray(apptData)
+            ? apptData
+            : []
+          ).filter((x: any) => x?.patient?.id === a.patient.id).length,
+        });
+      }
+    });
+
+    setPatients(Array.from(pm.values()));
+
+    setStats({
+      totalPatients: pm.size,
+      totalDoctors: (Array.isArray(staffData) ? staffData : []).filter(
+        (s: any) => s?.role === "DOCTOR",
+      ).length,
+      totalNurses: (Array.isArray(staffData) ? staffData : []).filter(
+        (s: any) => s?.role === "NURSE",
+      ).length,
+      totalLabScientists: (Array.isArray(staffData) ? staffData : []).filter(
+        (s: any) => s?.role === "LAB",
+      ).length,
+      totalAppointments: (Array.isArray(apptData) ? apptData : []).length,
+      blogStats: typedBlogStats,
+    });
+  } catch (e) {
+    console.error(e);
+  } finally {
+    setLoading(false);
   }
+}
 
   async function loadStaff() {
     try {
