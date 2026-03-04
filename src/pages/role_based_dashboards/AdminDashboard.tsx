@@ -1,48 +1,20 @@
 // components/dashboards/AdminDashboard.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiService } from "../../services/api";
 import { UniversalIcon } from "../../components/Modernicon";
 
-// Add animation styles
-const styles = `
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .animate-fadeIn {
-    animation: fadeIn 0.3s ease-out forwards;
-  }
-`;
+const BACKEND_ORIGIN = (
+  (import.meta as any).env?.VITE_API_URL ??
+  "https://hospitalback-clean.onrender.com/api"
+).replace(/\/api\/?$/, "");
 
-const C = {
-  primary: "#4361ee",
-  primaryLight: "#4895ef",
-  primaryDark: "#3f37c9",
-  secondary: "#f72585",
-  success: "#06d6a0",
-  warning: "#ffb703",
-  danger: "#e63946",
-  white: "#ffffff",
-  background: "#f8f9fa",
-  cardBg: "#ffffff",
-  border: "#e9ecef",
-  muted: "#6c757d",
-  text: "#212529",
-  textLight: "#495057",
-};
-
-// const BACKEND_ORIGIN = (
-//   (import.meta as any).env?.VITE_API_URL ??
-//   "https://hospitalback-clean.onrender.com/api"
-// ).replace(/\/api\/?$/, "");
-
-// function imgUrl(p: any): string | null {
-//   if (!p?.profile_pix) return null;
-//   return p.profile_pix.startsWith("http")
-//     ? p.profile_pix
-//     : `${BACKEND_ORIGIN}${p.profile_pix}`;
-// }
+function imgUrl(p: any): string | null {
+  if (!p?.profile_pix) return null;
+  return p.profile_pix.startsWith("http")
+    ? p.profile_pix
+    : `${BACKEND_ORIGIN}${p.profile_pix}`;
+}
 
 interface DashboardStats {
   totalPatients: number;
@@ -59,18 +31,26 @@ interface DashboardStats {
   };
 }
 
-// const ST: Record<string, { label: string; bg: string; color: string; dot: string }> = {
-//   COMPLETED: { label: "Completed", bg: "#d1fae5", color: "#059669", dot: "#10b981" },
-//   IN_REVIEW: { label: "In Review", bg: "#dbeafe", color: "#3b82f6", dot: "#3b82f6" },
-//   AWAITING_RESULTS: { label: "Awaiting", bg: "#fed7aa", color: "#b45309", dot: "#f59e0b" },
-//   PENDING: { label: "Pending", bg: "#f3f4f6", color: "#6b7280", dot: "#9ca3af" },
-//   IN_PROGRESS: { label: "In Progress", bg: "#dcfce7", color: "#16a34a", dot: "#22c55e" },
-// };
+interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  description: string;
+  content: string;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+  author: {
+    id: number;
+    fullname: string;
+  };
+}
 
-const Avatar: React.FC<{ name: string; size?: number; src?: string | null }> = ({ 
+const Avatar: React.FC<{ name: string; size?: number; src?: string | null; className?: string }> = ({ 
   name, 
-  size = 32,
-  src 
+  size = 40,
+  src,
+  className = ""
 }) => {
   const safeName = name || "?";
   const initials = safeName
@@ -82,22 +62,13 @@ const Avatar: React.FC<{ name: string; size?: number; src?: string | null }> = (
   
   return (
     <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: src ? "none" : `linear-gradient(135deg, ${C.primary}, ${C.primaryLight})`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        overflow: "hidden",
-      }}
+      className={`rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 overflow-hidden ${className}`}
+      style={{ width: size, height: size }}
     >
       {src ? (
-        <img src={src} alt={safeName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        <img src={src} alt={safeName} className="w-full h-full object-cover" />
       ) : (
-        <span style={{ color: C.white, fontSize: size * 0.4, fontWeight: 600 }}>
+        <span className="text-white font-semibold" style={{ fontSize: size * 0.4 }}>
           {initials}
         </span>
       )}
@@ -105,70 +76,98 @@ const Avatar: React.FC<{ name: string; size?: number; src?: string | null }> = (
   );
 };
 
-// const Pill: React.FC<{ status: string }> = ({ status }) => {
-//   const s = ST[status] || ST.PENDING;
-//   return (
-//     <span
-//       style={{
-//         display: "inline-flex",
-//         alignItems: "center",
-//         gap: 6,
-//         padding: "4px 10px",
-//         borderRadius: 20,
-//         background: s.bg,
-//         color: s.color,
-//         fontSize: 12,
-//         fontWeight: 500,
-//       }}
-//     >
-//       <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot }} />
-//       {s.label}
-//     </span>
-//   );
-// };
-
-const Card: React.FC<{ 
-  children: React.ReactNode; 
-  padding?: string; 
-  className?: string;
-  style?: React.CSSProperties;
-}> = ({ 
-  children, 
-  padding = "20px",
-  className,
-  style
-}) => (
-  <div
-    className={className}
-    style={{
-      background: C.cardBg,
-      borderRadius: 16,
-      border: `1px solid ${C.border}`,
-      padding,
-      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-      transition: "all 0.2s ease",
-      ...style
-    }}
-  >
-    {children}
+const StatCard: React.FC<{
+  icon: string;
+  label: string;
+  value: number | string;
+  change?: string;
+  color: string;
+  iconBg: string;
+}> = ({ icon, label, value, change, color, iconBg }) => (
+  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+    <div className="flex items-start justify-between mb-4">
+      <div className={`w-12 h-12 rounded-xl ${iconBg} flex items-center justify-center`}>
+        <UniversalIcon name={icon} size={24} className={color} />
+      </div>
+      {change && (
+        <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
+          {change}
+        </span>
+      )}
+    </div>
+    <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
+    <div className="text-sm text-gray-500 font-medium">{label}</div>
   </div>
 );
 
-// const NAV_ITEMS = [
-//   { id: "overview", label: "Overview", icon: "Home", section: "main" },
-//   { id: "patients", label: "Patients", icon: "User", section: "main" },
-//   { id: "staff", label: "Staff", icon: "Users", section: "main" },
-//   { id: "assignments", label: "Assignments", icon: "UserPlus", section: "main" },
-//   { id: "blog", label: "Blog", icon: "FileText", section: "main" },
-// ];
+const ProjectCard: React.FC<{
+  title: string;
+  category: string;
+  status: string;
+  progress: number;
+  team: any[];
+  dueDate?: string;
+}> = ({ title, category, status, progress, team, dueDate }) => (
+  <div className="bg-white rounded-xl p-5 border border-gray-100 hover:border-blue-200 transition-all duration-200">
+    <div className="flex items-start justify-between mb-4">
+      <div className="flex-1">
+        <h4 className="font-semibold text-gray-900 mb-1">{title}</h4>
+        <p className="text-xs text-gray-500">{category}</p>
+      </div>
+      <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+        status === 'Ongoing' ? 'bg-blue-50 text-blue-600' :
+        status === 'Completed' ? 'bg-green-50 text-green-600' :
+        'bg-gray-50 text-gray-600'
+      }`}>
+        {status}
+      </span>
+    </div>
+    
+    <div className="flex items-center gap-2 mb-3">
+      <div className="flex -space-x-2">
+        {team.slice(0, 4).map((member, idx) => (
+          <Avatar key={idx} name={member.name} size={28} src={member.avatar} className="border-2 border-white" />
+        ))}
+        {team.length > 4 && (
+          <div className="w-7 h-7 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center">
+            <span className="text-xs font-semibold text-gray-600">+{team.length - 4}</span>
+          </div>
+        )}
+      </div>
+    </div>
+
+    <div className="space-y-2">
+      <div className="flex justify-between text-xs text-gray-600">
+        <span>Progress</span>
+        <span className="font-semibold">{progress}%</span>
+      </div>
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div 
+          className={`h-full rounded-full transition-all duration-500 ${
+            progress >= 75 ? 'bg-green-500' :
+            progress >= 50 ? 'bg-blue-500' :
+            'bg-orange-500'
+          }`}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      {dueDate && (
+        <div className="flex items-center gap-1 text-xs text-gray-500 mt-2">
+          <UniversalIcon name="Calendar" size={12} />
+          <span>Due {dueDate}</span>
+        </div>
+      )}
+    </div>
+  </div>
+);
 
 const AdminDashboard: React.FC = () => {
   const auth = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [authChecking, setAuthChecking] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  
   const [stats, setStats] = useState<DashboardStats>({
     totalPatients: 0,
     totalDoctors: 0,
@@ -181,53 +180,105 @@ const AdminDashboard: React.FC = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
 
   const isAdmin = auth.user?.profile?.role === "ADMIN";
 
+  // Check authentication
   useEffect(() => {
-    const styleSheet = document.createElement("style");
-    styleSheet.textContent = styles;
-    document.head.appendChild(styleSheet);
-    
-    return () => {
-      document.head.removeChild(styleSheet);
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          window.location.href = '/login';
+          return;
+        }
+        
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const exp = payload.exp * 1000;
+          if (exp < Date.now()) {
+            try {
+              await apiService.refreshToken();
+            } catch {
+              auth.logout();
+              window.location.href = '/login';
+              return;
+            }
+          }
+        } catch {
+          window.location.href = '/login';
+          return;
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = '/login';
+      } finally {
+        setAuthChecking(false);
+      }
     };
-  }, []);
+    
+    checkAuth();
+  }, [auth.logout]);
 
+  // Load data
   useEffect(() => {
-    if (isAdmin) {
+    if (!authChecking && isAdmin) {
       loadDashboardData();
     }
-  }, [isAdmin]);
+  }, [authChecking, isAdmin]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      setError(null);
 
-      const [staffData, appointmentsData, blogStats] = await Promise.all([
-        apiService.getStaffMembers().catch(() => []),
-        apiService.getAppointments().catch(() => []),
-        apiService.getBlogStats().catch(() => ({
+      const createFetch = (fetchFn: () => Promise<any>) => {
+        return async () => {
+          try {
+            return await fetchFn();
+          } catch (error: any) {
+            if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+              try {
+                await apiService.refreshToken();
+                return await fetchFn();
+              } catch {
+                auth.logout();
+                throw error;
+              }
+            }
+            throw error;
+          }
+        };
+      };
+
+      const [staffData, appointmentsData, blogStats, postsData] = await Promise.all([
+        createFetch(() => apiService.getStaffMembers())().catch(() => []),
+        createFetch(() => apiService.getAppointments())().catch(() => []),
+        createFetch(() => apiService.getBlogStats())().catch(() => ({
           total_posts: 0,
           published_posts: 0,
           draft_posts: 0,
           posts_with_toc: 0,
           toc_usage_rate: 0,
         })),
+        createFetch(() => apiService.getAllBlogPosts())().catch(() => []),
       ]);
 
       const safeStaff = Array.isArray(staffData) ? staffData : [];
       const safeAppointments = Array.isArray(appointmentsData) ? appointmentsData : [];
+      const safePosts = Array.isArray(postsData) ? postsData : [];
 
       setStaff(safeStaff);
       setAppointments(safeAppointments);
+      setBlogPosts(safePosts);
 
       const patientMap = new Map();
       safeAppointments.forEach((appt: any) => {
         if (appt?.patient?.id && !patientMap.has(appt.patient.id)) {
-          patientMap.set(appt.patient.id, appt.patient);
+          patientMap.set(appt.patient.id, {
+            ...appt.patient,
+            appointments_count: safeAppointments.filter((x: any) => x?.patient?.id === appt.patient.id).length,
+          });
         }
       });
       setPatients(Array.from(patientMap.values()));
@@ -240,28 +291,92 @@ const AdminDashboard: React.FC = () => {
         totalAppointments: safeAppointments.length,
         blogStats: blogStats as any,
       });
-    } catch (err: any) {
-      console.error("Failed to load dashboard data:", err);
-      setError("Failed to load dashboard data. Please refresh the page.");
+    } catch (err) {
+      console.error('Failed to load dashboard:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!auth.user) {
+  // Blog functions
+  const handleDeleteBlogPost = async (slug: string) => {
+    if (!confirm('Are you sure you want to delete this blog post?')) return;
+    
+    try {
+      await apiService.deleteBlogPost(slug);
+      setBlogPosts(blogPosts.filter(post => post.slug !== slug));
+      // Reload stats
+      loadDashboardData();
+    } catch (error) {
+      console.error('Failed to delete blog post:', error);
+      alert('Failed to delete blog post. Please try again.');
+    }
+  };
+
+  const handleViewBlogPost = (slug: string) => {
+    window.open(`/blog/${slug}`, '_blank');
+  };
+
+  const handleEditBlogPost = (slug: string) => {
+    // Navigate to edit page or open edit modal
+    window.location.href = `/admin/blog/edit/${slug}`;
+  };
+
+  const navItems = [
+    { id: "overview", label: "Dashboard", icon: "Home" },
+    { id: "patients", label: "Patients", icon: "User", count: stats.totalPatients },
+    { id: "staff", label: "Staff", icon: "Users", count: staff.length },
+    { id: "appointments", label: "Appointments", icon: "Calendar", count: appointments.length },
+    { id: "blog", label: "Blog", icon: "FileText", count: stats.blogStats.total_posts },
+    { id: "analytics", label: "Analytics", icon: "BarChart" },
+  ];
+
+  const filteredPatients = useMemo(() => 
+    searchQuery
+      ? patients.filter(p =>
+          p?.fullname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p?.user?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : patients,
+    [patients, searchQuery]
+  );
+
+  const filteredStaff = useMemo(() =>
+    searchQuery
+      ? staff.filter(s =>
+          s?.fullname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s?.role?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : staff,
+    [staff, searchQuery]
+  );
+
+  const filteredBlogPosts = useMemo(() =>
+    searchQuery
+      ? blogPosts.filter(p =>
+          p?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p?.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : blogPosts,
+    [blogPosts, searchQuery]
+  );
+
+  // Auth checking
+  if (authChecking) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600 text-sm">Loading...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Verifying authentication...</p>
         </div>
       </div>
     );
   }
 
-  if (!isAdmin) {
+  // Access guard
+  if (!auth.user || !isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <UniversalIcon name="X" size={32} className="text-red-600" />
@@ -279,147 +394,151 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
+  // Loading
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600 font-medium">Loading dashboard...</p>
+          <p className="text-gray-600 font-medium">Loading admin dashboard...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <UniversalIcon name="X" size={32} className="text-red-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => {
-              setError(null);
-              loadDashboardData();
-            }}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const currentDate = new Date().toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
 
-  const navItems = [
-    { id: "overview", label: "Overview", icon: "Home", count: null },
-    { id: "patients", label: "Patients", icon: "User", count: stats.totalPatients },
-    { id: "staff", label: "Staff", icon: "Users", count: stats.totalDoctors + stats.totalNurses + stats.totalLabScientists },
-    { id: "assignments", label: "Assignments", icon: "UserPlus", count: appointments.filter(a => a?.status !== "COMPLETED").length },
-    { id: "blog", label: "Blog", icon: "FileText", count: stats.blogStats.total_posts },
+  const monthlyData = [
+    { month: 'Jan', value: 145 },
+    { month: 'Feb', value: 163 },
+    { month: 'Mar', value: 142 },
+    { month: 'Apr', value: 178 },
+    { month: 'May', value: 195 },
+    { month: 'Jun', value: 210 },
+    { month: 'Jul', value: 198 },
+    { month: 'Aug', value: 187 },
+  ];
+
+  const maxValue = Math.max(...monthlyData.map(d => d.value));
+
+  const ongoingProjects = [
+    {
+      title: "Patient Portal Development",
+      category: "Web Design & Development",
+      status: "Ongoing",
+      progress: 67,
+      dueDate: "Aug 17, 2024",
+      team: [
+        { name: "John Doe", avatar: null },
+        { name: "Jane Smith", avatar: null },
+        { name: "Mike Johnson", avatar: null },
+      ]
+    },
+    {
+      title: "Lab Results System",
+      category: "Backend Integration",
+      status: "Ongoing",
+      progress: 45,
+      dueDate: "Aug 25, 2024",
+      team: [
+        { name: "Sarah Connor", avatar: null },
+        { name: "Tom Hardy", avatar: null },
+      ]
+    },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <aside
-        className={`bg-white border-r border-gray-200 transition-all duration-300 ${
-          sidebarCollapsed ? "w-20" : "w-64"
-        } flex flex-col`}
-        style={{ minHeight: "100vh" }}
-      >
+      {/* Sidebar */}
+      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+        {/* Logo */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-              <UniversalIcon name="Logo" size={24} className="text-white" />
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
+              <UniversalIcon name="Activity" size={24} className="text-white" />
             </div>
-            {!sidebarCollapsed && (
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">Etha-Atlantic</h1>
-                <p className="text-xs text-gray-500">Admin Panel</p>
-              </div>
-            )}
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">Etha-Atlantic</h1>
+              <p className="text-xs text-gray-500">Healthcare System</p>
+            </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">
+            Menu
+          </div>
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
                   isActive
                     ? "bg-blue-50 text-blue-600"
                     : "text-gray-600 hover:bg-gray-50"
                 }`}
               >
-                <UniversalIcon name={item.icon} size={20} />
-                {!sidebarCollapsed && (
-                  <>
-                    <span className="flex-1 text-left font-medium text-sm">{item.label}</span>
-                    {item.count !== null && (
-                      <span
-                        className={`text-xs px-2 py-1 rounded-lg font-semibold ${
-                          isActive
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {item.count}
-                      </span>
-                    )}
-                  </>
+                <UniversalIcon 
+                  name={item.icon} 
+                  size={20} 
+                  className={isActive ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}
+                />
+                <span className="flex-1 text-left font-medium text-sm">{item.label}</span>
+                {item.count !== undefined && (
+                  <span className={`text-xs px-2.5 py-1 rounded-lg font-semibold ${
+                    isActive ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {item.count}
+                  </span>
                 )}
               </button>
             );
           })}
         </nav>
 
+        {/* User Profile */}
         <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
-              {auth.user?.profile?.fullname?.charAt(0) || "A"}
-            </div>
-            {!sidebarCollapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">
-                  {auth.user?.profile?.fullname || "Admin"}
-                </p>
-                <p className="text-xs text-gray-500">Administrator</p>
-              </div>
-            )}
-          </div>
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-          >
-            <UniversalIcon
-              name="ChevLeft"
-              size={16}
-              style={{ transform: sidebarCollapsed ? "rotate(180deg)" : "none" }}
+          <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
+            <Avatar 
+              name={auth.user?.profile?.fullname || "Admin"} 
+              size={40}
+              src={imgUrl(auth.user?.profile)}
             />
-            {!sidebarCollapsed && <span className="text-sm">Collapse</span>}
-          </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">
+                {auth.user?.profile?.fullname || "Admin"}
+              </p>
+              <p className="text-xs text-gray-500">Administrator</p>
+            </div>
+            <button 
+              onClick={() => auth.logout()}
+              className="p-2 hover:bg-white rounded-lg transition-colors"
+              title="Logout"
+            >
+              <UniversalIcon name="LogOut" size={16} className="text-gray-400" />
+            </button>
+          </div>
         </div>
       </aside>
 
+      {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
-        <header className="bg-white border-b border-gray-200 px-8 py-4 sticky top-0 z-10">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-8 py-6 sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
-                {navItems.find((n) => n.id === activeTab)?.label}
+                Hey, {auth.user?.profile?.fullname?.split(' ')[0] || 'Admin'}
               </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {activeTab === "overview" && "Welcome back! Here's your system overview."}
-                {activeTab === "patients" && `Manage ${stats.totalPatients} registered patients`}
-                {activeTab === "staff" && `Manage ${staff.length} staff members`}
-                {activeTab === "assignments" && "Assign staff to patient appointments"}
-                {activeTab === "blog" && `Manage ${stats.blogStats.total_posts} blog posts`}
-              </p>
+              <p className="text-sm text-gray-500 mt-1">{currentDate}</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="relative">
@@ -430,123 +549,223 @@ const AdminDashboard: React.FC = () => {
                 />
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder="Start searching here..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="pl-10 pr-4 py-2.5 w-80 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                 />
               </div>
-              <button
+              <button 
                 onClick={loadDashboardData}
-                className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
-                title="Refresh"
+                className="p-2.5 hover:bg-gray-50 rounded-xl transition-colors"
+                title="Refresh Data"
               >
                 <UniversalIcon name="RefreshCw" size={20} className="text-gray-600" />
               </button>
-              <button className="p-2 hover:bg-gray-50 rounded-lg transition-colors relative">
+              <button className="p-2.5 hover:bg-gray-50 rounded-xl transition-colors">
+                <UniversalIcon name="Settings" size={20} className="text-gray-600" />
+              </button>
+              <button className="p-2.5 hover:bg-gray-50 rounded-xl transition-colors relative">
                 <UniversalIcon name="Bell" size={20} className="text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
               </button>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 p-8">
+        {/* Main Content Area */}
+        <main className="flex-1 p-8 overflow-auto">
           {activeTab === "overview" && (
-            <div className="space-y-6 animate-fadeIn">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                  { label: "Total Patients", value: stats.totalPatients, icon: "User", color: "from-blue-500 to-blue-600" },
-                  { label: "Doctors", value: stats.totalDoctors, icon: "Stethoscope", color: "from-green-500 to-green-600" },
-                  { label: "Nurses", value: stats.totalNurses, icon: "Shield", color: "from-purple-500 to-purple-600" },
-                  { label: "Lab Scientists", value: stats.totalLabScientists, icon: "Flask", color: "from-orange-500 to-orange-600" },
-                ].map((card, idx) => (
-                  <Card key={idx} className="card-hover">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center`}>
-                        <UniversalIcon name={card.icon} size={24} className="text-white" />
-                      </div>
-                      <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
-                        +{3 + idx}%
-                      </span>
+            <div className="space-y-6">
+              {/* Alert Banner */}
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <UniversalIcon name="Activity" size={24} className="text-white" />
                     </div>
-                    <h3 className="text-3xl font-bold text-gray-900 mb-1">{card.value}</h3>
-                    <p className="text-sm font-medium text-gray-600">{card.label}</p>
-                  </Card>
-                ))}
+                    <div>
+                      <h3 className="font-bold text-lg mb-1">System Performance Update</h3>
+                      <p className="text-blue-100 text-sm">
+                        We have observed excellent system performance with {stats.totalAppointments} appointments 
+                        processed this month. Keep up the great work!
+                      </p>
+                    </div>
+                  </div>
+                  <button className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-semibold text-sm">
+                    View Details
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
-                      <UniversalIcon name="BarChart" size={20} className="text-purple-600" />
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-900">Blog Statistics</h3>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    {[
-                      { label: "Total Posts", value: stats.blogStats.total_posts, color: "blue" },
-                      { label: "Published", value: stats.blogStats.published_posts, color: "green" },
-                      { label: "Drafts", value: stats.blogStats.draft_posts, color: "orange" },
-                      { label: "With TOC", value: stats.blogStats.posts_with_toc, color: "purple" },
-                    ].map((item, idx) => (
-                      <div key={idx} className={`bg-${item.color}-50 rounded-xl p-4 text-center`}>
-                        <div className={`text-2xl font-bold text-${item.color}-600 mb-1`}>{item.value}</div>
-                        <div className="text-xs text-gray-600">{item.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard
+                  icon="Users"
+                  label="Active Employees"
+                  value={staff.length}
+                  change="+5.2%"
+                  color="text-blue-600"
+                  iconBg="bg-blue-50"
+                />
+                <StatCard
+                  icon="Calendar"
+                  label="Total Appointments"
+                  value={stats.totalAppointments}
+                  change="+12.3%"
+                  color="text-green-600"
+                  iconBg="bg-green-50"
+                />
+                <StatCard
+                  icon="User"
+                  label="Total Patients"
+                  value={stats.totalPatients}
+                  change="+8.1%"
+                  color="text-purple-600"
+                  iconBg="bg-purple-50"
+                />
+                <StatCard
+                  icon="Activity"
+                  label="Completion Rate"
+                  value={`${Math.round((appointments.filter(a => a?.status === "COMPLETED").length / Math.max(appointments.length, 1)) * 100)}%`}
+                  change="+2.4%"
+                  color="text-orange-600"
+                  iconBg="bg-orange-50"
+                />
+              </div>
 
-                <Card>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Appointment Overview</h3>
-                  <div className="space-y-3">
-                    {[
-                      { label: "Pending", value: appointments.filter(a => a?.status === "PENDING").length, color: "gray" },
-                      { label: "In Review", value: appointments.filter(a => a?.status === "IN_REVIEW").length, color: "blue" },
-                      { label: "Completed", value: appointments.filter(a => a?.status === "COMPLETED").length, color: "green" },
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-600">{item.label}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-gray-900">{item.value}</span>
-                          <span className={`w-2 h-2 rounded-full bg-${item.color}-500`} />
+              {/* Main Content Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Ongoing Tasks */}
+                <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">On Going Projects</h3>
+                      <p className="text-sm text-gray-500 mt-1">Best performing projects ranking</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button className="p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                        <UniversalIcon name="Search" size={18} className="text-gray-400" />
+                      </button>
+                      <button className="p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                        <UniversalIcon name="Filter" size={18} className="text-gray-400" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {ongoingProjects.map((project, idx) => (
+                      <ProjectCard key={idx} {...project} />
+                    ))}
+                    
+                    {/* Recent Appointments */}
+                    {appointments.slice(0, 2).map((appt, idx) => (
+                      <ProjectCard
+                        key={`appt-${idx}`}
+                        title={`Appointment: ${appt?.name || 'Patient'}`}
+                        category={`${appt?.sex === 'M' ? 'Male' : 'Female'} • Age ${appt?.age || 'N/A'}`}
+                        status={appt?.status === 'COMPLETED' ? 'Completed' : 'Ongoing'}
+                        progress={appt?.status === 'COMPLETED' ? 100 : 50}
+                        dueDate={appt?.booked_at ? new Date(appt.booked_at).toLocaleDateString() : undefined}
+                        team={[
+                          { name: appt?.doctor?.fullname || 'Unassigned', avatar: null },
+                        ]}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Charts & Analysis */}
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">Graphs and Analysis</h3>
+                      <p className="text-sm text-gray-500 mt-1">Projects completed per month</p>
+                    </div>
+                    <select className="text-sm border-0 bg-transparent text-gray-600 font-medium focus:outline-none cursor-pointer">
+                      <option>Month</option>
+                      <option>Week</option>
+                      <option>Year</option>
+                    </select>
+                  </div>
+
+                  {/* Bar Chart */}
+                  <div className="space-y-3 mb-6">
+                    {monthlyData.map((data, idx) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-gray-500 w-8">{data.month}</span>
+                        <div className="flex-1 h-8 bg-gray-100 rounded-lg overflow-hidden relative">
+                          <div 
+                            className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-lg transition-all duration-500"
+                            style={{ width: `${(data.value / maxValue) * 100}%` }}
+                          />
                         </div>
+                        <span className="text-xs font-semibold text-gray-900 w-8 text-right">{data.value}</span>
                       </div>
                     ))}
                   </div>
-                </Card>
+
+                  {/* Legend */}
+                  <div className="pt-4 border-t border-gray-100 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-blue-500 rounded-sm" />
+                        <span className="text-gray-600">Projects Done</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">
+                        {monthlyData.reduce((sum, d) => sum + d.value, 0)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-sm" />
+                        <span className="text-gray-600">Pages Done</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">
+                        {monthlyData.reduce((sum, d) => sum + d.value, 0) * 12}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-purple-500 rounded-sm" />
+                        <span className="text-gray-600">Project On Hold</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">14</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === "patients" && (
-            <Card>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">Patient Management</h3>
-                    <p className="text-sm text-gray-500 mt-1">{patients.length} patients found</p>
+                    <p className="text-sm text-gray-500 mt-1">{filteredPatients.length} patients found</p>
                   </div>
                   <button className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2">
                     <UniversalIcon name="Plus" size={16} />
-                    Add Patient
+                    <span className="font-medium">Add Patient</span>
                   </button>
                 </div>
               </div>
+              
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-100">
                     <tr>
                       <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Patient</th>
                       <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact</th>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Appointments</th>
                       <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                       <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {patients.map((patient, idx) => (
+                    {filteredPatients.map((patient, idx) => (
                       <tr key={patient?.id || idx} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -562,6 +781,12 @@ const AdminDashboard: React.FC = () => {
                           <p className="text-xs text-gray-500">{patient?.phone || "No phone"}</p>
                         </td>
                         <td className="px-6 py-4">
+                          <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold">
+                            <UniversalIcon name="Calendar" size={12} />
+                            {patient?.appointments_count || 0} visits
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
                           <span className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-semibold">
                             <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
                             Active
@@ -575,9 +800,6 @@ const AdminDashboard: React.FC = () => {
                             <button className="p-2 hover:bg-green-50 rounded-lg transition-colors">
                               <UniversalIcon name="Edit" size={16} className="text-green-600" />
                             </button>
-                            <button className="p-2 hover:bg-red-50 rounded-lg transition-colors">
-                              <UniversalIcon name="Trash" size={16} className="text-red-600" />
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -585,23 +807,24 @@ const AdminDashboard: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </div>
           )}
 
           {activeTab === "staff" && (
-            <Card>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">Staff Management</h3>
-                    <p className="text-sm text-gray-500 mt-1">{staff.length} staff members</p>
+                    <p className="text-sm text-gray-500 mt-1">{filteredStaff.length} staff members</p>
                   </div>
                   <button className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors flex items-center gap-2">
                     <UniversalIcon name="Plus" size={16} />
-                    Add Staff
+                    <span className="font-medium">Add Staff</span>
                   </button>
                 </div>
               </div>
+              
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-100">
@@ -614,7 +837,7 @@ const AdminDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {staff.map((member, idx) => (
+                    {filteredStaff.map((member, idx) => (
                       <tr key={member?.id || idx} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -652,7 +875,93 @@ const AdminDashboard: React.FC = () => {
                             <button className="p-2 hover:bg-green-50 rounded-lg transition-colors">
                               <UniversalIcon name="Edit" size={16} className="text-green-600" />
                             </button>
-                            <button className="p-2 hover:bg-red-50 rounded-lg transition-colors">
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "blog" && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Blog Management</h3>
+                    <p className="text-sm text-gray-500 mt-1">{filteredBlogPosts.length} blog posts</p>
+                  </div>
+                  <button className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors flex items-center gap-2">
+                    <UniversalIcon name="Plus" size={16} />
+                    <span className="font-medium">New Post</span>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Title</th>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Author</th>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredBlogPosts.map((post, idx) => (
+                      <tr key={post?.id || idx} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 max-w-xs">
+                          <p className="font-semibold text-gray-900 truncate">{post?.title || "Untitled"}</p>
+                          <p className="text-xs text-gray-500 truncate">{post?.description || "No description"}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Avatar name={post?.author?.fullname || "A"} size={32} />
+                            <span className="text-sm text-gray-900">{post?.author?.fullname || "Unknown"}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-semibold ${
+                            post?.published 
+                              ? "bg-green-50 text-green-700" 
+                              : "bg-orange-50 text-orange-700"
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              post?.published ? "bg-green-500" : "bg-orange-500"
+                            }`} />
+                            {post?.published ? "Published" : "Draft"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-gray-900">
+                            {post?.created_at ? new Date(post.created_at).toLocaleDateString() : "Unknown"}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => handleViewBlogPost(post?.slug)}
+                              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="View Post"
+                            >
+                              <UniversalIcon name="Eye" size={16} className="text-blue-600" />
+                            </button>
+                            <button 
+                              onClick={() => handleEditBlogPost(post?.slug)}
+                              className="p-2 hover:bg-green-50 rounded-lg transition-colors"
+                              title="Edit Post"
+                            >
+                              <UniversalIcon name="Edit" size={16} className="text-green-600" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteBlogPost(post?.slug)}
+                              className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete Post"
+                            >
                               <UniversalIcon name="Trash" size={16} className="text-red-600" />
                             </button>
                           </div>
@@ -662,49 +971,26 @@ const AdminDashboard: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </div>
           )}
 
-          {activeTab === "assignments" && (
-            <Card>
-              <div className="p-6 border-b border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900">Staff Assignments</h3>
-                <p className="text-sm text-gray-500 mt-1">Manage appointments and staff allocation</p>
+          {(activeTab === "appointments" || activeTab === "analytics") && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <UniversalIcon 
+                  name={activeTab === "appointments" ? "Calendar" : "BarChart"} 
+                  size={40} 
+                  className="text-gray-400" 
+                />
               </div>
-              <div className="p-6">
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <UniversalIcon name="UserPlus" size={32} className="text-gray-400" />
-                  </div>
-                  <p className="text-gray-600">Assignment functionality will be displayed here</p>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {activeTab === "blog" && (
-            <Card>
-              <div className="p-6 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">Blog Management</h3>
-                    <p className="text-sm text-gray-500 mt-1">{stats.blogStats.total_posts} total posts</p>
-                  </div>
-                  <button className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors flex items-center gap-2">
-                    <UniversalIcon name="Plus" size={16} />
-                    New Post
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <UniversalIcon name="FileText" size={32} className="text-gray-400" />
-                  </div>
-                  <p className="text-gray-600">Blog management interface will be displayed here</p>
-                </div>
-              </div>
-            </Card>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Section
+              </h3>
+              <p className="text-gray-600 mb-6">This section is under development</p>
+              <button className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium">
+                Coming Soon
+              </button>
+            </div>
           )}
         </main>
       </div>

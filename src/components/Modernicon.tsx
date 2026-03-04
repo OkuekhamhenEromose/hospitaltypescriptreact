@@ -1,4 +1,4 @@
-// components/UniversalIcon.tsx
+// components/Modernicon.tsx
 import React from 'react';
 import * as Icons from 'lucide-react';
 
@@ -17,16 +17,21 @@ const iconMap: Record<string, React.FC<any>> = {
   Download: Icons.Download,
   Plus: Icons.Plus,
   Edit: Icons.Edit,
+  Edit2: Icons.Edit2,
   Trash: Icons.Trash2,
+  Trash2: Icons.Trash2,
   Eye: Icons.Eye,
+  EyeOff: Icons.EyeOff,
   Calendar: Icons.Calendar,
   Clock: Icons.Clock,
   Shield: Icons.Shield,
   Activity: Icons.Activity,
   Check: Icons.Check,
+  CheckCircle: Icons.CheckCircle,
   RefreshCw: Icons.RefreshCw,
   Settings: Icons.Settings,
   LogOut: Icons.LogOut,
+  LogIn: Icons.LogIn,
 
   // Medical icons
   Stethoscope: Icons.Stethoscope,
@@ -47,32 +52,68 @@ const iconMap: Record<string, React.FC<any>> = {
   ChevronLeft: Icons.ChevronLeft,
   ChevRight: Icons.ChevronRight,
   ChevronRight: Icons.ChevronRight,
+  ChevUp: Icons.ChevronUp,
+  ChevronUp: Icons.ChevronUp,
   Menu: Icons.Menu,
+  MoreVertical: Icons.MoreVertical,
+  MoreHorizontal: Icons.MoreHorizontal,
 
   // Chart icons
   BarChart: Icons.BarChart3,
   BarChart3: Icons.BarChart3,
   LineChart: Icons.LineChart,
   PieChart: Icons.PieChart,
+  TrendingUp: Icons.TrendingUp,
+  TrendingDown: Icons.TrendingDown,
 
   // Document icons
   File: Icons.File,
   Clipboard: Icons.Clipboard,
   ClipboardList: Icons.ClipboardList,
+  Folder: Icons.Folder,
+  FolderOpen: Icons.FolderOpen,
 
   // Status icons
   Alert: Icons.AlertCircle,
   AlertCircle: Icons.AlertCircle,
   AlertTriangle: Icons.AlertTriangle,
   Info: Icons.Info,
+  HelpCircle: Icons.HelpCircle,
+
+  // Actions
+  Send: Icons.Send,
+  Mail: Icons.Mail,
+  Phone: Icons.Phone,
+  MessageSquare: Icons.MessageSquare,
+  Share: Icons.Share2,
+  Share2: Icons.Share2,
+  Copy: Icons.Copy,
+  Save: Icons.Save,
+  Upload: Icons.Upload,
 
   // Logo / Brand
   Logo: Icons.LayoutDashboard,
   LayoutDashboard: Icons.LayoutDashboard,
+  Database: Icons.Database,
+  Server: Icons.Server,
+
+  // Misc
+  Star: Icons.Star,
+  StarFilled: Icons.Star,
+  Image: Icons.Image,
+  Lock: Icons.Lock,
+  Unlock: Icons.Unlock,
+  Key: Icons.Key,
+  Wifi: Icons.Wifi,
+  WifiOff: Icons.WifiOff,
 };
 
 // Fallback component when icon is missing
-const FallbackIcon: React.FC<{ size?: number; className?: string; style?: React.CSSProperties }> = ({ 
+const FallbackIcon: React.FC<{ 
+  size?: number; 
+  className?: string; 
+  style?: React.CSSProperties 
+}> = ({ 
   size = 20, 
   className = '', 
   style 
@@ -113,7 +154,7 @@ export const UniversalIcon: React.FC<UniversalIconProps> = ({
   }, []);
 
   if (!mounted) {
-    return <div style={{ width: size, height: size }} />;
+    return <div style={{ width: size, height: size, display: 'inline-block' }} />;
   }
 
   if (!name || typeof name !== 'string') {
@@ -140,3 +181,6 @@ export const UniversalIcon: React.FC<UniversalIconProps> = ({
     return fallback ? <>{fallback}</> : <FallbackIcon size={size} className={className} style={style} />;
   }
 };
+
+// Export default for backwards compatibility
+export default UniversalIcon;
