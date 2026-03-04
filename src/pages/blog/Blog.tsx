@@ -1,4 +1,3 @@
-// pages/blog/Blog.tsx
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
 import { apiService } from "../../services/api";
@@ -6,21 +5,6 @@ import { useNavigate } from "react-router-dom";
 import slugify from "slugify";
 import EttaLogo from "../../assets/img/etta-replace1-removebg-preview.png";
 
-// ── TOC anchor helper ────────────────────────────────────────────────────────
-// FIX: The original Blog.tsx defined a full normalizeBlogPost() that re-ran
-// after apiService.getBlogPosts() already normalized the post objects.
-// That function overwrote `featured_image`, `image_1`, `image_2` with
-// `post.featured_image_url`, but api.ts had *already* mapped those fields
-// to `featured_image`/`image_1`/`image_2`. After that second pass the _url
-// fields no longer existed, so all three image fields became `undefined` —
-// breaking every image on the blog listing.
-//
-// The ONLY thing Blog.tsx needs beyond what api.ts provides is:
-//   1. anchor slugs on TOC items (for smooth-scroll links)
-//   2. enable_toc derived from the data
-//
-// Everything else (images, description, subheadings) is already handled by
-// the service layer. We apply a minimal TOC-only post-process here.
 function addTocAnchors(post: any): any {
   const rawTOC = post.table_of_contents;
   if (!Array.isArray(rawTOC) || rawTOC.length === 0) return post;
@@ -41,8 +25,8 @@ function addTocAnchors(post: any): any {
     ...post,
     table_of_contents: normalizedTOC,
     enable_toc:
-      post.enable_toc                      ??
-      post.enable_table_of_contents        ??
+      post.enable_toc ??
+      post.enable_table_of_contents ??
       normalizedTOC.length > 0,
   };
 }
@@ -57,13 +41,10 @@ const Blog: React.FC = () => {
   const loadBlogPosts = useCallback(async () => {
     try {
       setIsLoading(true);
-      // apiService.getBlogPosts() already normalizes images, description,
-      // subheadings, etc. We only add TOC anchors on top.
       const raw = await apiService.getBlogPosts();
       const normalized = raw.map(addTocAnchors);
       setPosts(normalized);
 
-      // Pre-expand TOC state: collapsed by default
       const initialTOC: Record<string, boolean> = {};
       normalized.forEach((post: any) => {
         if (post.enable_toc && post.table_of_contents?.length > 0)
@@ -71,7 +52,6 @@ const Blog: React.FC = () => {
       });
       setExpandedTOC(initialTOC);
     } catch {
-      // Silent — no user-facing impact; empty state shown below
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +61,6 @@ const Blog: React.FC = () => {
     loadBlogPosts();
   }, [loadBlogPosts]);
 
-  // FIX: memoized — only recomputes when posts or searchQuery changes
   const filteredPosts = useMemo(
     () =>
       posts.filter(
@@ -140,12 +119,10 @@ const Blog: React.FC = () => {
       <div className="min-h-screen bg-white px-12">
         <div className="container mx-auto px-4 py-24 max-w-7xl">
           <div className="flex flex-col lg:flex-row gap-8">
-            {/* ── Main column ── */}
             <div className="lg:w-2/3">
               {filteredPosts.map((post) => (
                 <div key={post.id} className="mb-16">
                   <div className="flex gap-6 mb-8">
-                    {/* Author / date sidebar */}
                     <div className="flex flex-col items-center space-y-3 flex-shrink-0">
                       <div className="w-16 h-16 overflow-hidden">
                         <img
@@ -174,7 +151,6 @@ const Blog: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Featured image */}
                     <div className="flex-1">
                       {post.featured_image ? (
                         <div className="relative w-full h-[400px] shadow-lg overflow-hidden">
@@ -359,7 +335,6 @@ const Blog: React.FC = () => {
               )}
             </div>
 
-            {/* ── Sidebar ── */}
             <div className="lg:w-1/3">
               <div className="space-y-6 lg:sticky lg:top-8">
                 <div className="bg-white">

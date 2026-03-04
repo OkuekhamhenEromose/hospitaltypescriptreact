@@ -1,11 +1,8 @@
-// Layout.tsx - Updated with profile click handler
-import React  from 'react';
+import React from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import SocialButton from './SocialWidget';
 import { useAuth } from '../contexts/AuthContext';
-// import { useLocation } from 'react-router-dom';
-// import EthaLogo from "../assets/img/etta-replace1-removebg-preview.png";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -39,16 +36,10 @@ const Layout: React.FC<LayoutProps> = ({
   const handleLogout = () => {
     logout();
   };
-  // const Layout = () => {
-  // const location = useLocation();
-  // useEffect(() => {
-  //   window.scrollTo(0, 0);
-  // }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-white">
-      {/* <div className='flex items-center justify-center pt-4'> */}
-        <Header
+      <Header
         currentPage={currentPage}
         onNavigate={onNavigate}
         user={user}
@@ -56,11 +47,8 @@ const Layout: React.FC<LayoutProps> = ({
         onProfileClick={handleProfileClick}
         onLogout={handleLogout}
       />
-      {/* <img src={EthaLogo} alt="Etha Logo" className="w-16 h-16" /> */}
-      {/* </div> */}
       
-      
-      <main className="pt-24 md:pt-28 lg:pt-28"> {/* Added padding-top to account for fixed header */}
+      <main className="pt-24 md:pt-28 lg:pt-28">
         {children}
       </main>
       

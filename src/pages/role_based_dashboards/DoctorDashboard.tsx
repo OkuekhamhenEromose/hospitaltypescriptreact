@@ -4,7 +4,6 @@ import { useAuth } from "../../contexts/AuthContext";
 import { apiService } from "../../services/api";
 import { UniversalIcon } from "../../components/Modernicon";
 
-// ─── HOSPITAL BRAND PALETTE ───────────────────────────────────────────────
 const C = {
   blue1: "#1378e5", blue2: "#177fed", blue3: "#0f5fc4",
   red: "#e53935", white: "#ffffff", slate: "#f0f4fa",
