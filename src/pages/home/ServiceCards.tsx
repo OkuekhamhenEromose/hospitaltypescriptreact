@@ -75,17 +75,16 @@ const Services = () => {
     },
   ];
 
-  // Animation variants
-    const containerVariants: Variants = {
-      hidden: { opacity: 0 },
-      visible: {
-        opacity: 1,
-        transition: {
-          staggerChildren: 0.3,
-          delayChildren: 0.2,
-        },
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.3,
+        delayChildren: 0.2,
       },
-    };
+    },
+  };
 
   const cardVariants: Variants = {
     hidden: { 
@@ -117,7 +116,6 @@ const Services = () => {
   return (
     <section className="py-12 bg-gray-50">
       <div className="container mx-auto px-12">
-        {/* Animated Title */}
         <motion.div 
           className="text-center mb-12"
           initial="hidden"
@@ -133,7 +131,6 @@ const Services = () => {
           </h3>
         </motion.div>
 
-        {/* First Row Services */}
         <motion.div 
           className="mb-12"
           variants={containerVariants}
@@ -166,7 +163,6 @@ const Services = () => {
           </div>
         </motion.div>
 
-        {/* Second Row Services */}
         <motion.div
           variants={containerVariants}
           initial="hidden"

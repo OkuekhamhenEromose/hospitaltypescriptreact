@@ -1,4 +1,3 @@
-// pages/home/Home.tsx
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -16,7 +15,6 @@ interface HomeProps {
   onSelectPost?: (slug: string) => void;
 }
 
-// ── Animation variants (module-level — allocated once, not on every render) ──
 const fadeInLeft: Variants = {
   hidden:  { opacity: 0, x: -50 },
   visible: {
@@ -33,7 +31,6 @@ const zoomOut: Variants = {
   },
 };
 
-// ── Subheading helpers ────────────────────────────────────────────────────────
 const normalizeSubheadings = (sub: any[]) =>
   sub.map((item: any, i: number) => ({
     id:          i + 1,
@@ -49,19 +46,12 @@ const getFirstTwoSubheadings = (post: any): any[] | null => {
   return null;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
   const [latestPost,    setLatestPost]    = useState<any>(null);
   const [loadingBlogs,  setLoadingBlogs]  = useState(true);
   const [email,         setEmail]         = useState("");
   const navigate = useNavigate();
 
-  // FIX: The original called getBlogPosts() which fetches the full paginated
-  // list (up to 20 posts) just to use allPosts[0].
-  // getLatestBlogPosts(1) calls /hospital/blog/latest/?limit=1 directly —
-  // the backend returns exactly one post, pre-sorted, pre-cached in Redis.
-  // This reduces data over the wire by ~95% for this component.
   const loadLatestPost = useCallback(async () => {
     try {
       setLoadingBlogs(true);
@@ -95,8 +85,6 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
     setEmail("");
   };
 
-  // FIX: Derived image URLs memoized — the original called normalizeMediaUrl
-  // three times on every render even when latestPost hadn't changed.
   const { featuredImageUrl, image1Url, image2Url, firstTwoSubheadings } =
     useMemo(() => {
       if (!latestPost)
@@ -129,7 +117,6 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
             </div>
           ) : latestPost ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-              {/* ── Main content ── */}
               <motion.div
                 className="lg:col-span-2"
                 variants={fadeInLeft}
@@ -240,7 +227,6 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
                 )}
               </motion.div>
 
-              {/* ── Sidebar ── */}
               <motion.div
                 className="space-y-8 mt-4"
                 variants={zoomOut}

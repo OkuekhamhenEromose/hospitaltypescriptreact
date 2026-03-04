@@ -7,8 +7,8 @@ import { ArrowLeft, Save, Loader, Upload, X, CheckCircle, AlertCircle } from 'lu
 
 interface ImageSlot {
   file:     File | null;
-  preview:  string | null;  // local blob URL for new selection
-  existing: string | null;  // presigned URL from server (edit mode)
+  preview:  string | null;
+  existing: string | null;  
   name:     string | null;
 }
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
@@ -44,7 +44,6 @@ const BlogEditor: React.FC = () => {
         content: post.content, published: post.published,
         enable_toc: post.enable_toc ?? true,
       });
-      // Store existing presigned URLs so previews show without re-uploading
       setFeatured(s => ({ ...s, existing: post.featured_image || null }));
       setImg1(s    => ({ ...s, existing: post.image_1        || null }));
       setImg2(s    => ({ ...s, existing: post.image_2        || null }));
@@ -96,23 +95,18 @@ const BlogEditor: React.FC = () => {
       fd.append('content',     formData.content);
       fd.append('published',   String(formData.published));
       fd.append('enable_toc',  String(formData.enable_toc));
-
-      // CRITICAL: Only append image fields when a new file was actually selected.
-      // Appending an empty file input sends an empty InMemoryUploadedFile to
-      // Django which overwrites the DB path with blank — deleting the existing image.
       if (featured.file) fd.append('featured_image', featured.file);
       if (img1.file)     fd.append('image_1',        img1.file);
       if (img2.file)     fd.append('image_2',        img2.file);
 
       if (isEdit && slug) {
-        await apiService.updateBlogPost(slug, fd);  // uses PATCH — only updates provided fields
+        await apiService.updateBlogPost(slug, fd);  
       } else {
         await apiService.createBlogPost(fd);
       }
       setUploadStatus('success');
       setTimeout(() => navigate('/admin/dashboard'), 1400);
     } catch (err: any) {
-      // Expose the real error rather than a generic message
       setErrorDetail(err?.message ?? 'Unexpected error — check the browser Network tab.');
       setUploadStatus('error');
     }
