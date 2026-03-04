@@ -1,4 +1,3 @@
-// App.tsx
 import React, { lazy, Suspense, useMemo } from "react";
 import type { ComponentType } from "react";
 import {
@@ -16,14 +15,10 @@ import LoadingSpinner from "./components/LoadSpinner";
 import ScrollToTop    from "./components/ScrollToTop";
 import AuthError      from "./pages/AuthError";
 
-// ── Route prop types ──────────────────────────────────────────────────────────
 interface BlogProps         { onPostClick?: (slug: string) => void }
 interface BlogPostDetailProps { slug: string; onBack?: () => void }
 interface HomeProps          { onBlogPostClick?: (slug: string) => void }
 
-// ── Lazy imports ──────────────────────────────────────────────────────────────
-// All page components are code-split so the initial bundle only ships the
-// shell + auth. Each page loads on first navigation to that route.
 const Home           = lazy(() => import("./pages/home/Home"))          as ComponentType<HomeProps>;
 const AboutUs        = lazy(() => import("./pages/About"));
 const Services       = lazy(() => import("./pages/Services"));
@@ -36,7 +31,6 @@ const DashboardRouter = lazy(() => import("./pages/DashboardRouter"));
 const BlogEditor     = lazy(() => import("./pages/blog/BlogEditor"));
 const GoogleCallback = lazy(() => import("./pages/GoogleCallback"));
 
-// ── Route guards ──────────────────────────────────────────────────────────────
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   return user ? <>{children}</> : <Navigate to="/" replace />;
@@ -54,11 +48,6 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return user ? <Navigate to="/dashboard" replace /> : <>{children}</>;
 };
 
-// ── BlogPostDetailWrapper ─────────────────────────────────────────────────────
-// FIX: The original defined this component inline inside AppRoutes — React
-// created a new component type on every render which caused the Suspense
-// boundary to unmount and remount the lazy component unnecessarily.
-// Defined at module level it is stable across renders.
 const BlogPostDetailWrapper: React.FC = () => {
   const { slug = "" } = useParams<{ slug: string }>();
   const navigate      = useNavigate();
@@ -70,7 +59,6 @@ const BlogPostDetailWrapper: React.FC = () => {
   );
 };
 
-// ── Path → nav label map (module-level constant, allocated once) ──────────────
 const PATH_TO_PAGE: Record<string, string> = {
   "":          "home",
   home:        "home",
@@ -90,14 +78,12 @@ const ROUTE_MAP: Record<string, string> = {
   contact:    "/contact",
 };
 
-// ── Main route tree ───────────────────────────────────────────────────────────
 const AppRoutes: React.FC = () => {
   const { user }    = useAuth();
   const location    = useLocation();
   const navigate    = useNavigate();
   const [showAuth, setShowAuth] = React.useState(false);
 
-  // FIX: Memoize current page derivation so it doesn't re-run on every render.
   const currentPage = useMemo(() => {
     const segment = location.pathname.split("/")[1] ?? "";
     return PATH_TO_PAGE[segment] ?? "home";
@@ -118,7 +104,6 @@ const AppRoutes: React.FC = () => {
       >
         <Suspense fallback={<LoadingSpinner message="Loading page..." />}>
           <Routes>
-            {/* Public */}
             <Route
               path="/"
               element={
@@ -132,15 +117,12 @@ const AppRoutes: React.FC = () => {
               path="/blog"
               element={<Blog onPostClick={(slug) => navigate(`/blog/${slug}`)} />}
             />
-            {/* FIX: Uses the module-level wrapper component — no inline re-creation */}
             <Route path="/blog/:slug" element={<BlogPostDetailWrapper />} />
             <Route path="/contact"    element={<Contact />} />
 
-            {/* OAuth */}
             <Route path="/auth/callback" element={<GoogleCallback />} />
             <Route path="/auth/error"    element={<AuthError />} />
 
-            {/* Protected */}
             <Route
               path="/dashboard/*"
               element={
@@ -158,11 +140,9 @@ const AppRoutes: React.FC = () => {
               }
             />
 
-            {/* Auth redirects */}
             <Route path="/login"    element={<PublicRoute><Navigate to="/" replace /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Navigate to="/" replace /></PublicRoute>} />
 
-            {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
