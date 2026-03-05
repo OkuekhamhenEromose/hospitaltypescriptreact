@@ -5,16 +5,64 @@ import { apiService } from "../../services/api";
 import { useNavigate } from "react-router-dom";
 import { UniversalIcon } from "../../components/Modernicon";
 
-const BACKEND_ORIGIN = (
-  (import.meta as any).env?.VITE_API_URL ??
-  "https://hospitalback-clean.onrender.com/api"
-).replace(/\/api\/?$/, "");
+// const BACKEND_ORIGIN = (
+//   (import.meta as any).env?.VITE_API_URL ??
+//   "https://hospitalback-clean.onrender.com/api"
+// ).replace(/\/api\/?$/, "");
+
+// function imgUrl(p: any): string | null {
+//   if (!p?.profile_pix) return null;
+  
+//   const profilePix = String(p.profile_pix).trim();
+  
+//   // If already a full URL, return as-is
+//   if (/^https?:\/\//i.test(profilePix)) {
+//     return profilePix;
+//   }
+  
+//   const BACKEND_ORIGIN = (
+//     (import.meta as any).env?.VITE_API_URL ??
+//     "https://hospitalback-clean.onrender.com/api"
+//   ).replace(/\/api\/?$/, "");
+  
+//   // Ensure proper slash between origin and path
+//   const separator = profilePix.startsWith('/') ? '' : '/';
+//   return `${BACKEND_ORIGIN}${separator}${profilePix}`;
+// }
 
 function imgUrl(p: any): string | null {
-  if (!p?.profile_pix) return null;
-  return p.profile_pix.startsWith("http")
-    ? p.profile_pix
-    : `${BACKEND_ORIGIN}${p.profile_pix}`;
+  // Step 1: Check if profile_pix exists
+  if (!p?.profile_pix) {
+    console.warn('⚠️ imgUrl: No profile_pix found', p);
+    return null;
+  }
+  
+  const profilePix = String(p.profile_pix).trim();
+  console.log('📸 imgUrl input:', profilePix);
+  
+  // Step 2: Check if it's already a full URL
+  if (/^https?:\/\//i.test(profilePix)) {
+    console.log('✅ Full URL detected, returning as-is');
+    return profilePix;
+  }
+  
+  // Step 3: Construct URL from relative path
+  const BACKEND_ORIGIN = (
+    (import.meta as any).env?.VITE_API_URL ??
+    "https://hospitalback-clean.onrender.com/api"
+  ).replace(/\/api\/?$/, "");
+  
+  const separator = profilePix.startsWith('/') ? '' : '/';
+  const result = `${BACKEND_ORIGIN}${separator}${profilePix}`;
+  
+  console.log('🔧 imgUrl constructed:', {
+    origin: BACKEND_ORIGIN,
+    separator: separator || '(none)',
+    path: profilePix,
+    result: result
+  });
+  
+  return result;
 }
 
 interface DashboardStats {
