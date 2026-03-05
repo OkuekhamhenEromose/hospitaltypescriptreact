@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiService } from "../../services/api";
+import { useNavigate } from "react-router-dom";
 import { UniversalIcon } from "../../components/Modernicon";
 
 const BACKEND_ORIGIN = (
@@ -163,6 +164,7 @@ const ProjectCard: React.FC<{
 
 const AdminDashboard: React.FC = () => {
   const auth = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [authChecking, setAuthChecking] = useState(true);
@@ -893,7 +895,7 @@ const AdminDashboard: React.FC = () => {
                     <h3 className="text-lg font-bold text-gray-900">Blog Management</h3>
                     <p className="text-sm text-gray-500 mt-1">{filteredBlogPosts.length} blog posts</p>
                   </div>
-                  <button className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors flex items-center gap-2">
+                  <button onClick={() => navigate('/admin/blog/new')} className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors flex items-center gap-2">
                     <UniversalIcon name="Plus" size={16} />
                     <span className="font-medium">New Post</span>
                   </button>
