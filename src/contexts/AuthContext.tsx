@@ -29,13 +29,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const token = localStorage.getItem("access_token");
 
-      // FIX: If there's no token at all, skip the network call immediately.
       if (!token) return;
 
-      // FIX: Decode the JWT expiry client-side before making any request.
-      // If the access token is already expired, attempt a silent refresh using
-      // the refresh token. If the refresh token is also absent or expired,
-      // clear storage and bail out — no network round-trip wasted.
       if (isTokenExpired(token)) {
         const refreshToken = localStorage.getItem("refresh_token");
         if (!refreshToken || isTokenExpired(refreshToken)) {
@@ -43,9 +38,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           localStorage.removeItem("refresh_token");
           return;
         }
-        // Silent refresh — getDashboard will retry automatically on 401, but
-        // doing it here means the token in localStorage is fresh before we
-        // even attempt the dashboard call.
         try {
           await apiService.refreshToken();
         } catch {
