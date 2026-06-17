@@ -49,7 +49,7 @@ function imgUrl(p: any): string | null {
   // Step 3: Construct URL from relative path
   const BACKEND_ORIGIN = (
     (import.meta as any).env?.VITE_API_URL ??
-    "https://hospitalback-clean.onrender.com/api"
+    "https://hospitalback-clean-0fre.onrender.com/api"
   ).replace(/\/api\/?$/, "");
   
   const separator = profilePix.startsWith('/') ? '' : '/';

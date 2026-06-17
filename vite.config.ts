@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://hospitalback-clean.onrender.com',
+        target: 'https://hospitalback-clean-0fre.onrender.com',
         changeOrigin: true,
         secure: false,
       }

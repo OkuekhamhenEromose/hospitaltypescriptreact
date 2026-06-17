@@ -71,7 +71,7 @@ const DoctorDashboard: React.FC = () => {
 
   const testOptions = ["Glucose","Blood Test","Blood Count","Urinalysis","Electrolyte","HIV","Tumour Marker","Protein","Serum","Lipid Panel","Blood Lead"];
 
-  const imgUrl = (p: any) => p?.profile_pix ? (p.profile_pix.startsWith("http") ? p.profile_pix : `https://hospitalback-clean.onrender.com${p.profile_pix}`) : null;
+  const imgUrl = (p: any) => p?.profile_pix ? (p.profile_pix.startsWith("http") ? p.profile_pix : `https://hospitalback-clean-0fre.onrender.com${p.profile_pix}`) : null;
 
   const navItems = [
     { id: "all",       label: "All Appointments", icon: "Calendar", count: appointments.length },

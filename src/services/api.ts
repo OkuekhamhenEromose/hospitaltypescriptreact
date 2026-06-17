@@ -2,7 +2,7 @@ import type { LoginData, RegisterData, AuthResponse } from "./auth";
 
 const API_BASE_URL =
   (import.meta as any).env?.VITE_API_URL ??
-  "https://hospitalback-clean.onrender.com/api";
+  "https://hospitalback-clean-0fre.onrender.com/api";
 
 const TTL_BLOG     = 5 * 60 * 1000;
 const TTL_PERSONAL = 2 * 60 * 1000;

@@ -7,12 +7,12 @@ export const normalizeMediaUrl = (url: string | null | undefined): string | null
   
   // Django media URL pattern
   if (url.startsWith('/media/')) {
-    return `https://hospitalback-clean.onrender.com${url}`;
+    return `https://hospitalback-clean-0fre.onrender.com${url}`;
   }
   
   // Just a filename
   if (url.includes('.')) {
-    return `https://hospitalback-clean.onrender.com/media/${url}`;
+    return `https://hospitalback-clean-0fre.onrender.com/media/${url}`;
   }
   
   return null;

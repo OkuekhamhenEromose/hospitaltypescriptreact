@@ -62,7 +62,7 @@ const NurseDashboard: React.FC = () => {
   const [q, setQ] = useState("");
   const [vitals, setVitals] = useState({ blood_pressure:"", respiration_rate:"", pulse_rate:"", body_temperature:"", height_cm:"", weight_kg:"" });
 
-  const imgUrl = (p: any) => p?.profile_pix?(p.profile_pix.startsWith("http")?p.profile_pix:`https://hospitalback-clean.onrender.com${p.profile_pix}`):null;
+  const imgUrl = (p: any) => p?.profile_pix?(p.profile_pix.startsWith("http")?p.profile_pix:`https://hospitalback-clean-0fre.onrender.com${p.profile_pix}`):null;
   const pName = (r: VitalRequest) => r.appointment?.name||"Unknown Patient";
   const pAge  = (r: VitalRequest) => r.appointment?.age||"N/A";
   const pSex  = (r: VitalRequest) => { const s=r.appointment?.sex; return s==="M"?"Male":s==="F"?"Female":"Unknown"; };
