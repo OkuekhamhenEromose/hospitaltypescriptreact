@@ -1,12 +1,12 @@
 // services/api.ts - FIXED with proper TypeScript types
 import type { LoginData, RegisterData, AuthResponse } from "./auth";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 
+const API_BASE_URL = import.meta.env.VITE_API_URL ??
   "https://hospitalback-clean-0fre.onrender.com/api";
 
-const TTL_BLOG     = 5 * 60 * 1000;
+const TTL_BLOG = 5 * 60 * 1000;
 const TTL_PERSONAL = 2 * 60 * 1000;
-const TTL_LIST     = 3 * 60 * 1000;
+const TTL_LIST = 3 * 60 * 1000;
 
 // Proper type definitions
 interface ApiErrorResponse {
@@ -100,7 +100,7 @@ export const normalizeMediaUrl = (url: string | null | undefined): string | null
 };
 
 const normalizeSubheading = (
-  subheading: BlogSubheading, 
+  subheading: BlogSubheading,
   index: number
 ): NormalizedSubheading => ({
   id: subheading.id ?? index + 1,
@@ -141,7 +141,7 @@ export const isTokenExpired = (token: string): boolean => {
 // Custom error class for API errors
 class ApiError extends Error {
   public status?: number;
-  
+
   constructor(message: string, status?: number) {
     super(message);
     this.name = "ApiError";
@@ -216,7 +216,7 @@ class ApiService {
         }
 
         if (response.status === 204 ||
-            response.headers.get("content-length") === "0") {
+          response.headers.get("content-length") === "0") {
           return null as T;
         }
 
@@ -341,7 +341,7 @@ class ApiService {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ google_auth_code: code }),
     });
-    
+
     if (!res.ok) {
       let msg = "Google authentication failed";
       try {
@@ -352,7 +352,7 @@ class ApiService {
       }
       throw new ApiError(msg, res.status);
     }
-    
+
     const data = (await res.json()) as AuthResponse;
     localStorage.setItem("access_token", data.access);
     if (data.refresh) localStorage.setItem("refresh_token", data.refresh);
@@ -367,16 +367,37 @@ class ApiService {
   }
 
   async registerWithImage(formData: FormData): Promise<unknown> {
+    const token = localStorage.getItem("access_token");
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers["Authorization"] = token.startsWith("Bearer ")
+        ? token
+        : `Bearer ${token}`;
+    }
+
     const res = await fetch(`${API_BASE_URL}/users/register/`, {
       method: "POST",
+      headers,
       body: formData,
     });
-    
+
     if (!res.ok) {
-      const err = (await res.json()) as ApiErrorResponse;
-      throw new ApiError(err.detail ?? JSON.stringify(err), res.status);
+      // Guard against HTML error pages (Django 500s return text/html)
+      const contentType = res.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        const err = (await res.json()) as ApiErrorResponse;
+        throw new ApiError(
+          err.detail ?? err.error ?? JSON.stringify(err),
+          res.status
+        );
+      }
+      // Non-JSON response (HTML 500 page, etc.)
+      throw new ApiError(
+        `Registration failed with status ${res.status}. Please try again.`,
+        res.status
+      );
     }
-    
+
     return res.json();
   }
 

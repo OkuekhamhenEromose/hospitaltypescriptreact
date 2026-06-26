@@ -18,7 +18,7 @@ const AuthCallback = () => {
         try {
           await apiService.getDashboard();
           setTimeout(() => navigate('/dashboard'), 1000);
-        } catch (error) {
+        } catch {
           try {
             const response = await fetch('https://hospitalback-clean-0fre.onrender.com/api/users/dashboard/', {
               method: 'GET',
@@ -33,7 +33,7 @@ const AuthCallback = () => {
             } else {
               navigate('/login?error=dashboard_fetch_failed');
             }
-          } catch (secondError) {
+          } catch {
             navigate('/login?error=auth_failed');
           }
         }
