@@ -76,7 +76,8 @@ interface BlogPost {
   [key: string]: unknown;
 }
 
-interface NormalizedBlogPost extends Omit<BlogPost, 'subheadings' | 'sub_headings'> {
+export interface NormalizedBlogPost
+  extends Omit<BlogPost, "subheadings" | "sub_headings"> {
   featured_image: string | null;
   image_1: string | null;
   image_2: string | null;
@@ -85,7 +86,7 @@ interface NormalizedBlogPost extends Omit<BlogPost, 'subheadings' | 'sub_heading
   table_of_contents: unknown[];
 }
 
-interface NormalizedSubheading {
+export interface NormalizedSubheading {
   id: number;
   title: string;
   level: number;

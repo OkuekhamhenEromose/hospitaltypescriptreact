@@ -1,19 +1,20 @@
-// pages/home/Home.tsx
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
 import slugify from "slugify";
 
-import Hero             from "./Hero";
-import AboutCards       from "./AboutCards";
-import Services         from "./ServiceCards";
-import BookAppointment  from "./BookApointment";
-import { apiService }   from "../../services/api";
-import { normalizeMediaUrl } from "../../services/api";
+import Hero from "./Hero";
+import AboutCards from "./AboutCards";
+import Services from "./ServiceCards";
+import BookAppointment from "./BookApointment";
 
-// Import the type from api.ts
-import type { NormalizedSubheading } from "../../services/api";
+import { apiService } from "../../services/api";
+
+import type {
+  NormalizedSubheading,
+  NormalizedBlogPost,
+} from "../../services/api";
 
 interface HomeProps {
   onSelectPost?: (slug: string) => void;
@@ -34,17 +35,6 @@ const zoomOut: Variants = {
     transition: { duration: 0.6, ease: "easeOut" },
   },
 };
-
-// FIXED: Added full_content to match NormalizedSubheading type
-const normalizeSubheadings = (sub: NormalizedSubheading[]): NormalizedSubheading[] =>
-  sub.map((item: NormalizedSubheading, i: number) => ({
-    id:          item.id ?? i + 1,
-    title:       item.title ?? `Section ${i + 1}`,
-    description: item.description ?? "",
-    level:       item.level ?? 2,
-    full_content: item.full_content ?? item.description ?? "", // Added full_content
-    anchor:      slugify(item.title ?? "", { lower: true }),
-  } as NormalizedSubheading & { anchor: string }));
 
 // Updated interface to include full_content
 interface SubheadingWithAnchor extends NormalizedSubheading {
@@ -69,7 +59,7 @@ const getFirstTwoSubheadings = (post: NormalizedSubheading[]): SubheadingWithAnc
 };
 
 const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
-  const [latestPost,    setLatestPost]    = useState<NormalizedSubheading[] | null>(null);
+  const [latestPost,    setLatestPost]    = useState<NormalizedBlogPost | null>(null);
   const [loadingBlogs,  setLoadingBlogs]  = useState(true);
   const [email,         setEmail]         = useState("");
   const navigate = useNavigate();
@@ -81,7 +71,7 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
       if (posts.length > 0) {
         const post = posts[0];
         // The post already has properly typed subheadings from the API
-        setLatestPost(post.subheadings || null);
+        setLatestPost(post);
       } else {
         setLatestPost(null);
       }
@@ -97,8 +87,12 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
   }, [loadLatestPost]);
 
   const handleBlogPostClick = (slug: string) => {
-    onSelectPost ? onSelectPost(slug) : navigate(`/blog/${slug}`);
-  };
+  if (onSelectPost) {
+    onSelectPost(slug);
+  } else {
+    navigate(`/blog/${slug}`);
+  }
+};
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,7 +113,7 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
       featured_image: null as string | null,
       image_1: null as string | null,
       image_2: null as string | null,
-      firstTwoSubheadings: getFirstTwoSubheadings(latestPost),
+      firstTwoSubheadings: getFirstTwoSubheadings(latestPost.subheadings),
       slug: "latest",
     };
   }, [latestPost]);
