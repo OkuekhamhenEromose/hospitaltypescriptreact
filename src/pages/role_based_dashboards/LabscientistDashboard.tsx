@@ -1,6 +1,6 @@
 // components/dashboards/LabScientistDashboard.tsx
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import { apiService } from "../../services/api";
 import { UniversalIcon } from "../../components/Modernicon";
 
@@ -13,7 +13,11 @@ const C = {
 interface TestRequest {
   id: number;
   appointment: { id: number; name: string; age: number; sex: string; };
-  tests: string; note: string; status: string; created_at: string; assigned_to?: any;
+  tests: string; 
+  note: string; 
+  status: string; 
+  created_at: string; 
+  assigned_to?: Record<string, unknown>;
 }
 
 const ST: Record<string,{label:string;bg:string;color:string;dot:string}> = {
@@ -25,7 +29,7 @@ const ST: Record<string,{label:string;bg:string;color:string;dot:string}> = {
 const ls:React.CSSProperties={display:"block",fontSize:12.5,fontWeight:600,color:"#0d1b2e",marginBottom:6};
 const is:React.CSSProperties={width:"100%",height:40,padding:"0 12px",border:"1.5px solid #e8f0fc",borderRadius:10,fontSize:13,color:"#0d1b2e",background:"#f0f4fa",outline:"none",fontFamily:"inherit",marginBottom:16};
 
-function Modal({title,onClose,children,wide}:{title:string;onClose:()=>void;children:React.ReactNode;wide?:boolean}) {
+function Modal({title,onClose,children,wide}:{title:string;onClose:()=>void;children:React.ReactNode;wide?:boolean}): React.ReactElement {
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(13,27,46,0.55)",zIndex:50,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(3px)"}}>
       <div style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:wide?540:440,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(79,70,229,0.2)",fontFamily:"'DM Sans',sans-serif"}}>
@@ -41,7 +45,7 @@ function Modal({title,onClose,children,wide}:{title:string;onClose:()=>void;chil
   );
 }
 
-function Actions({onCancel,label,color="#177fed"}:{onCancel:()=>void;label:string;color?:string}) {
+function Actions({onCancel,label,color="#177fed"}:{onCancel:()=>void;label:string;color?:string}): React.ReactElement {
   return (
     <div style={{display:"flex",justifyContent:"flex-end",gap:10,paddingTop:4}}>
       <button type="button" onClick={onCancel} style={{padding:"9px 20px",borderRadius:9,border:"1.5px solid #e8f0fc",background:"#fff",color:"#8aa0ba",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
@@ -62,10 +66,18 @@ const LabScientistDashboard: React.FC = () => {
   const [q, setQ] = useState("");
   const [resultData, setResultData] = useState({test_name:"",result:"",units:"",reference_range:""});
 
-  const imgUrl=(p:any)=>p?.profile_pix?(p.profile_pix.startsWith("http")?p.profile_pix:`https://hospitalback-clean-0fre.onrender.com${p.profile_pix}`):null;
-  const pName=(r:TestRequest)=>r.appointment?.name||"Unknown Patient";
-  const pAge=(r:TestRequest)=>r.appointment?.age||"N/A";
-  const pSex=(r:TestRequest)=>{const s=r.appointment?.sex;return s==="M"?"Male":s==="F"?"Female":"Unknown";};
+  const imgUrl = (p: Record<string, unknown> | null | undefined): string | null => {
+    if (!p?.profile_pix) return null;
+    const profilePix = String(p.profile_pix);
+    return profilePix.startsWith("http") ? profilePix : `https://hospitalback-clean-0fre.onrender.com${profilePix}`;
+  };
+
+  const pName = (r: TestRequest): string => r.appointment?.name||"Unknown Patient";
+  const pAge = (r: TestRequest): string => String(r.appointment?.age||"N/A");
+  const pSex = (r: TestRequest): string => {
+    const s=r.appointment?.sex;
+    return s==="M"?"Male":s==="F"?"Female":"Unknown";
+  };
 
   const navItems=[
     {id:"all",         label:"All Requests",icon:"FileText", count:requests.length},
@@ -91,7 +103,7 @@ const LabScientistDashboard: React.FC = () => {
     setFiltered(f);
   },[requests,tab,q]);
 
-  async function load(){
+  async function load(): Promise<void> {
     try{
       const d = await apiService.getTestRequests();
       setRequests((d || []) as TestRequest[]);
@@ -102,7 +114,7 @@ const LabScientistDashboard: React.FC = () => {
     }
   }
 
-  async function submitResult(e:React.FormEvent){
+  async function submitResult(e: React.FormEvent): Promise<void> {
     e.preventDefault();if(!selected)return;
     try{
       await apiService.createLabResult({test_request:selected.id,...resultData});
@@ -111,8 +123,13 @@ const LabScientistDashboard: React.FC = () => {
     }catch{alert("Failed to submit result.");}
   }
 
-  function markInProgress(id:number){setRequests(p=>p.map(r=>r.id===id?{...r,status:"IN_PROGRESS"}:r));}
-  function markDone(id:number){setRequests(p=>p.map(r=>r.id===id?{...r,status:"DONE"}:r));}
+  function markInProgress(id: number): void {
+    setRequests(p=>p.map(r=>r.id===id?{...r,status:"IN_PROGRESS"}:r));
+  }
+  
+  function markDone(id: number): void {
+    setRequests(p=>p.map(r=>r.id===id?{...r,status:"DONE"}:r));
+  }
 
   const sw=collapsed?72:248;
 
@@ -146,7 +163,7 @@ const LabScientistDashboard: React.FC = () => {
           {navItems.map(n=>{
             const act=tab===n.id;
             return(
-              <button key={n.id} className="nh" onClick={()=>setTab(n.id as any)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:collapsed?"10px":"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:act?`${C.indigo}12`:"transparent",justifyContent:collapsed?"center":"flex-start",transition:"all 0.15s"}}>
+              <button key={n.id} className="nh" onClick={()=>setTab(n.id as typeof tab)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:collapsed?"10px":"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:act?`${C.indigo}12`:"transparent",justifyContent:collapsed?"center":"flex-start",transition:"all 0.15s"}}>
                 <UniversalIcon name={n.icon} size={17} style={{color:act?C.indigo:C.muted,flexShrink:0}} />
                 {!collapsed&&<><span style={{flex:1,textAlign:"left",fontSize:13,fontWeight:act?600:400,color:act?C.text:C.muted,whiteSpace:"nowrap"}}>{n.label}</span><span style={{fontSize:11,fontWeight:600,minWidth:20,height:20,borderRadius:10,background:act?C.indigo:"#eef2f7",color:act?C.white:C.muted,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 6px"}}>{n.count}</span></>}
               </button>
@@ -156,7 +173,7 @@ const LabScientistDashboard: React.FC = () => {
         <div style={{borderTop:`1px solid ${C.soft}`,padding:"10px 8px"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:10,background:C.slate}}>
             <div style={{width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.indigo},#6366f1)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
-              {imgUrl(user?.profile)?<img src={imgUrl(user?.profile)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"L"}</span>}
+              {imgUrl(user?.profile as unknown as Record<string, unknown>)?<img src={imgUrl(user?.profile as unknown as Record<string, unknown>)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"L"}</span>}
             </div>
             {!collapsed&&<div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:12.5,fontWeight:600,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{user?.profile?.fullname||user?.username}</div><div style={{fontSize:11,color:C.muted}}>Lab Scientist</div></div>}
           </div>
@@ -185,7 +202,7 @@ const LabScientistDashboard: React.FC = () => {
             </button>
             <div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px 5px 5px",borderRadius:10,background:C.slate,border:`1.5px solid ${C.soft}`}}>
               <div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${C.indigo},#6366f1)`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
-                {imgUrl(user?.profile)?<img src={imgUrl(user?.profile)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"L"}</span>}
+                {imgUrl(user?.profile as unknown as Record<string, unknown>)?<img src={imgUrl(user?.profile as unknown as Record<string, unknown>)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"L"}</span>}
               </div>
               <span style={{fontSize:13,fontWeight:600,color:C.text}}>{user?.profile?.fullname?.split(" ")[0]||user?.username}</span>
               <UniversalIcon name="ChevDown" size={13} style={{color:C.muted}} />
@@ -194,7 +211,6 @@ const LabScientistDashboard: React.FC = () => {
         </header>
 
         <main style={{flex:1,padding:"26px 28px",overflowY:"auto"}}>
-          {/* Stats */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:22}}>
             {stats.map((s,i)=>(
               <div key={i} className="ch" style={{background:C.white,borderRadius:16,padding:"18px 20px",border:`1px solid ${C.soft}`,boxShadow:"0 1px 4px rgba(79,70,229,0.05)",transition:"all 0.2s"}}>
@@ -210,7 +226,6 @@ const LabScientistDashboard: React.FC = () => {
             ))}
           </div>
 
-          {/* Lab performance bar */}
           <div style={{background:`linear-gradient(135deg,${C.indigo}08,${C.indigo}14)`,border:`1px solid ${C.soft}`,borderRadius:14,padding:"14px 20px",marginBottom:22,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div><div style={{fontSize:14,fontWeight:600,color:C.text}}>Lab Performance Overview</div><div style={{fontSize:12.5,color:C.muted,marginTop:2}}>{filtered.length} requests match current filters</div></div>
             <div style={{display:"flex",gap:28,alignItems:"center"}}>
@@ -222,7 +237,6 @@ const LabScientistDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Test requests list */}
           <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.soft}`,overflow:"hidden",boxShadow:"0 1px 6px rgba(79,70,229,0.05)"}}>
             <div style={{padding:"16px 22px",borderBottom:`1px solid ${C.soft}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div><div style={{fontSize:15,fontWeight:700,color:C.text}}>Laboratory Test Requests</div><div style={{fontSize:12,color:C.muted,marginTop:2}}>{filtered.length} requests · auto-refreshing</div></div>
@@ -230,7 +244,7 @@ const LabScientistDashboard: React.FC = () => {
                 {q&&<button onClick={()=>setQ("")} className="xh" style={{fontSize:12,color:C.indigo,padding:"4px 10px",borderRadius:6,border:"none",background:`${C.indigo}12`,cursor:"pointer",transition:"all 0.15s"}}>Clear</button>}
                 <div style={{position:"relative",display:"flex",alignItems:"center"}}>
                   <UniversalIcon name="Filter" size={12} style={{color:C.muted,position:"absolute",left:9,pointerEvents:"none"}} />
-                  <select value={tab} onChange={e=>setTab(e.target.value as any)} style={{paddingLeft:26,paddingRight:10,height:34,border:`1.5px solid ${C.soft}`,borderRadius:8,fontSize:12.5,background:C.white,color:C.text,cursor:"pointer",outline:"none",fontFamily:"inherit"}}>
+                  <select value={tab} onChange={e=>setTab(e.target.value as typeof tab)} style={{paddingLeft:26,paddingRight:10,height:34,border:`1.5px solid ${C.soft}`,borderRadius:8,fontSize:12.5,background:C.white,color:C.text,cursor:"pointer",outline:"none",fontFamily:"inherit"}}>
                     <option value="all">All Status</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="completed">Completed</option>
                   </select>
                 </div>
@@ -259,7 +273,6 @@ const LabScientistDashboard: React.FC = () => {
                       </div>
                       <div style={{fontSize:12.5,color:C.muted,marginBottom:8}}>Age {pAge(r)} · {pSex(r)} · Appt #{r.appointment?.id||"N/A"}</div>
 
-                      {/* Test tags */}
                       <div style={{marginBottom:8}}>
                         <div style={{fontSize:12,fontWeight:700,color:C.text,marginBottom:5}}>Tests Required</div>
                         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
@@ -275,7 +288,6 @@ const LabScientistDashboard: React.FC = () => {
                       <div style={{fontSize:11.5,color:"#b0bec5"}}>Requested {new Date(r.created_at).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
                     </div>
 
-                    {/* Actions */}
                     <div style={{display:"flex",flexDirection:"column",gap:7,flexShrink:0}}>
                       {(r.status==="PENDING"||r.status==="IN_PROGRESS")&&<>
                         {r.status==="PENDING"&&<button className="byh" onClick={()=>markInProgress(r.id)} style={{padding:"7px 13px",background:C.amber,color:C.white,borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}}>

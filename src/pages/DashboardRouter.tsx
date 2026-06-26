@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
 // components/DashboardRouter.tsx
-import React, { lazy, Suspense, useMemo } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { lazy, Suspense } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/LoadSpinner';
 import ErrorBoundary from '../components/ErrorBoundary';
 
@@ -23,51 +22,27 @@ const UnknownRoleDashboard: React.FC<{ role?: string }> = ({ role }) => (
   </div>
 );
 
-// Icon verification component
-const IconVerificationWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [iconsLoaded, setIconsLoaded] = useState(false);
-
-  useEffect(() => {
-    // Import I from AdminDashboard or wherever it's defined
-    import('./role_based_dashboards/AdminDashboard').then(module => {
-      const I = (module as any).I;
-      
-      // Verify that all required icons exist
-      const requiredIcons = ['Logo', 'Home', 'Users', 'User', 'UserPlus', 'FileText', 
-        'BarChart', 'Bell', 'Search', 'ChevDown', 'ChevLeft', 'X', 'Filter', 
-        'Download', 'Plus', 'Edit', 'Trash', 'Eye', 'Calendar', 'Clock', 
-        'Shield', 'Stethoscope', 'Flask', 'RefreshCw', 'Activity', 'Check'];
-      
-      if (I) {
-        const missingIcons = requiredIcons.filter(icon => !I[icon]);
-        
-        if (missingIcons.length > 0) {
-          console.error('Missing icons:', missingIcons);
-        }
-      } else {
-        console.warn('Icon library I not found');
-      }
-      
-      setIconsLoaded(true);
-    }).catch(error => {
-      console.error('Failed to load icon library:', error);
-      setIconsLoaded(true); // Still set to true to render children
-    });
-  }, []);
-
-  if (!iconsLoaded) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-};
-
 const DashboardRouter: React.FC = React.memo(() => {
   const { user, loading } = useAuth();
+  const userRole = user?.profile?.role ?? 'UNKNOWN';
+
+  // Determine which component to render based on role
+  const DashboardComponent: React.ComponentType = (() => {
+    switch (userRole) {
+      case 'PATIENT':
+        return PatientDashboard;
+      case 'DOCTOR':
+        return DoctorDashboard;
+      case 'NURSE':
+        return NurseDashboard;
+      case 'LAB':
+        return LabScientistDashboard;
+      case 'ADMIN':
+        return AdminDashboard;
+      default:
+        return () => <UnknownRoleDashboard role={userRole} />;
+    }
+  })();
 
   if (loading) {
     return <LoadingSpinner />;
@@ -84,36 +59,10 @@ const DashboardRouter: React.FC = React.memo(() => {
     );
   }
 
-  const userRole = user.profile?.role || (user as any).role;
-
-  const DashboardComponent = useMemo(() => {
-    switch (userRole) {
-      case 'PATIENT':
-        return PatientDashboard;
-      case 'DOCTOR':
-        return DoctorDashboard;
-      case 'NURSE':
-        return NurseDashboard;
-      case 'LAB':
-        return LabScientistDashboard;
-      case 'ADMIN':
-        return AdminDashboard;
-      default:
-        return () => <UnknownRoleDashboard role={userRole} />;
-    }
-  }, [userRole]);
-
   return (
     <ErrorBoundary>
       <Suspense fallback={<LoadingSpinner />}>
-        {/* Wrap with IconVerificationWrapper only for admin dashboard */}
-        {userRole === 'ADMIN' ? (
-          <IconVerificationWrapper>
-            <DashboardComponent />
-          </IconVerificationWrapper>
-        ) : (
-          <DashboardComponent />
-        )}
+        <DashboardComponent />
       </Suspense>
     </ErrorBoundary>
   );

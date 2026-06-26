@@ -1,19 +1,20 @@
+// pages/GoogleCallback.tsx
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
-const GoogleCallback = () => {
+const GoogleCallback: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { loginWithGoogle } = useAuth();
 
   useEffect(() => {
-    const handleGoogleCallback = async () => {
+    const handleGoogleCallback = async (): Promise<void> => {
       const code = searchParams.get('code');
       const error = searchParams.get('error');
 
       if (error) {
-        navigate('/?authError=google_auth_failed&message=' + encodeURIComponent(error));
+        navigate(`/?authError=google_auth_failed&message=${encodeURIComponent(error)}`);
         return;
       }
 
@@ -25,8 +26,11 @@ const GoogleCallback = () => {
       try {
         await loginWithGoogle(code);
         navigate('/dashboard');
-      } catch (err: any) {
-        navigate(`/?authError=${encodeURIComponent(err.message || 'Authentication failed')}`);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error 
+          ? err.message 
+          : 'Authentication failed';
+        navigate(`/?authError=${encodeURIComponent(errorMessage)}`);
       }
     };
 

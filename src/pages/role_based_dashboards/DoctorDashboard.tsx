@@ -1,6 +1,6 @@
 // components/dashboards/DoctorDashboard.tsx
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import { apiService } from "../../services/api";
 import { UniversalIcon } from "../../components/Modernicon";
 
@@ -11,10 +11,39 @@ const C = {
   green: "#12b76a", amber: "#f59e0b", purple: "#7c3aed",
 };
 
+interface Vitals {
+  blood_pressure?: string;
+  pulse_rate?: string;
+  body_temperature?: string;
+  respiration_rate?: string;
+}
+
+interface LabResult {
+  test_name?: string;
+  result?: string;
+  units?: string;
+}
+
+interface TestRequests {
+  tests?: string;
+  note?: string;
+}
+
 interface Appointment {
-  id:number; patient:any; name:string; age:number; sex:string;
-  address:string; message:string; status:string; booked_at:string;
-  medical_report?:any; vitals?:any; lab_results?:any[]; test_requests?:any; vital_requests?:any;
+  id: number;
+  patient: Record<string, unknown>;
+  name: string;
+  age: number;
+  sex: string;
+  address: string;
+  message: string;
+  status: string;
+  booked_at: string;
+  medical_report?: Record<string, unknown>;
+  vitals?: Vitals;
+  lab_results?: LabResult[];
+  test_requests?: TestRequests;
+  vital_requests?: Record<string, unknown>;
 }
 
 const ST: Record<string, { label: string; bg: string; color: string; dot: string }> = {
@@ -28,7 +57,7 @@ const ls: React.CSSProperties = { display: "block", fontSize: 12.5, fontWeight: 
 const is: React.CSSProperties = { width: "100%", height: 40, padding: "0 12px", border: `1.5px solid ${C.soft}`, borderRadius: 10, fontSize: 13, color: C.text, background: C.slate, outline: "none", fontFamily: "inherit", marginBottom: 16 };
 const ts: React.CSSProperties = { width: "100%", padding: "10px 12px", border: `1.5px solid ${C.soft}`, borderRadius: 10, fontSize: 13, color: C.text, background: C.slate, outline: "none", fontFamily: "inherit", resize: "vertical" as const, marginBottom: 16 };
 
-function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
+function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }): React.ReactElement {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(13,27,46,0.55)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(3px)" }}>
       <div style={{ background: C.white, borderRadius: 18, width: "100%", maxWidth: wide ? 580 : 440, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(23,127,237,0.2)", fontFamily: "'DM Sans',sans-serif" }}>
@@ -44,7 +73,7 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
   );
 }
 
-function Actions({ onCancel, label, color = C.blue2 }: { onCancel: () => void; label: string; color?: string }) {
+function Actions({ onCancel, label, color = C.blue2 }: { onCancel: () => void; label: string; color?: string }): React.ReactElement {
   return (
     <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, paddingTop: 4 }}>
       <button type="button" onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: `1.5px solid ${C.soft}`, background: C.white, color: C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
@@ -71,7 +100,11 @@ const DoctorDashboard: React.FC = () => {
 
   const testOptions = ["Glucose","Blood Test","Blood Count","Urinalysis","Electrolyte","HIV","Tumour Marker","Protein","Serum","Lipid Panel","Blood Lead"];
 
-  const imgUrl = (p: any) => p?.profile_pix ? (p.profile_pix.startsWith("http") ? p.profile_pix : `https://hospitalback-clean-0fre.onrender.com${p.profile_pix}`) : null;
+  const imgUrl = (p: Record<string, unknown> | null | undefined): string | null => {
+    if (!p?.profile_pix) return null;
+    const profilePix = String(p.profile_pix);
+    return profilePix.startsWith("http") ? profilePix : `https://hospitalback-clean-0fre.onrender.com${profilePix}`;
+  };
 
   const navItems = [
     { id: "all",       label: "All Appointments", icon: "Calendar", count: appointments.length },
@@ -97,24 +130,57 @@ const DoctorDashboard: React.FC = () => {
     setFiltered(f);
   }, [appointments, tab, q]);
 
-  async function load() {
-    try { const d = await apiService.getAppointments(); setAppointments(d as Appointment[]); } catch {} finally { setLoading(false); }
+  async function load(): Promise<void> {
+    try { 
+      const d = await apiService.getAppointments(); 
+      setAppointments(d as Appointment[]); 
+    } catch { 
+      // Silently handle error
+    } finally { 
+      setLoading(false); 
+    }
   }
 
-  async function submitTest(e: React.FormEvent) {
+  async function submitTest(e: React.FormEvent): Promise<void> {
     e.preventDefault(); if (!selected) return;
-    try { await apiService.createTestRequest({ appointment: selected.id, ...testData }); setShowTest(false); setTestData({tests:"",note:""}); load(); alert("Test request sent!"); } catch { alert("Failed to send test request."); }
-  }
-  async function submitVital(e: React.FormEvent) {
-    e.preventDefault(); if (!selected) return;
-    try { await apiService.createVitalRequest({ appointment: selected.id, ...vitalData }); setShowVital(false); setVitalData({note:""}); load(); alert("Vital request sent!"); } catch { alert("Failed to send vital request."); }
-  }
-  async function submitReport(e: React.FormEvent) {
-    e.preventDefault(); if (!selected) return;
-    try { await apiService.createMedicalReport({ appointment: selected.id, ...reportData }); setShowReport(false); setReportData({medical_condition:"",drug_prescription:"",advice:"",next_appointment:""}); load(); alert("Report created!"); } catch { alert("Failed to create report."); }
+    try { 
+      await apiService.createTestRequest({ appointment: selected.id, ...testData }); 
+      setShowTest(false); 
+      setTestData({tests:"",note:""}); 
+      load(); 
+      alert("Test request sent!"); 
+    } catch { 
+      alert("Failed to send test request."); 
+    }
   }
 
-  function exportCSV(a: Appointment) {
+  async function submitVital(e: React.FormEvent): Promise<void> {
+    e.preventDefault(); if (!selected) return;
+    try { 
+      await apiService.createVitalRequest({ appointment: selected.id, ...vitalData }); 
+      setShowVital(false); 
+      setVitalData({note:""}); 
+      load(); 
+      alert("Vital request sent!"); 
+    } catch { 
+      alert("Failed to send vital request."); 
+    }
+  }
+
+  async function submitReport(e: React.FormEvent): Promise<void> {
+    e.preventDefault(); if (!selected) return;
+    try { 
+      await apiService.createMedicalReport({ appointment: selected.id, ...reportData }); 
+      setShowReport(false); 
+      setReportData({medical_condition:"",drug_prescription:"",advice:"",next_appointment:""}); 
+      load(); 
+      alert("Report created!"); 
+    } catch { 
+      alert("Failed to create report."); 
+    }
+  }
+
+  function exportCSV(a: Appointment): void {
     const rows = { "Patient":a.name,"Age":a.age,"Gender":a.sex==="M"?"Male":"Female","Status":a.status,"Booked":new Date(a.booked_at).toLocaleDateString() };
     const csv = Object.entries(rows).map(([k,v])=>`"${k}","${v}"`).join("\n");
     const blob = new Blob([csv],{type:"text/csv"});
@@ -155,7 +221,7 @@ const DoctorDashboard: React.FC = () => {
         </div>
         <nav style={{ flex:1, padding:"10px 8px", display:"flex", flexDirection:"column", gap:3 }}>
           {navItems.map(n => { const act = tab===n.id; return (
-            <button key={n.id} className="nh" onClick={() => setTab(n.id as any)} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:collapsed?"10px":"10px 12px", borderRadius:10, border:"none", cursor:"pointer", background:act?C.soft:"transparent", justifyContent:collapsed?"center":"flex-start", transition:"all 0.15s" }}>
+            <button key={n.id} className="nh" onClick={() => setTab(n.id as typeof tab)} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:collapsed?"10px":"10px 12px", borderRadius:10, border:"none", cursor:"pointer", background:act?C.soft:"transparent", justifyContent:collapsed?"center":"flex-start", transition:"all 0.15s" }}>
               <UniversalIcon name={n.icon} size={17} style={{color:act?C.blue2:C.muted,flexShrink:0}} />
               {!collapsed && <><span style={{flex:1,textAlign:"left",fontSize:13,fontWeight:act?600:400,color:act?C.text:C.muted,whiteSpace:"nowrap"}}>{n.label}</span><span style={{fontSize:11,fontWeight:600,minWidth:20,height:20,borderRadius:10,background:act?C.blue2:"#eef2f7",color:act?C.white:C.muted,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 6px"}}>{n.count}</span></>}
             </button>
@@ -164,7 +230,7 @@ const DoctorDashboard: React.FC = () => {
         <div style={{ borderTop:`1px solid ${C.soft}`, padding:"10px 8px" }}>
           <div style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 10px", borderRadius:10, background:C.slate }}>
             <div style={{ width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.blue1},${C.blue2})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden" }}>
-              {imgUrl(user?.profile)?<img src={imgUrl(user?.profile)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"D"}</span>}
+              {imgUrl(user?.profile as unknown as Record<string, unknown>)?<img src={imgUrl(user?.profile as unknown as Record<string, unknown>)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"D"}</span>}
             </div>
             {!collapsed && <div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:12.5,fontWeight:600,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>Dr. {user?.profile?.fullname||user?.username}</div><div style={{fontSize:11,color:C.muted}}>Doctor</div></div>}
           </div>
@@ -177,7 +243,6 @@ const DoctorDashboard: React.FC = () => {
 
       {/* MAIN */}
       <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0 }}>
-        {/* Topbar */}
         <header style={{ background:C.white, borderBottom:`1px solid ${C.soft}`, padding:"0 28px", height:64, display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:30, boxShadow:"0 1px 8px rgba(23,127,237,0.05)" }}>
           <div><div style={{fontSize:17,fontWeight:700,color:C.text}}>{navItems.find(n=>n.id===tab)?.label}</div><div style={{fontSize:12,color:C.muted}}>{filtered.length} appointments</div></div>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -191,7 +256,7 @@ const DoctorDashboard: React.FC = () => {
             </button>
             <div style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 12px 5px 5px", borderRadius:10, background:C.slate, border:`1.5px solid ${C.soft}` }}>
               <div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${C.blue1},${C.blue2})`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
-                {imgUrl(user?.profile)?<img src={imgUrl(user?.profile)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"D"}</span>}
+                {imgUrl(user?.profile as unknown as Record<string, unknown>)?<img src={imgUrl(user?.profile as unknown as Record<string, unknown>)!} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:C.white,fontSize:12,fontWeight:600}}>{user?.profile?.fullname?.charAt(0)||"D"}</span>}
               </div>
               <span style={{fontSize:13,fontWeight:600,color:C.text}}>Dr. {user?.profile?.fullname?.split(" ")[0]||user?.username}</span>
               <UniversalIcon name="ChevDown" size={13} style={{color:C.muted}} />
@@ -200,7 +265,6 @@ const DoctorDashboard: React.FC = () => {
         </header>
 
         <main style={{ flex:1, padding:"26px 28px", overflowY:"auto" }}>
-          {/* Stats */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:22 }}>
             {stats.map((s,i) => (
               <div key={i} className="ch" style={{ background:C.white, borderRadius:16, padding:"18px 20px", border:`1px solid ${C.soft}`, boxShadow:"0 1px 4px rgba(23,127,237,0.05)", transition:"all 0.2s" }}>
@@ -216,7 +280,6 @@ const DoctorDashboard: React.FC = () => {
             ))}
           </div>
 
-          {/* Summary bar */}
           <div style={{ background:`linear-gradient(135deg,${C.blue1}08,${C.blue2}14)`, border:`1px solid ${C.soft}`, borderRadius:14, padding:"14px 20px", marginBottom:22, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div><div style={{fontSize:14,fontWeight:600,color:C.text}}>Patient Overview</div><div style={{fontSize:12.5,color:C.muted,marginTop:2}}>{filtered.length} records{q&&` · "${q}"`}</div></div>
             <div style={{display:"flex",gap:24}}>
@@ -225,7 +288,6 @@ const DoctorDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Appointments list */}
           <div style={{ background:C.white, borderRadius:16, border:`1px solid ${C.soft}`, overflow:"hidden", boxShadow:"0 1px 6px rgba(23,127,237,0.05)" }}>
             <div style={{ padding:"16px 22px", borderBottom:`1px solid ${C.soft}`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <div><div style={{fontSize:15,fontWeight:700,color:C.text}}>Patient Appointments</div><div style={{fontSize:12,color:C.muted,marginTop:2}}>{filtered.length} records</div></div>
@@ -233,7 +295,7 @@ const DoctorDashboard: React.FC = () => {
                 {q&&<button onClick={()=>setQ("")} className="xh" style={{fontSize:12,color:C.blue1,padding:"4px 10px",borderRadius:6,border:"none",background:C.soft,cursor:"pointer",transition:"all 0.15s"}}>Clear</button>}
                 <div style={{position:"relative",display:"flex",alignItems:"center"}}>
                   <UniversalIcon name="Filter" size={12} style={{color:C.muted,position:"absolute",left:9,pointerEvents:"none"}} />
-                  <select value={tab} onChange={e=>setTab(e.target.value as any)} style={{paddingLeft:26,paddingRight:10,height:34,border:`1.5px solid ${C.soft}`,borderRadius:8,fontSize:12.5,background:C.white,color:C.text,cursor:"pointer",outline:"none",fontFamily:"inherit"}}>
+                  <select value={tab} onChange={e=>setTab(e.target.value as typeof tab)} style={{paddingLeft:26,paddingRight:10,height:34,border:`1.5px solid ${C.soft}`,borderRadius:8,fontSize:12.5,background:C.white,color:C.text,cursor:"pointer",outline:"none",fontFamily:"inherit"}}>
                     <option value="all">All Status</option><option value="in_review">In Review</option><option value="awaiting">Awaiting</option><option value="completed">Completed</option>
                   </select>
                 </div>
