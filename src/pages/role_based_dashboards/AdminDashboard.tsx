@@ -268,7 +268,7 @@ const AdminDashboard: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
 
-  const isAdmin = auth.user?.profile?.role === "ADMIN";
+  const isAdmin = user?.profile?.role === "ADMIN";
 
   useEffect(() => {
     const checkAuth = async (): Promise<void> => {
@@ -398,7 +398,7 @@ const AdminDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  },[auth]);
+  },[logout]);
   useEffect(() => {
     if (!authChecking && isAdmin) {
       loadDashboardData();
@@ -652,10 +652,10 @@ const AdminDashboard: React.FC = () => {
 
         <div className="p-4 border-t border-gray-200">
           <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-            <Avatar name={user?.profile?.fullname || "Admin"} src={imgUrl(auth.user?.profile)} size={40} />
+            <Avatar name={user?.profile?.fullname || "Admin"} src={imgUrl(user?.profile)} size={40} />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
-                {auth.user?.profile?.fullname || "Admin"}
+                {user?.profile?.fullname || "Admin"}
               </p>
               <p className="text-xs text-gray-500">Administrator</p>
             </div>
@@ -680,7 +680,7 @@ const AdminDashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
-                Hey, {auth.user?.profile?.fullname?.split(" ")[0] || "Admin"}
+                Hey, {user?.profile?.fullname?.split(" ")[0] || "Admin"}
               </h2>
               <p className="text-sm text-gray-500 mt-1">{currentDate}</p>
             </div>
