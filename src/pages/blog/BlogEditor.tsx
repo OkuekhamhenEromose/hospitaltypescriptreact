@@ -102,12 +102,15 @@ const BlogEditor: React.FC = () => {
 
   const blobUrls = useRef<string[]>([]);
   
-  // Cleanup blob URLs on unmount
   useEffect(() => {
-    return () => {
-      blobUrls.current.forEach(url => URL.revokeObjectURL(url));
-    };
-  }, []);
+  const currentBlobUrls = blobUrls.current;
+
+  return () => {
+    currentBlobUrls.forEach((url) => {
+      URL.revokeObjectURL(url);
+    });
+  };
+}, []);
 
   const isEdit = !!slug;
 
