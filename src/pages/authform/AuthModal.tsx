@@ -1,7 +1,7 @@
-// components/AuthModal.tsx - UPDATED with unified Google login
+// components/AuthModal.tsx - FIXED
 import React, { useState } from "react";
 import { X, Upload, User } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import type { LoginData } from "../../services/auth";
 import { apiService } from "../../services/api";
 
@@ -24,7 +24,7 @@ interface AuthFormData {
 }
 
 // Google Icon Component
-const GoogleIcon = () => {
+const GoogleIcon: React.FC = () => {
   return (
     <svg className="w-5 h-5" viewBox="0 0 24 24">
       <path
@@ -71,10 +71,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   // Initialize Google OAuth
-  const initGoogleOAuth = () => {
+  const initGoogleOAuth = (): void => {
     const googleClientId =
       "843779765866-4h5mq8177lohu859lgifvi7bpfjn88ds.apps.googleusercontent.com";
     const redirectUri = "https://ettahospitalclone.vercel.app/auth/callback";
+    
     // Store the modal state before redirect
     localStorage.setItem(
       "auth_modal_state",
@@ -100,11 +101,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     window.location.href = googleAuthUrl;
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = (): void => {
     initGoogleOAuth();
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith("image/")) {
@@ -120,15 +121,29 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       setFormData((prev) => ({ ...prev, profile_pix: file }));
 
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviewImage(e.target?.result as string);
+      reader.onload = (event: ProgressEvent<FileReader>) => {
+        const result = event.target?.result;
+        if (typeof result === "string") {
+          setPreviewImage(result);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // In AuthModal.tsx - FIXED registration section
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Helper function to get error message from unknown error
+  const getErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === "object" && error !== null && "message" in error) {
+      const message = (error as { message: unknown }).message;
+      return typeof message === "string" ? message : "An unexpected error occurred";
+    }
+    return "An unexpected error occurred";
+  };
+
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -186,9 +201,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         await login(loginData);
         onClose();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Authentication error:", err);
-      setError(err.message || "Authentication failed");
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -196,14 +211,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  ): void => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
   };
 
-  const switchMode = () => {
+  const switchMode = (): void => {
     setIsLogin(!isLogin);
     setError("");
     setPreviewImage(null);
@@ -227,11 +243,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const getPasswordValue = () => {
+  const getPasswordValue = (): string => {
     return isLogin ? formData.password || "" : formData.password1 || "";
   };
 
-  const getPasswordFieldName = () => {
+  const getPasswordFieldName = (): string => {
     return isLogin ? "password" : "password1";
   };
 
@@ -246,6 +262,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
+            type="button"
           >
             <X className="w-5 h-5" />
           </button>
@@ -287,9 +304,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 {error}
               </div>
             )}
-
-            {/* Rest of your form remains the same */}
-            {/* ... [Keep all your existing form fields] ... */}
 
             {/* Profile Image Upload - Only for Registration */}
             {!isLogin && (

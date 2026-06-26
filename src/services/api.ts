@@ -1,42 +1,125 @@
+// services/api.ts - FIXED with proper TypeScript types
 import type { LoginData, RegisterData, AuthResponse } from "./auth";
 
-const API_BASE_URL =
-  (import.meta as any).env?.VITE_API_URL ??
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? 
   "https://hospitalback-clean-0fre.onrender.com/api";
 
 const TTL_BLOG     = 5 * 60 * 1000;
 const TTL_PERSONAL = 2 * 60 * 1000;
 const TTL_LIST     = 3 * 60 * 1000;
 
+// Proper type definitions
+interface ApiErrorResponse {
+  detail?: string;
+  error?: string;
+  non_field_errors?: string[];
+  [key: string]: unknown;
+}
+
+interface StaffMember {
+  id: number;
+  role: string;
+  [key: string]: unknown;
+}
+
+interface TokenResponse {
+  access: string;
+  refresh: string;
+}
+
+interface CacheEntry {
+  data: unknown;
+  timestamp: number;
+}
+
+// Type guard for checking if value is an object
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// Type guard for checking if value has results array
+function hasResults(value: unknown): value is { results: unknown[] } {
+  return isObject(value) && Array.isArray(value.results);
+}
+
 const unwrapList = (data: unknown): unknown[] => {
   if (Array.isArray(data)) return data;
-  if (data && typeof data === "object" && Array.isArray((data as any).results))
-    return (data as any).results;
+  if (hasResults(data)) return data.results;
   return [];
 };
+
+interface BlogSubheading {
+  id?: number;
+  title?: string;
+  level?: number;
+  description?: string;
+  full_content?: string;
+}
+
+interface BlogPost {
+  featured_image_url?: string | null;
+  featured_image?: string | null;
+  image_1_url?: string | null;
+  image_1?: string | null;
+  image_2_url?: string | null;
+  image_2?: string | null;
+  description?: string;
+  short_description?: string;
+  excerpt?: string;
+  content?: string;
+  table_of_contents?: unknown[];
+  toc?: unknown[];
+  toc_items?: unknown[];
+  contents?: unknown[];
+  subheadings?: BlogSubheading[] | null;
+  sub_headings?: BlogSubheading[] | null;
+  [key: string]: unknown;
+}
+
+interface NormalizedBlogPost extends Omit<BlogPost, 'subheadings' | 'sub_headings'> {
+  featured_image: string | null;
+  image_1: string | null;
+  image_2: string | null;
+  description: string;
+  subheadings: NormalizedSubheading[];
+  table_of_contents: unknown[];
+}
+
+interface NormalizedSubheading {
+  id: number;
+  title: string;
+  level: number;
+  description: string;
+  full_content: string;
+}
 
 export const normalizeMediaUrl = (url: string | null | undefined): string | null => {
   if (!url || url.trim() === "") return null;
   return url;
 };
 
-const normalizeBlogPost = (post: any) => {
+const normalizeSubheading = (
+  subheading: BlogSubheading, 
+  index: number
+): NormalizedSubheading => ({
+  id: subheading.id ?? index + 1,
+  title: subheading.title ?? `Section ${index + 1}`,
+  level: subheading.level ?? 2,
+  description: subheading.description ?? "",
+  full_content: subheading.full_content ?? subheading.description ?? "",
+});
+
+const normalizeBlogPost = (post: BlogPost): NormalizedBlogPost => {
   const rawSubs = post.subheadings ?? post.sub_headings;
   const subheadings = Array.isArray(rawSubs)
-    ? rawSubs.map((s: any, i: number) => ({
-        id:           s.id          ?? i + 1,
-        title:        s.title       ?? `Section ${i + 1}`,
-        level:        s.level       ?? 2,
-        description:  s.description ?? "",
-        full_content: s.full_content ?? s.description ?? "",
-      }))
+    ? rawSubs.map((s: BlogSubheading, i: number) => normalizeSubheading(s, i))
     : [];
 
   return {
     ...post,
     featured_image: normalizeMediaUrl(post.featured_image_url ?? post.featured_image),
-    image_1:        normalizeMediaUrl(post.image_1_url        ?? post.image_1),
-    image_2:        normalizeMediaUrl(post.image_2_url        ?? post.image_2),
+    image_1: normalizeMediaUrl(post.image_1_url ?? post.image_1),
+    image_2: normalizeMediaUrl(post.image_2_url ?? post.image_2),
     description:
       post.description ?? post.short_description ?? post.excerpt ?? post.content ?? "",
     subheadings,
@@ -47,39 +130,53 @@ const normalizeBlogPost = (post: any) => {
 
 export const isTokenExpired = (token: string): boolean => {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    const payload = JSON.parse(atob(token.split(".")[1])) as { exp: number };
     return payload.exp * 1000 < Date.now() + 30_000;
   } catch {
     return true;
   }
 };
 
+// Custom error class for API errors
+class ApiError extends Error {
+  public status?: number;
+  
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 class ApiService {
-  private cache        = new Map<string, { data: unknown; timestamp: number }>();
+  private cache = new Map<string, CacheEntry>();
   private requestQueue = new Map<string, Promise<unknown>>();
 
   private async request<T = unknown>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url    = `${API_BASE_URL}${endpoint}`;
-    const token  = localStorage.getItem("access_token");
+    const url = `${API_BASE_URL}${endpoint}`;
+    const token = localStorage.getItem("access_token");
     const headers: Record<string, string> = {};
 
-    if (!(options.body instanceof FormData))
+    if (!(options.body instanceof FormData)) {
       headers["Content-Type"] = "application/json";
-    if (token)
+    }
+    if (token) {
       headers["Authorization"] = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    }
     Object.assign(headers, options.headers);
 
-    const method     = (options.method ?? "GET").toUpperCase();
+    const method = (options.method ?? "GET").toUpperCase();
     const requestKey = `${method}:${endpoint}`;
 
-    if (method === "GET" && this.requestQueue.has(requestKey))
+    if (method === "GET" && this.requestQueue.has(requestKey)) {
       return this.requestQueue.get(requestKey) as Promise<T>;
+    }
 
     const controller = new AbortController();
-    const timeoutId  = setTimeout(() => controller.abort(), 30_000);
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
     const promise = (async (): Promise<T> => {
       try {
@@ -92,26 +189,35 @@ class ApiService {
 
         if (response.status === 401) {
           this.clearLocalStorage();
-          throw new Error("Authentication expired. Please login again.");
+          throw new ApiError("Authentication expired. Please login again.", 401);
         }
 
         if (!response.ok) {
           let msg = `API error: ${response.status}`;
           try {
-            const err = await response.json();
+            const err = (await response.json()) as ApiErrorResponse;
             if (err.detail === "Given token not valid for any token type") {
               this.clearLocalStorage();
               msg = "Session expired. Please login again.";
-            } else if (err.detail)         msg = err.detail;
-            else if (err.error)            msg = err.error;
-            else if (err.non_field_errors) msg = err.non_field_errors.join(", ");
-            else                           msg = JSON.stringify(err);
-          } catch {}
-          throw new Error(msg);
+            } else if (err.detail) {
+              msg = err.detail;
+            } else if (err.error) {
+              msg = err.error;
+            } else if (err.non_field_errors) {
+              msg = err.non_field_errors.join(", ");
+            } else {
+              msg = JSON.stringify(err);
+            }
+          } catch {
+            // JSON parsing failed, use default message
+          }
+          throw new ApiError(msg, response.status);
         }
 
         if (response.status === 204 ||
-            response.headers.get("content-length") === "0") return null as T;
+            response.headers.get("content-length") === "0") {
+          return null as T;
+        }
 
         return response.json() as Promise<T>;
       } finally {
@@ -120,7 +226,9 @@ class ApiService {
       }
     })();
 
-    if (method === "GET") this.requestQueue.set(requestKey, promise);
+    if (method === "GET") {
+      this.requestQueue.set(requestKey, promise);
+    }
     return promise;
   }
 
@@ -131,16 +239,19 @@ class ApiService {
   ): Promise<T> {
     try {
       return await this.request<T>(endpoint, options);
-    } catch (err: any) {
-      if (!retried &&
-          (err.message.includes("Authentication expired") ||
-           err.message.includes("Session expired"))) {
+    } catch (err: unknown) {
+      if (
+        !retried &&
+        err instanceof ApiError &&
+        (err.message.includes("Authentication expired") ||
+          err.message.includes("Session expired"))
+      ) {
         try {
           await this.refreshToken();
           return await this.requestWithRetry<T>(endpoint, options, true);
         } catch {
           this.clearLocalStorage();
-          throw new Error("Session expired. Please login again.");
+          throw new ApiError("Session expired. Please login again.");
         }
       }
       throw err;
@@ -152,51 +263,55 @@ class ApiService {
     ttl = TTL_LIST
   ): Promise<T> {
     const cached = this.cache.get(endpoint);
-    if (cached && Date.now() - cached.timestamp < ttl)
+    if (cached && Date.now() - cached.timestamp < ttl) {
       return cached.data as T;
+    }
 
     const data = await this.requestWithRetry<T>(endpoint);
     this.cache.set(endpoint, { data, timestamp: Date.now() });
     return data;
   }
 
-  invalidateCache(prefix: string) {
-    for (const key of this.cache.keys())
-      if (key.startsWith(prefix)) this.cache.delete(key);
+  invalidateCache(prefix: string): void {
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.cache.delete(key);
+      }
+    }
   }
 
-  private clearLocalStorage() {
+  private clearLocalStorage(): void {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     this.cache.clear();
   }
 
-  async refreshToken(): Promise<{ access: string; refresh: string }> {
+  async refreshToken(): Promise<TokenResponse> {
     const refresh = localStorage.getItem("refresh_token");
-    if (!refresh) throw new Error("No refresh token available");
+    if (!refresh) throw new ApiError("No refresh token available");
 
     const res = await fetch(`${API_BASE_URL}/users/token/refresh/`, {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ refresh }),
+      body: JSON.stringify({ refresh }),
     });
 
     if (!res.ok) {
       this.clearLocalStorage();
-      throw new Error("Failed to refresh token");
+      throw new ApiError("Failed to refresh token");
     }
 
-    const data = await res.json();
-    if (data.access)  localStorage.setItem("access_token",  data.access);
+    const data = (await res.json()) as TokenResponse;
+    if (data.access) localStorage.setItem("access_token", data.access);
     if (data.refresh) localStorage.setItem("refresh_token", data.refresh);
     return data;
   }
 
   async login(loginData: LoginData): Promise<AuthResponse> {
     const res = await fetch(`${API_BASE_URL}/users/login/`, {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
+      body: JSON.stringify({
         username: loginData.username,
         password: loginData.password,
       }),
@@ -204,49 +319,63 @@ class ApiService {
 
     if (!res.ok) {
       let msg = `Login failed (${res.status})`;
-      try { msg = (await res.json()).detail ?? msg; } catch {}
-      throw new Error(msg);
+      try {
+        const errorData = (await res.json()) as ApiErrorResponse;
+        msg = errorData.detail ?? msg;
+      } catch {
+        // Use default message
+      }
+      throw new ApiError(msg, res.status);
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as AuthResponse;
     localStorage.setItem("access_token", data.access);
     if (data.refresh) localStorage.setItem("refresh_token", data.refresh);
-    return data as AuthResponse;
+    return data;
   }
 
   async loginWithGoogle(code: string): Promise<AuthResponse> {
     const res = await fetch(`${API_BASE_URL}/users/login/`, {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ google_auth_code: code }),
+      body: JSON.stringify({ google_auth_code: code }),
     });
+    
     if (!res.ok) {
       let msg = "Google authentication failed";
-      try { msg = (await res.json()).detail ?? msg; } catch {}
-      throw new Error(msg);
+      try {
+        const errorData = (await res.json()) as ApiErrorResponse;
+        msg = errorData.detail ?? msg;
+      } catch {
+        // Use default message
+      }
+      throw new ApiError(msg, res.status);
     }
-    const data = await res.json();
+    
+    const data = (await res.json()) as AuthResponse;
     localStorage.setItem("access_token", data.access);
     if (data.refresh) localStorage.setItem("refresh_token", data.refresh);
-    return data as AuthResponse;
+    return data;
   }
 
   async register(registerData: RegisterData): Promise<unknown> {
     return this.request("/users/register/", {
       method: "POST",
-      body:   JSON.stringify(registerData),
+      body: JSON.stringify(registerData),
     });
   }
 
   async registerWithImage(formData: FormData): Promise<unknown> {
     const res = await fetch(`${API_BASE_URL}/users/register/`, {
       method: "POST",
-      body:   formData,
+      body: formData,
     });
+    
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail ?? JSON.stringify(err));
+      const err = (await res.json()) as ApiErrorResponse;
+      throw new ApiError(err.detail ?? JSON.stringify(err), res.status);
     }
+    
     return res.json();
   }
 
@@ -256,9 +385,11 @@ class ApiService {
       try {
         await this.request("/users/logout/", {
           method: "POST",
-          body:   JSON.stringify({ refresh }),
+          body: JSON.stringify({ refresh }),
         });
-      } catch {}
+      } catch {
+        // Ignore logout errors
+      }
     }
     this.clearLocalStorage();
   }
@@ -275,7 +406,7 @@ class ApiService {
     this.invalidateCache("/hospital/appointments/");
     return this.request("/hospital/appointments/create/", {
       method: "POST",
-      body:   JSON.stringify(data),
+      body: JSON.stringify(data),
     });
   }
 
@@ -296,7 +427,7 @@ class ApiService {
     this.invalidateCache("/hospital/test-requests/");
     return this.request("/hospital/test-requests/create/", {
       method: "POST",
-      body:   JSON.stringify(data),
+      body: JSON.stringify(data),
     });
   }
 
@@ -313,7 +444,7 @@ class ApiService {
     this.invalidateCache("/hospital/vital-requests/");
     return this.request("/hospital/vital-requests/create/", {
       method: "POST",
-      body:   JSON.stringify(data),
+      body: JSON.stringify(data),
     });
   }
 
@@ -325,34 +456,38 @@ class ApiService {
   async createVitals(data: unknown): Promise<unknown> {
     return this.request("/hospital/vitals/create/", {
       method: "POST",
-      body:   JSON.stringify(data),
+      body: JSON.stringify(data),
     });
   }
 
   async createLabResult(data: unknown): Promise<unknown> {
     return this.request("/hospital/lab-results/create/", {
       method: "POST",
-      body:   JSON.stringify(data),
+      body: JSON.stringify(data),
     });
   }
 
   async createMedicalReport(data: unknown): Promise<unknown> {
     return this.request("/hospital/medical-reports/create/", {
       method: "POST",
-      body:   JSON.stringify(data),
+      body: JSON.stringify(data),
     });
   }
 
-  async getStaffMembers(): Promise<unknown[]> {
-    return unwrapList(await this.cachedRequest("/hospital/staff/"));
+  async getStaffMembers(): Promise<StaffMember[]> {
+    return unwrapList(await this.cachedRequest("/hospital/staff/")) as StaffMember[];
   }
 
-  async getLabScientists(): Promise<unknown[]> {
-    return (await this.getStaffMembers()).filter((m: any) => m.role === "LAB");
+  async getLabScientists(): Promise<StaffMember[]> {
+    return (await this.getStaffMembers()).filter(
+      (m: StaffMember) => m.role === "LAB"
+    );
   }
 
-  async getNurses(): Promise<unknown[]> {
-    return (await this.getStaffMembers()).filter((m: any) => m.role === "NURSE");
+  async getNurses(): Promise<StaffMember[]> {
+    return (await this.getStaffMembers()).filter(
+      (m: StaffMember) => m.role === "NURSE"
+    );
   }
 
   async getPatients(): Promise<unknown[]> {
@@ -367,7 +502,7 @@ class ApiService {
   }): Promise<unknown> {
     return this.request("/hospital/assignments/assign-staff/", {
       method: "POST",
-      body:   JSON.stringify(data),
+      body: JSON.stringify(data),
     });
   }
 
@@ -387,18 +522,18 @@ class ApiService {
   async reassignStaff(assignmentId: number, newStaffId: string): Promise<unknown> {
     return this.request(`/hospital/assignments/${assignmentId}/reassign/`, {
       method: "PATCH",
-      body:   JSON.stringify({ staff_id: newStaffId }),
+      body: JSON.stringify({ staff_id: newStaffId }),
     });
   }
 
-  async getBlogPosts(): Promise<any[]> {
+  async getBlogPosts(): Promise<NormalizedBlogPost[]> {
     const data = await this.cachedRequest("/hospital/blog/", TTL_BLOG);
-    return unwrapList(data).map(normalizeBlogPost);
+    return unwrapList(data).map((item) => normalizeBlogPost(item as BlogPost));
   }
 
-  async getBlogPost(slug: string): Promise<any> {
+  async getBlogPost(slug: string): Promise<NormalizedBlogPost> {
     const data = await this.cachedRequest(`/hospital/blog/${slug}/`, TTL_BLOG);
-    return normalizeBlogPost(data);
+    return normalizeBlogPost(data as BlogPost);
   }
 
   async createBlogPost(data: FormData): Promise<unknown> {
@@ -420,24 +555,24 @@ class ApiService {
     return this.cachedRequest("/hospital/blog/admin/stats/");
   }
 
-  async getAllBlogPosts(): Promise<any[]> {
+  async getAllBlogPosts(): Promise<NormalizedBlogPost[]> {
     const data = await this.cachedRequest("/hospital/blog/admin/all/", TTL_BLOG);
-    return unwrapList(data).map(normalizeBlogPost);
+    return unwrapList(data).map((item) => normalizeBlogPost(item as BlogPost));
   }
 
-  async searchBlogPosts(query: string): Promise<any[]> {
+  async searchBlogPosts(query: string): Promise<NormalizedBlogPost[]> {
     const data = await this.request(
       `/hospital/blog/search/?q=${encodeURIComponent(query)}`
     );
-    return unwrapList(data).map(normalizeBlogPost);
+    return unwrapList(data).map((item) => normalizeBlogPost(item as BlogPost));
   }
 
-  async getLatestBlogPosts(limit = 6): Promise<any[]> {
+  async getLatestBlogPosts(limit = 6): Promise<NormalizedBlogPost[]> {
     const data = await this.cachedRequest(
       `/hospital/blog/latest/?limit=${limit}`,
       TTL_BLOG
     );
-    return unwrapList(data).map(normalizeBlogPost);
+    return unwrapList(data).map((item) => normalizeBlogPost(item as BlogPost));
   }
 }
 

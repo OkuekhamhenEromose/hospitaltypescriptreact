@@ -9,7 +9,8 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthProvider";
+import { useAuth } from "./hooks/useAuth";
 import Layout from "./components/Layout";
 import LoadingSpinner from "./components/LoadSpinner";
 import ScrollToTop from "./components/ScrollToTop";
