@@ -1,6 +1,5 @@
 // services/api.ts - FIXED with proper TypeScript types
 import type { LoginData, RegisterData, AuthResponse } from "./auth";
-export { normalizeMediaUrl } from "../utils/mediaUrl";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ??
   "https://hospitalback-clean-0fre.onrender.com/api";
