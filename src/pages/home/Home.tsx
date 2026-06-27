@@ -108,13 +108,13 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
   if (!latestPost) return null;
 
   return {
-    title:               latestPost.title       ?? "Latest Blog Post",
-    description:         latestPost.description ?? "Check out our latest healthcare article",
-    featured_image:      latestPost.featured_image  ?? null,   // ← was hardcoded null
-    image_1:             latestPost.image_1         ?? null,   // ← was hardcoded null
-    image_2:             latestPost.image_2         ?? null,   // ← was hardcoded null
+    title:               ((latestPost.title       as string | undefined) ?? "Latest Blog Post"),
+    description:         ((latestPost.description as string | undefined) ?? "Check out our latest healthcare article"),
+    featured_image:      latestPost.featured_image  ?? null,
+    image_1:             latestPost.image_1         ?? null,
+    image_2:             latestPost.image_2         ?? null,
     firstTwoSubheadings: getFirstTwoSubheadings(latestPost.subheadings),
-    slug:                latestPost.slug            ?? "latest",
+    slug:                ((latestPost.slug as string | undefined) ?? "latest"),
   };
 }, [latestPost]);
 
