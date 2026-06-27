@@ -35,6 +35,9 @@ const Header: React.FC<HeaderProps> = ({
     ? normalizeMediaUrl(safeUser.profile.profile_pix)
     : null;
 
+  console.log("profile_pix raw:", safeUser?.profile?.profile_pix);
+  console.log("profileImageUrl resolved:", profileImageUrl);
+
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY;

@@ -1,5 +1,6 @@
 // services/api.ts - FIXED with proper TypeScript types
 import type { LoginData, RegisterData, AuthResponse } from "./auth";
+export { normalizeMediaUrl } from "../utils/mediaUrl";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ??
   "https://hospitalback-clean-0fre.onrender.com/api";
@@ -107,13 +108,6 @@ export const normalizeMediaUrl = (url: string | null | undefined): string | null
   const cleanPath = url.startsWith("media/") ? url.slice(6) : url;
   return `${S3_BASE_URL}${cleanPath}`;
 };
-
-// export const normalizeMediaUrl = (url: string | null | undefined): string | null => {
-//   if (!url || url.trim() === "") return null;
-//   return url;
-// };
-
-
 
 const normalizeSubheading = (
   subheading: BlogSubheading,

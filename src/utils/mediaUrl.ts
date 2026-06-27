@@ -1,19 +1,17 @@
-// Create a new file: utils/mediaUrl.ts
+const S3_BASE_URL = "https://etha-hospital-clone-app.s3.eu-north-1.amazonaws.com/media/";
+
 export const normalizeMediaUrl = (url: string | null | undefined): string | null => {
-  if (!url) return null;
+  if (!url || url.trim() === "") return null;
   
-  // Already a full URL
-  if (url.startsWith('http')) return url;
+  // Already a full URL (S3, Google CDN for OAuth users, etc.) — return as-is
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
   
-  // Django media URL pattern
-  if (url.startsWith('/media/')) {
-    return `https://hospitalback-clean-0fre.onrender.com${url}`;
-  }
-  
-  // Just a filename
-  if (url.includes('.')) {
-    return `https://hospitalback-clean-0fre.onrender.com/media/${url}`;
-  }
-  
-  return null;
+  // Strip leading /media/ or media/ before building the S3 URL
+  const withoutMedia = url.startsWith("/media/")
+    ? url.slice(7)
+    : url.startsWith("media/")
+    ? url.slice(6)
+    : url;
+
+  return `${S3_BASE_URL}${withoutMedia}`;
 };
