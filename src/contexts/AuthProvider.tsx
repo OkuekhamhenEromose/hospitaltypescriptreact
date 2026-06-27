@@ -50,15 +50,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
       }
+      apiService.invalidateCache("/users/dashboard/");
 
       const response = await apiService.getDashboard();
       
       if (isDashboardResponse(response)) {
         setUser(response.user);
-      } else if (isDashboardResponse({ user: response })) {
-        // Handle case where response itself is the user object
-        setUser(response as unknown as User);
-      }
+      } 
     } catch {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
@@ -75,6 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const response: AuthResponse = await apiService.login(data);
     localStorage.setItem("access_token",  response.access);
     localStorage.setItem("refresh_token", response.refresh);
+    apiService.invalidateCache("/users/dashboard/");
     setUser(response.user);
   }, []);
 
