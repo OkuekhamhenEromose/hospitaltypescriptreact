@@ -104,19 +104,19 @@ const Home: React.FC<HomeProps> = ({ onSelectPost }) => {
     e.currentTarget.style.display = "none";
   };
 
-  // Get the latest post data for display
-  const latestPostData = useMemo(() => {
-    if (!latestPost || latestPost.length === 0) return null;
-    return {
-      title: "Latest Blog Post",
-      description: "Check out our latest healthcare article",
-      featured_image: null as string | null,
-      image_1: null as string | null,
-      image_2: null as string | null,
-      firstTwoSubheadings: getFirstTwoSubheadings(latestPost.subheadings),
-      slug: "latest",
-    };
-  }, [latestPost]);
+ const latestPostData = useMemo(() => {
+  if (!latestPost) return null;
+
+  return {
+    title:               latestPost.title       ?? "Latest Blog Post",
+    description:         latestPost.description ?? "Check out our latest healthcare article",
+    featured_image:      latestPost.featured_image  ?? null,   // ← was hardcoded null
+    image_1:             latestPost.image_1         ?? null,   // ← was hardcoded null
+    image_2:             latestPost.image_2         ?? null,   // ← was hardcoded null
+    firstTwoSubheadings: getFirstTwoSubheadings(latestPost.subheadings),
+    slug:                latestPost.slug            ?? "latest",
+  };
+}, [latestPost]);
 
   return (
     <>

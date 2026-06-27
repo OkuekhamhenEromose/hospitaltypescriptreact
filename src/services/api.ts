@@ -94,10 +94,26 @@ export interface NormalizedSubheading {
   full_content: string;
 }
 
+const S3_BASE_URL = "https://etha-hospital-clone-app.s3.eu-north-1.amazonaws.com/media/";
+
 export const normalizeMediaUrl = (url: string | null | undefined): string | null => {
   if (!url || url.trim() === "") return null;
-  return url;
+
+  // Already a full URL — return as-is
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+
+  // Relative S3 path (e.g. "profile/username_profile.jpg") — prepend bucket URL
+  // Strip leading "media/" if the backend already included it to avoid doubling
+  const cleanPath = url.startsWith("media/") ? url.slice(6) : url;
+  return `${S3_BASE_URL}${cleanPath}`;
 };
+
+// export const normalizeMediaUrl = (url: string | null | undefined): string | null => {
+//   if (!url || url.trim() === "") return null;
+//   return url;
+// };
+
+
 
 const normalizeSubheading = (
   subheading: BlogSubheading,
