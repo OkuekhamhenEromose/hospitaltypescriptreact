@@ -222,16 +222,16 @@ const Blog: React.FC = () => {
   // ──────────────────────────────────────────────────────────────────────────
   // LOCAL FILTER (when user hasn't submitted a search but is typing)
   // ──────────────────────────────────────────────────────────────────────────
-
-  const filteredPosts = useMemo(() => {
-    if (!searchQuery.trim()) return posts;
-    const q = searchQuery.toLowerCase();
-    return posts.filter(
-      (p) =>
-        p.title?.toLowerCase().includes(q) ||
-        p.description?.toLowerCase().includes(q)
-    );
-  }, [posts, searchQuery]);
+const filteredPosts = useMemo(() => {
+  if (!searchQuery.trim()) return posts;
+  const q = searchQuery.toLowerCase();
+  return posts.filter(
+    (p) =>
+      String(p.title ?? "").toLowerCase().includes(q) ||
+      String(p.description ?? "").toLowerCase().includes(q)
+  );
+}, [posts, searchQuery]);
+  
 
   // ──────────────────────────────────────────────────────────────────────────
   // TOC TOGGLE

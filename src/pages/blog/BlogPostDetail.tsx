@@ -7,8 +7,6 @@ import {
 import {
   apiService,
   type NormalizedBlogPost,
-  type BlogCategory,
-  type NormalizedSubheading,
 } from "../../services/api";
 import slugify from "slugify";
 import EttaLogo from "../../assets/img/etta-replace1-removebg-preview.png";

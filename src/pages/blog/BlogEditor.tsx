@@ -164,7 +164,7 @@ const ImageField: React.FC<{
 // RICH TEXT EDITOR TOOLBAR
 // ──────────────────────────────────────────────────────────────────────────────
 
-const useExecCommand = (editorRef: React.RefObject<HTMLDivElement>) => {
+const useExecCommand = (editorRef: React.RefObject<HTMLDivElement | null>) => {
   return useCallback((command: string, value?: string) => {
     editorRef.current?.focus();
     document.execCommand(command, false, value);
