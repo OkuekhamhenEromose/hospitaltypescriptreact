@@ -1,4 +1,4 @@
-// services/api.ts - FIXED with proper TypeScript types
+// services/api.ts - Updated with blog category support
 import type { LoginData, RegisterData, AuthResponse } from "./auth";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ??
@@ -7,8 +7,12 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ??
 const TTL_BLOG = 5 * 60 * 1000;
 const TTL_PERSONAL = 2 * 60 * 1000;
 const TTL_LIST = 3 * 60 * 1000;
+const TTL_CATEGORIES = 10 * 60 * 1000;
 
-// Proper type definitions
+// ──────────────────────────────────────────────────────────────────────────────
+// TYPE DEFINITIONS
+// ──────────────────────────────────────────────────────────────────────────────
+
 interface ApiErrorResponse {
   detail?: string;
   error?: string;
@@ -32,12 +36,27 @@ interface CacheEntry {
   timestamp: number;
 }
 
-// Type guard for checking if value is an object
+export interface BlogCategory {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  post_count: number;
+}
+
+export interface BlogSuggestion {
+  id: number;
+  title: string;
+  slug: string;
+  category_name: string;
+  category_slug: string;
+}
+
+// Type guards
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// Type guard for checking if value has results array
 function hasResults(value: unknown): value is { results: unknown[] } {
   return isObject(value) && Array.isArray(value.results);
 }
@@ -54,6 +73,14 @@ interface BlogSubheading {
   level?: number;
   description?: string;
   full_content?: string;
+}
+
+interface RawBlogCategory {
+  id?: number;
+  name?: string;
+  slug?: string;
+  description?: string | null;
+  post_count?: number;
 }
 
 interface BlogPost {
@@ -73,6 +100,7 @@ interface BlogPost {
   contents?: unknown[];
   subheadings?: BlogSubheading[] | null;
   sub_headings?: BlogSubheading[] | null;
+  category?: RawBlogCategory | null;
   [key: string]: unknown;
 }
 
@@ -84,6 +112,7 @@ export interface NormalizedBlogPost
   description: string;
   subheadings: NormalizedSubheading[];
   table_of_contents: unknown[];
+  category: BlogCategory | null;
 }
 
 export interface NormalizedSubheading {
@@ -98,12 +127,7 @@ const S3_BASE_URL = "https://etha-hospital-clone-app.s3.eu-north-1.amazonaws.com
 
 export const normalizeMediaUrl = (url: string | null | undefined): string | null => {
   if (!url || url.trim() === "") return null;
-
-  // Already a full URL — return as-is
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
-
-  // Relative S3 path (e.g. "profile/username_profile.jpg") — prepend bucket URL
-  // Strip leading "media/" if the backend already included it to avoid doubling
   const cleanPath = url.startsWith("media/") ? url.slice(6) : url;
   return `${S3_BASE_URL}${cleanPath}`;
 };
@@ -118,6 +142,17 @@ const normalizeSubheading = (
   description: subheading.description ?? "",
   full_content: subheading.full_content ?? subheading.description ?? "",
 });
+
+const normalizeCategory = (raw: RawBlogCategory | null | undefined): BlogCategory | null => {
+  if (!raw || !raw.id) return null;
+  return {
+    id: raw.id,
+    name: raw.name ?? "Unknown",
+    slug: raw.slug ?? "",
+    description: raw.description ?? null,
+    post_count: raw.post_count ?? 0,
+  };
+};
 
 const normalizeBlogPost = (post: BlogPost): NormalizedBlogPost => {
   const rawSubs = post.subheadings ?? post.sub_headings;
@@ -135,6 +170,7 @@ const normalizeBlogPost = (post: BlogPost): NormalizedBlogPost => {
     subheadings,
     table_of_contents:
       post.table_of_contents ?? post.toc ?? post.toc_items ?? post.contents ?? [],
+    category: normalizeCategory(post.category as RawBlogCategory | null | undefined),
   };
 };
 
@@ -391,7 +427,6 @@ class ApiService {
     });
 
     if (!res.ok) {
-      // Guard against HTML error pages (Django 500s return text/html)
       const contentType = res.headers.get("content-type") ?? "";
       if (contentType.includes("application/json")) {
         const err = (await res.json()) as ApiErrorResponse;
@@ -400,7 +435,6 @@ class ApiService {
           res.status
         );
       }
-      // Non-JSON response (HTML 500 page, etc.)
       throw new ApiError(
         `Registration failed with status ${res.status}. Please try again.`,
         res.status
@@ -557,8 +591,35 @@ class ApiService {
     });
   }
 
-  async getBlogPosts(): Promise<NormalizedBlogPost[]> {
-    const data = await this.cachedRequest("/hospital/blog/", TTL_BLOG);
+  // ── Blog Categories ────────────────────────────────────────────────────────
+
+  async getBlogCategories(): Promise<BlogCategory[]> {
+    const data = await this.cachedRequest("/hospital/blog/categories/", TTL_CATEGORIES);
+    return unwrapList(data) as BlogCategory[];
+  }
+
+  // ── Blog Search Suggestions ────────────────────────────────────────────────
+
+  /**
+   * Returns lightweight title suggestions for the search autocomplete.
+   * Optionally scoped to a category slug.
+   */
+  async getBlogSuggestions(query: string, categorySlug?: string): Promise<BlogSuggestion[]> {
+    if (!query.trim()) return [];
+    const cat = categorySlug ? `&category=${encodeURIComponent(categorySlug)}` : "";
+    // Bypass cache for suggestions — they need to be fresh as the user types
+    const data = await this.request(
+      `/hospital/blog/suggest/?q=${encodeURIComponent(query)}${cat}`
+    );
+    return unwrapList(data) as BlogSuggestion[];
+  }
+
+  // ── Blog Posts ─────────────────────────────────────────────────────────────
+
+  async getBlogPosts(categorySlug?: string): Promise<NormalizedBlogPost[]> {
+    const cat = categorySlug ? `?category=${encodeURIComponent(categorySlug)}` : "";
+    const cacheKey = `/hospital/blog/${cat}`;
+    const data = await this.cachedRequest(cacheKey, TTL_BLOG);
     return unwrapList(data).map((item) => normalizeBlogPost(item as BlogPost));
   }
 
@@ -569,16 +630,19 @@ class ApiService {
 
   async createBlogPost(data: FormData): Promise<unknown> {
     this.invalidateCache("/hospital/blog/");
+    this.invalidateCache("/hospital/blog/categories/");
     return this.request("/hospital/blog/", { method: "POST", body: data });
   }
 
   async updateBlogPost(slug: string, data: FormData): Promise<unknown> {
     this.invalidateCache("/hospital/blog/");
+    this.invalidateCache("/hospital/blog/categories/");
     return this.request(`/hospital/blog/${slug}/`, { method: "PATCH", body: data });
   }
 
   async deleteBlogPost(slug: string): Promise<void> {
     this.invalidateCache("/hospital/blog/");
+    this.invalidateCache("/hospital/blog/categories/");
     await this.request(`/hospital/blog/${slug}/`, { method: "DELETE" });
   }
 
@@ -591,16 +655,18 @@ class ApiService {
     return unwrapList(data).map((item) => normalizeBlogPost(item as BlogPost));
   }
 
-  async searchBlogPosts(query: string): Promise<NormalizedBlogPost[]> {
+  async searchBlogPosts(query: string, categorySlug?: string): Promise<NormalizedBlogPost[]> {
+    const cat = categorySlug ? `&category=${encodeURIComponent(categorySlug)}` : "";
     const data = await this.request(
-      `/hospital/blog/search/?q=${encodeURIComponent(query)}`
+      `/hospital/blog/search/?q=${encodeURIComponent(query)}${cat}`
     );
     return unwrapList(data).map((item) => normalizeBlogPost(item as BlogPost));
   }
 
-  async getLatestBlogPosts(limit = 6): Promise<NormalizedBlogPost[]> {
+  async getLatestBlogPosts(limit = 6, categorySlug?: string): Promise<NormalizedBlogPost[]> {
+    const cat = categorySlug ? `&category=${encodeURIComponent(categorySlug)}` : "";
     const data = await this.cachedRequest(
-      `/hospital/blog/latest/?limit=${limit}`,
+      `/hospital/blog/latest/?limit=${limit}${cat}`,
       TTL_BLOG
     );
     return unwrapList(data).map((item) => normalizeBlogPost(item as BlogPost));
